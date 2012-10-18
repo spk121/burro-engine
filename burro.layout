@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="Debug" />
+	<File name="eng_draw.c" open="1" top="1" tabpos="3">
+		<Cursor position="6795" topLine="273" />
+	</File>
+	<File name="eng_draw.h" open="1" top="0" tabpos="4">
+		<Cursor position="102" topLine="0" />
+	</File>
+	<File name="engine.c" open="1" top="0" tabpos="2">
+		<Cursor position="167" topLine="111" />
+	</File>
+	<File name="engine.h" open="1" top="0" tabpos="7">
+		<Cursor position="1275" topLine="81" />
+	</File>
+	<File name="main.c" open="1" top="0" tabpos="1">
+		<Cursor position="533" topLine="0" />
+	</File>
+</CodeBlocks_layout_file>
