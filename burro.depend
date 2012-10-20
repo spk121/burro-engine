@@ -2449,3 +2449,31 @@
 	<stdint.h>
 	<stdbool.h>
 
+1350757963 source:/home/mike/burro-engine/eng_draw.c
+	<stddef.h>
+	<cairo.h>
+	<math.h>
+	"engine.h"
+	"eng_draw.h"
+
+1350756841 /home/mike/burro-engine/engine.h
+	<stdint.h>
+	<stdbool.h>
+
+1350757348 /home/mike/burro-engine/eng_draw.h
+
+1350759400 source:/home/mike/burro-engine/engine.c
+	"engine.h"
+	<glib.h>
+	<math.h>
+	<gtk/gtk.h>
+	<glib.h>
+	<gtk/gtk.h>
+	<gdk/gdkkeysyms.h>
+	"engine.h"
+	"eng_draw.h"
+
+1350578107 source:/home/mike/burro-engine/main.c
+	<gtk/gtk.h>
+	"engine.h"
+

@@ -90,6 +90,7 @@
 #define RGBA_TO_GREEN_RATIO(x) ((float)(RGBA_TO_GREEN(x))/256.0f)
 #define RGBA_TO_BLUE_RATIO(x)  ((float)(RGBA_TO_BLUE(x))/256.0f)
 #define RGBA_TO_ALPHA_RATIO(x) ((float)(RGBA_TO_ALPHA(x))/256.0f)
+#define RGBA(r,g,b,a) ((r) | ((g)<<8) | ((b)<<16) | ((a)<<24))
 
 
 struct bg_map_data
@@ -127,8 +128,17 @@ struct bg_entry
     /* z-level: 0 is foreground, 3 is background */
     uint8_t priority;
 
-    /* Affine transform */
-    float xx, xy, yx, yy, x0, y0;
+    /** the "user" or screen location of the rotation center of the background */
+    double center_x, center_y;
+
+    /** the "device" location of the rotation center of the background*/
+    int center_i, center_j;
+
+    /** the expansion factor of the background: 1.0 = 1 pixel per pixel */
+    double expansion;
+
+    /** the rotation angle of the background about its rotation center, in radians */
+    double rotation;
 
     union
     {
@@ -149,22 +159,35 @@ struct obj_entry
     /** Sprite is visible if true */
     bool enable;
 
-    /** x location of the sprite in pixels */
-    uint16_t x;
-
-    /** y location of the sprite in pixels */
-    uint16_t y;
-
     /** priority aka z-level. 0 to 3 where 0 is foreground */
     uint8_t priority;
 
-    /** index of an affine transform to be applied */
-    uint8_t affine_index;
+    /** location of top-left corner of sprite in sprite sheet */
+    int spritesheet_i, spritesheet_j;
+
+    /** size of sprite in pixels */
+    int sprite_width, sprite_height;
+
+    /** the "user" or screen location of the rotation center of the sprite */
+    double center_x, center_y;
+
+    /** the "device" location of the rotation centere, aka, it bitmap row and column of its hotspot*/
+    int center_i, center_j;
+
+    /** the expansion factor of the sprite: 1.0 = 1 pixel per pixel */
+    double expansion;
+
+    /** the rotation angle of the sprite about its rotation center, in radians */
+    double rotation;
 };
 
 struct trans_entry
 {
-    float xx, xy, yx, yy, x0, y0;
+    /** location of hotspot on sprite */
+    float x0, y0;
+
+    /** expansion about hotspot */
+    float xx, xy, yx, yy;
 };
 
 /* Tones are square waves */
@@ -251,7 +274,6 @@ struct eng
     struct bg_entry main_bg[MAIN_BACKGROUNDS_COUNT];
     struct obj_entry main_obj[MAIN_SPRITES_COUNT];
     struct obj_data main_objsheet;
-    struct trans_entry main_trans[MAIN_TRANSFORMS_COUNT];
 
     struct bg_entry sub_bg[SUB_BACKGROUNDS_COUNT];
     struct obj_entry sub_obj[SUB_SPRITES_COUNT];

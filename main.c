@@ -1,5 +1,6 @@
 #include <gtk/gtk.h>
 #include "engine.h"
+#include "game.h"
 
 int main()
 {
@@ -9,11 +10,11 @@ int main()
     gtk_init (0, NULL);
     //gst_init (0, NULL);
     g_log_set_handler (NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, g_log_default_handler, NULL);
-    
+
     /* Initialize the engine */
     eng_init ();
 
-    //game_init ();
+    // game_init ();
 
     /* Hook the game into the engine */
     //e.do_before_draw_frame = game_update;

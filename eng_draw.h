@@ -5,4 +5,10 @@ void init_draw (void);
 void fini_draw (void);
 void draw (void);
 
+
+extern cairo_t *main_screen_context;
+extern cairo_surface_t *main_screen_surface;
+
+extern cairo_t *sub_screen_context;
+extern cairo_surface_t *sub_screen_surface;
 #endif // ENG_DRAW_H_INCLUDED

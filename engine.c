@@ -11,29 +11,31 @@
 #include "eng_draw.h"
 
 /* For the GUI */
-static GtkWidget *m_window;
-static GtkWidget *m_fixed;
-static GtkWidget *m_main_screen;
-static GtkWidget *m_sub_screen;
+static GtkWidget *window;
+static GtkWidget *fixed;
+static GtkWidget *main_screen;
+static GtkWidget *sub_screen;
 
 /* Global state */
-static gboolean m_initialized_flag = FALSE;
-static gboolean m_minimized_flag = FALSE;
-static gboolean m_active_flag = FALSE;
-static gboolean m_quitting_flag = FALSE;
+static gboolean initialized_flag = FALSE;
+static gboolean minimized_flag = FALSE;
+static gboolean active_flag = FALSE;
+static gboolean quitting_flag = FALSE;
 #define REFRESH_RATE (1.0 / 30.0)
 
 /* For frames-per-second calculation */
-static int m_frame_count;
-static GTimer *m_fps_timer;
-static double m_prev_time, m_cur_time;
+static int frame_count;
+static GTimer *fps_timer;
+static double prev_time, cur_time;
 
 /* The main engine data store */
 engine_t e;
 
 cairo_surface_t *eng_main_surface;
 cairo_surface_t *eng_sub_surface;
+GMainLoop *main_loop;
 
+static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy);
 static gboolean idle_state_event_cb (void *dummy);
 static gboolean key_event_cb (G_GNUC_UNUSED GtkWidget *widget, GdkEventKey *event, gpointer dummy);
@@ -50,67 +52,73 @@ void eng_init()
     //gst_init (0, NULL);
     g_log_set_handler (NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, g_log_default_handler, NULL);
     /* Set up the frame count timer */
-    m_fps_timer = g_timer_new();
-    g_timer_start (m_fps_timer);
-    m_frame_count = 0;
-    m_prev_time = g_timer_elapsed (m_fps_timer, NULL);
-    m_cur_time =  g_timer_elapsed (m_fps_timer, NULL);
+    fps_timer = g_timer_new();
+    g_timer_start (fps_timer);
+    frame_count = 0;
+    prev_time = g_timer_elapsed (fps_timer, NULL);
+    cur_time =  g_timer_elapsed (fps_timer, NULL);
 
-    m_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_container_set_border_width (GTK_CONTAINER (m_window), 8);
-    gtk_window_set_position(GTK_WINDOW(m_window), GTK_WIN_POS_CENTER);
-    gtk_window_set_title (GTK_WINDOW (m_window), "burro");
-    gtk_widget_realize (m_window);
+    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_container_set_border_width (GTK_CONTAINER (window), 8);
+    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    gtk_window_set_title (GTK_WINDOW (window), "burro");
+    gtk_widget_realize (window);
 
-    m_fixed = gtk_fixed_new ();
-    gtk_container_add (GTK_CONTAINER (m_window), m_fixed);
+    fixed = gtk_fixed_new ();
+    gtk_container_add (GTK_CONTAINER (window), fixed);
 
-    m_sub_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request (m_sub_screen,
+    sub_screen = gtk_drawing_area_new();
+    gtk_widget_set_size_request (sub_screen,
                                  SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION,
                                  SUB_SCREEN_HEIGHT_IN_PIXELS * SUB_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(m_fixed), m_sub_screen, 0, 0);
+    gtk_fixed_put(GTK_FIXED(fixed), sub_screen, 0, 0);
 
-    m_main_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request(m_main_screen,
+    main_screen = gtk_drawing_area_new();
+    gtk_widget_set_size_request(main_screen,
                                 MAIN_SCREEN_WIDTH_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION,
                                 MAIN_SCREEN_HEIGHT_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(m_fixed), m_main_screen, SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10, 0);
+    gtk_fixed_put(GTK_FIXED(fixed), main_screen, SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10, 0);
 
-    g_signal_connect (m_window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
-    g_signal_connect (G_OBJECT (m_window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (G_OBJECT (m_window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (GTK_WIDGET(m_window), "window-state-event", (GCallback) window_state_event_cb, NULL);
+    g_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    g_signal_connect (GTK_WIDGET(window), "window-state-event", (GCallback) window_state_event_cb, NULL);
 
-    gtk_widget_show_all (m_window);
+    gtk_widget_show_all (window);
 
     init_draw ();
 
-    m_initialized_flag = TRUE;
+    initialized_flag = TRUE;
 }
 
 
 void eng_main()
 {
-    m_active_flag = TRUE;
+    active_flag = TRUE;
 
     /* Set up the main loop.  I use glib because I need an idle function */
     {
-        GMainLoop *loop;
-        loop = g_main_loop_new (NULL, TRUE);
+
+        main_loop = g_main_loop_new (NULL, TRUE);
 
         /* All our game processing goes in the idle func */
         g_idle_add (idle_state_event_cb, NULL);
 
         /* What is this GDK voodoo?  Grabbed it from the gtk repo */
         gdk_threads_leave ();
-        g_main_loop_run (loop);
+        g_main_loop_run (main_loop);
         gdk_threads_enter ();
         gdk_flush ();
-        g_main_loop_unref (loop);
+        g_main_loop_unref (main_loop);
     }
+}
+
+static void destroy_cb(GtkWidget* widget, gpointer dummy)
+{
+    quitting_flag = TRUE;
+    g_main_loop_quit(main_loop);
 }
 
 static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy)
@@ -118,9 +126,9 @@ static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpoin
     if (event->window_state.changed_mask & GDK_WINDOW_STATE_ICONIFIED)
     {
         if (event->window_state.new_window_state & GDK_WINDOW_STATE_ICONIFIED)
-            m_minimized_flag = TRUE;
+            minimized_flag = TRUE;
         else
-            m_minimized_flag = FALSE;
+            minimized_flag = FALSE;
     }
     return TRUE;
 }
@@ -186,14 +194,14 @@ static gboolean idle_state_event_cb (void *dummy)
     static double last_draw = 0.0;
     static gboolean run_full_speed = FALSE;
 
-    if (m_quitting_flag)
+    if (quitting_flag)
         return FALSE;
 
-    if (m_initialized_flag && !m_minimized_flag)
+    if (initialized_flag && !minimized_flag)
     {
-        if (m_active_flag)
+        if (active_flag)
         {
-            cur_tick = g_timer_elapsed (m_fps_timer, NULL);
+            cur_tick = g_timer_elapsed (fps_timer, NULL);
 
             if (e.do_idle != NULL)
                 e.do_idle (&e, cur_tick - last_update);
@@ -234,30 +242,32 @@ static void present()
 {
     cairo_t *cr;
 
+    if (quitting_flag)
+        return;
     /* Have the video view draw the video model onto the screen */
 
-    cr = gdk_cairo_create (gtk_widget_get_window (m_main_screen));
+    cr = gdk_cairo_create (gtk_widget_get_window (main_screen));
 
     cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
     cairo_scale(cr, 2.0, 2.0);
-    cairo_set_source_surface (cr, eng_main_surface, 0, 0);
+    cairo_set_source_surface (cr, main_screen_surface, 0, 0);
     cairo_paint (cr);
     cairo_destroy(cr);
 
-    cr = gdk_cairo_create (gtk_widget_get_window (m_sub_screen));
+    cr = gdk_cairo_create (gtk_widget_get_window (sub_screen));
 
     cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
     cairo_scale(cr, 1.0, 1.0);
-    cairo_set_source_surface (cr, eng_sub_surface, 0, 0);
+    cairo_set_source_surface (cr, sub_screen_surface, 0, 0);
     cairo_paint (cr);
     cairo_destroy(cr);
 
-    m_frame_count ++;
-    if (m_frame_count % 100 == 0)
+    frame_count ++;
+    if (frame_count % 100 == 0)
     {
-        m_cur_time = g_timer_elapsed(m_fps_timer, NULL);
-        printf("%f\n", 100.0 / (m_cur_time - m_prev_time));
-        m_prev_time = m_cur_time;
+        cur_time = g_timer_elapsed(fps_timer, NULL);
+        printf("%f\n", 100.0 / (cur_time - prev_time));
+        prev_time = cur_time;
     }
 }
 
