@@ -30,13 +30,30 @@
 		</Build>
 		<Compiler>
 			<Add option="-march=i586" />
+			<Add option="-Wshadow" />
+			<Add option="-Winit-self" />
+			<Add option="-Wredundant-decls" />
+			<Add option="-Wcast-align" />
+			<Add option="-Wundef" />
+			<Add option="-Wunreachable-code" />
+			<Add option="-Wmissing-declarations" />
+			<Add option="-Wmissing-include-dirs" />
+			<Add option="-pedantic" />
+			<Add option="-Wextra" />
 			<Add option="-Wall" />
-			<Add option="`pkg-config gtk+-3.0 --cflags` -std=c11" />
+			<Add option="`pkg-config gtk+-3.0 --cflags`" />
+			<Add option="-std=c11" />
+			<Add option="` pkg-config gstreamer-0.10 --cflags`" />
 			<Add option="-DGTK3" />
 		</Compiler>
 		<Linker>
 			<Add option="`pkg-config gtk+-3.0 --libs`" />
+			<Add option="` pkg-config gstreamer-0.10 --libs`" />
 		</Linker>
+		<Unit filename="eng_audio.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eng_audio.h" />
 		<Unit filename="eng_draw.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -45,9 +62,21 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="engine.h" />
+		<Unit filename="game.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="game.h" />
+		<Unit filename="io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="io.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="tga.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="tga.h" />
 		<Extensions>
 			<code_completion />
 			<debugger />

@@ -2449,7 +2449,7 @@
 	<stdint.h>
 	<stdbool.h>
 
-1350757963 source:/home/mike/burro-engine/eng_draw.c
+1350767475 source:/home/mike/burro-engine/eng_draw.c
 	<stddef.h>
 	<cairo.h>
 	<math.h>
@@ -2460,9 +2460,9 @@
 	<stdint.h>
 	<stdbool.h>
 
-1350757348 /home/mike/burro-engine/eng_draw.h
+1350767475 /home/mike/burro-engine/eng_draw.h
 
-1350759400 source:/home/mike/burro-engine/engine.c
+1350767472 source:/home/mike/burro-engine/engine.c
 	"engine.h"
 	<glib.h>
 	<math.h>
@@ -2473,7 +2473,42 @@
 	"engine.h"
 	"eng_draw.h"
 
-1350578107 source:/home/mike/burro-engine/main.c
+1350778217 source:/home/mike/burro-engine/main.c
 	<gtk/gtk.h>
 	"engine.h"
+	"game.h"
+
+1350779238 source:/home/mike/burro-engine/game.c
+	<gtk/gtk.h>
+	<gio/gio.h>
+	"game.h"
+	"engine.h"
+	"tga.h"
+
+1350766794 /home/mike/burro-engine/game.h
+
+1350769471 /home/mike/burro-engine/tga.h
+	<glib.h>
+	<gio/gio.h>
+
+1350769476 source:/home/mike/burro-engine/io.c
+	<glib.h>
+	<gio/gio.h>
+	"io.h"
+
+1350768772 /home/mike/burro-engine/io.h
+	<glib.h>
+	<gio/gio.h>
+
+1350769472 source:/home/mike/burro-engine/tga.c
+	<glib.h>
+	<glib/gprintf.h>
+	<string.h>
+	"tga.h"
+	"io.h"
+
+1347576149 /usr/include/glib-2.0/glib/gprintf.h
+	<glib.h>
+	<stdio.h>
+	<stdarg.h>
 
