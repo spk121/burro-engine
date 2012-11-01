@@ -1,31 +1,26 @@
 #include <gtk/gtk.h>
 #include "engine.h"
+#ifndef NO_GAME
 #include "game.h"
+#endif
 
-int main()
+int main(int argc, char **argv)
 {
     int i;
 
     g_log_set_handler ("Gtk", G_LOG_LEVEL_WARNING, (GLogFunc) gtk_false, NULL);
-    gtk_init (0, NULL);
-    //gst_init (0, NULL);
     g_log_set_handler (NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, g_log_default_handler, NULL);
 
+#ifndef NO_GAME
     /* Initialize the engine */
-    eng_init ();
-
-    // game_init ();
-
-    /* Hook the game into the engine */
-    //e.do_before_draw_frame = game_update;
-    e.do_idle = NULL;
-    e.do_before_draw_frame = NULL;
-    e.do_after_keypress = NULL;
-    for (i = 0; i < TIMER_COUNT; i ++)
-        e.do_after_timer[i] = NULL;
+    engine_initialize(&argc, &argv, game_get_title());
+    game_initialize (&argc, &argv, e);
+#else
+    engine_initialize(&argc, &argv, "Project Burro");
+#endif
 
     /* Main loop */
-    eng_main ();
+    engine_loop();
 
     return 0;
 }

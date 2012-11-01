@@ -9,6 +9,7 @@
 //#include <gst/gst.h>
 #include "engine.h"
 #include "eng_draw.h"
+#include "eng_audio.h"
 
 /* For the GUI */
 static GtkWidget *window;
@@ -44,13 +45,15 @@ static void present(void);
 static void audio_update (void);
 static void audio_pause (void);
 
-void eng_init()
+void engine_initialize(int *argc, char ***argv, char *title)
 {
+    g_warn_if_fail(title != NULL && strlen(title) > 0);
+    g_warn_if_fail(argc != NULL && *argc > 0);
+    g_warn_if_fail(argv != NULL);
 
-    g_log_set_handler ("Gtk", G_LOG_LEVEL_WARNING, (GLogFunc) gtk_false, NULL);
-    gtk_init (0, NULL);
-    //gst_init (0, NULL);
-    g_log_set_handler (NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, g_log_default_handler, NULL);
+    gtk_init(argc, argv);
+    gst_init(argc, argv);
+
     /* Set up the frame count timer */
     fps_timer = g_timer_new();
     g_timer_start (fps_timer);
@@ -61,7 +64,11 @@ void eng_init()
     window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_container_set_border_width (GTK_CONTAINER (window), 8);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-    gtk_window_set_title (GTK_WINDOW (window), "burro");
+    if (title && strlen(title) > 0)
+        gtk_window_set_title (GTK_WINDOW (window), title);
+    else
+        gtk_window_set_title(GTK_WINDOW(window), "Project Burro Engine");
+
     gtk_widget_realize (window);
 
     fixed = gtk_fixed_new ();
@@ -88,7 +95,13 @@ void eng_init()
 
     gtk_widget_show_all (window);
 
-    init_draw ();
+    e.brightness =  1.0;
+
+    initialize_globals();
+    initialize_video();
+    initialize_audio();
+    initialize_timers();
+    initialize_io();
 
     initialized_flag = TRUE;
 }
@@ -135,58 +148,29 @@ static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpoin
 
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy)
 {
-    switch (event->keyval)
+    switch (gdk_keyval_to_upper(event->keyval))
     {
-#ifdef GTK3
-    case GDK_KEY_p:
-#else
-    case GDK_p:
-#endif
-        printf("key pressed: %s\n", "p");
+    case GDK_KEY_W:
+        e.key_up = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-#ifdef GTK3
-    case GDK_KEY_s:
-#else
-    case GDK_s:
-#endif
-        if (event->state & GDK_SHIFT_MASK)
-        {
-            printf("key pressed: %s\n", "shift + s");
-        }
-        else if (event->state & GDK_CONTROL_MASK)
-        {
-            printf("key pressed: %s\n", "ctrl + s");
-        }
-        else
-        {
-            printf("key pressed: %s\n", "s");
-        }
+    case GDK_KEY_A:
+        e.key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-#ifdef GTK3
-    case GDK_KEY_m:
-#else
-    case GDK_m:
-#endif
-        if (event->state & GDK_SHIFT_MASK)
-        {
-            printf("key pressed: %s\n", "shift + m");
-        }
-        else if (event->state & GDK_CONTROL_MASK)
-        {
-            printf("key pressed: %s\n", "ctrl + m");
-        }
-        else
-        {
-            printf("key pressed: %s\n", "m");
-        }
+    case GDK_KEY_D:
+        e.key_down = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-
+    case GDK_KEY_F:
+        e.key_right = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_space:
+        e.key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
     default:
         return FALSE;
     }
 
     return FALSE;
 }
+
 static gboolean idle_state_event_cb (void *dummy)
 {
     static double cur_tick = 0.0;

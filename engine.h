@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "engine_priv.h"
 
 #define BASE_WIDTH 240
 #define BASE_HEIGHT 192
@@ -34,9 +35,6 @@
    - bmp8: a bitmap where each byte is an index to a 256 color palette
    - bmp32: a bitmap where each quad is an RGBA colorval
 */
-#define BG_MODE_TILE_AND_MAP (1)
-#define BG_MODE_INDEXED_BITMAP (2)
-#define BG_MODE_TRUE_COLOR_BITMAP (3)
 
 #define MAIN_BACKGROUNDS_COUNT 4
 #define SUB_BACKGROUNDS_COUNT 2
@@ -51,9 +49,7 @@
 
 /* Foregrounds are sprites that have associated affine transforms */
 #define MAIN_SPRITES_COUNT (128)
-#define MAIN_TRANSFORMS_COUNT (32)
 #define SUB_SPRITES_COUNT (128)
-#define SUB_TRANSFORMS_COUNT (32)
 
 /* Tiles and sprites are packed into a 2D bmp sprite sheets */
 #define TILESHEET_HEIGHT_IN_TILES (32)
@@ -95,8 +91,8 @@
 
 struct bg_map_data
 {
-    uint16_t map_height_in_tiles;
-    uint16_t map_width_in_tiles;
+    int map_height_in_tiles;
+    int map_width_in_tiles;
     uint16_t map[MAP_HEIGHT_IN_TILES][MAP_WIDTH_IN_TILES];
     uint8_t tiles[TILESHEET_HEIGHT_IN_PIXELS][TILESHEET_WIDTH_IN_PIXELS];
     uint32_t palette[PALETTE_COLORS_COUNT];
@@ -104,29 +100,37 @@ struct bg_map_data
 
 struct bg_bmp8_data
 {
-    uint16_t height_in_pixels;
-    uint16_t width_in_pixels;
+    int height_in_pixels;
+    int width_in_pixels;
     uint8_t bmp[BMP8_HEIGHT_IN_PIXELS][BMP8_WIDTH_IN_PIXELS];
     uint32_t palette[PALETTE_COLORS_COUNT];
 };
 
 struct bg_bmp32_data
 {
-    uint16_t height_in_pixels;
-    uint16_t width_in_pixels;
+    int height_in_pixels;
+    int width_in_pixels;
     uint32_t bmp[BMP32_HEIGHT_IN_PIXELS][BMP32_WIDTH_IN_PIXELS];
+};
+
+enum bg_entry_mode
+{
+    BG_MODE_UNKNOWN = 0,
+    BG_MODE_MAP_AND_TILE,
+    BG_MODE_INDEXED_BITMAP,
+    BG_MODE_TRUE_COLOR_BITMAP
 };
 
 struct bg_entry
 {
     /* BG is display when true */
-    bool enable;
+    _Bool enable;
 
     /** tile and map, palette bmp, or true color bmp */
-    uint8_t mode;
+    enum bg_entry_mode mode;
 
     /* z-level: 0 is foreground, 3 is background */
-    uint8_t priority;
+    int priority;
 
     /** the "user" or screen location of the rotation center of the background */
     double center_x, center_y;
@@ -157,10 +161,10 @@ struct obj_data
 struct obj_entry
 {
     /** Sprite is visible if true */
-    bool enable;
+    _Bool enable;
 
     /** priority aka z-level. 0 to 3 where 0 is foreground */
-    uint8_t priority;
+    int priority;
 
     /** location of top-left corner of sprite in sprite sheet */
     int spritesheet_i, spritesheet_j;
@@ -181,95 +185,143 @@ struct obj_entry
     double rotation;
 };
 
-struct trans_entry
-{
-    /** location of hotspot on sprite */
-    float x0, y0;
 
-    /** expansion about hotspot */
-    float xx, xy, yx, yy;
-};
-
-/* Tones are square waves */
+/* Tones are squarish waves */
 struct tone_entry
 {
-    /** frequency of the tone in cycles/sec */
-    float freq;
+    /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool start_trigger;
 
-    /** amplitude of the tone from 0.0 to 1.0 */
-    float amplitude;
+    /** (Write Only) When Game sets this TRUE, the currently playing tone will stop on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool stop_trigger;
 
-    /** duration of the tone in sec */
-    float duration;
+    /** (Read) Engine sets this to TRUE when it is playing a tone on this channel.  */
+    _Bool is_playing;
 
-    /** ratio between high and low in the square wave, from 0.0 to 1.0 */
-    float duty;
+    /** (Write) the duration of the attack portion of the tone in seconds */
+    double attack_duration;
 
-    /** rate of change in frequency of tone in cycles / sec^2 */
-    float sweep_delta_freq;
+    /** (Write) the duration of the decay portion of the tone in seconds */
+    double decay_duration;
 
-    /** duration of the sweep in sec */
-    float sweep_duration;
+    /** (Write) the duration of the release portion of the tone in seconds */
+    double release_duration;
 
-    /** rate of change of amplitude in units / sec */
-    float env_delta_amplitude;
+    /** (Write) the duration of the tone in seconds */
+    double total_duration;
 
-    /** duration of the rate of change of the tone */
-    float env_duration;
+    /** (Write) the initial frequency of the tone in Hz */
+    double initial_frequency;
+
+    /** (Write) the frequency of the tone at the end of the attack, in Hz */
+    double attack_frequency;
+
+    /** (Write) the frequency of the tone at the end of the decay, in Hz */
+    double sustain_frequency;
+
+    /** (Write) the frequency of the tone at the end of the release, in Hz */
+    double release_frequency;
+
+    /** (Write) the amplitude of the tone at the end of the attack, from 0 to 1.  Usually 1 */
+    double attack_amplitude;
+
+    /** (Write) the amplitude of the tone at the end of the decay, from 0 to 1.  Usually between 0.5 and 1 */
+    double sustain_amplitude;
+
+    /** (Write) the ratio between the length of the high part of the square wave to the total period, usually 0.5 */
+    double duty;
 };
 
-/* White noise is generated by creating a squareish waveform where
-   each sample is randomly either high or low. */
-struct noise_entry
+/* Tones are squarish waves */
+struct tone_entry
 {
-    /** frequency of the tone in cycles/sec */
-    float freq;
+    /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool start_trigger;
 
-    /** amplitude of the tone from 0.0 to 1.0 */
-    float amplitude;
+    /** (Write Only) When Game sets this TRUE, the currently playing tone will stop on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool stop_trigger;
 
-    /** duration of the tone in sec */
-    float duration;
+    /** (Read) Engine sets this to TRUE when it is playing a tone on this channel.  */
+    _Bool is_playing;
 
-    /** ratio between high and low in the square wave, from 0.0 to 1.0 */
-    float duty;
+    /** (Write) the duration of the attack portion of the tone in seconds */
+    double attack_duration;
 
-    /** rate of change in frequency of tone in cycles / sec^2 */
-    float sweep_delta_freq;
+    /** (Write) the duration of the decay portion of the tone in seconds */
+    double decay_duration;
 
-    /** duration of the sweep in sec */
-    float sweep_duration;
+    /** (Write) the duration of the release portion of the tone in seconds */
+    double release_duration;
 
-    /** rate of change of amplitude in units / sec */
-    float env_delta_amplitude;
+    /** (Write) the duration of the tone in seconds */
+    double total_duration;
 
-    /** duration of the rate of change of the tone */
-    float env_duration;
+    /** (Write) the initial frequency of the tone in Hz */
+    double initial_frequency;
+
+    /** (Write) the frequency of the tone at the end of the attack, in Hz */
+    double attack_frequency;
+
+    /** (Write) the frequency of the tone at the end of the decay, in Hz */
+    double sustain_frequency;
+
+    /** (Write) the frequency of the tone at the end of the release, in Hz */
+    double release_frequency;
+
+    /** (Write) the amplitude of the tone at the end of the attack, from 0 to 1.  Usually 1 */
+    double attack_amplitude;
+
+    /** (Write) the amplitude of the tone at the end of the decay, from 0 to 1.  Usually between 0.5 and 1 */
+    double sustain_amplitude;
+
+    /** (Write) the ratio between the length of the high part of the square wave to the total period, usually 0.5 */
+    double duty;
 };
 
 struct wave_entry
 {
+    /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool start_trigger;
+
+    /** (Write Only) When Game sets this TRUE, the currently playing tone will stop on the next idle cycle.
+        Engine will set it FALSE once it has been processed. */
+    _Bool stop_trigger;
+
+    /** (Read) Engine sets this to TRUE when it is playing a tone on this channel.  */
+    _Bool is_playing;
+
+    /** (Write) Count of the number of samples in the waveform. */
+    int count;
+
+    /** (Write) An 8-bit unsigned PCM waveform sampled at WAVEFORM_SAMPLE_RATE_MAX_IN_HZ */
     uint8_t wave[WAVEFORM_MAX_DURATION_IN_SAMPLES];
 };
 
 typedef struct eng engine_t;
 
-typedef int (*eng_callback_handler)(engine_t *e, double delta_t);
-typedef int (*eng_timer_handler)(engine_t *e, int state);
+typedef int (*eng_delta_t_handler)(double delta_t);
+typedef int (*eng_id_handler)(int id);
 
 struct eng
 {
     /* RW: When true, all graphics are drawn just as the background color */
-    bool blank;
+    _Bool blank;
 
     /* RW: When false, all colors are unpacked as RGBA. When true BGR. */
-    bool color_swap;
+    _Bool color_swap;
 
     /* 0.0 is black, 1.0 is normal */
     double brightness;
 
     /* The RGBA color displayed below all backgrounds and sprites */
     uint32_t bg_color;
+
+    struct priv_entry priv;
 
     struct bg_entry main_bg[MAIN_BACKGROUNDS_COUNT];
     struct obj_entry main_obj[MAIN_SPRITES_COUNT];
@@ -278,7 +330,6 @@ struct eng
     struct bg_entry sub_bg[SUB_BACKGROUNDS_COUNT];
     struct obj_entry sub_obj[SUB_SPRITES_COUNT];
     struct obj_data sub_objsheet;
-    struct trans_entry sub_trans[SUB_TRANSFORMS_COUNT];
 
     struct tone_entry tone[TONE_COUNT];
     struct wave_entry wave[WAVE_COUNT];
@@ -295,17 +346,23 @@ struct eng
     uint8_t key_right_trigger;
     uint8_t key_start;
     uint8_t key_select;
-    eng_callback_handler do_idle;
-    eng_callback_handler do_before_draw_frame;
-    eng_callback_handler do_after_keypress;
-    eng_timer_handler do_after_timer[TIMER_COUNT];
-
+    eng_delta_t_handler do_idle;
+    eng_delta_t_handler do_after_draw_frame;
+    //eng_callback_handler do_after_keypress;
+    eng_id_handler do_after_timer[TIMER_COUNT];
+    eng_id_handler do_sound_channel[CHANNEL_COUNT];
 };
 
 extern engine_t e;
 
-void eng_init (void);
-void eng_main (void);
+/** Called by the main to initialize the engine */
+void engine_initialize (int *argc, char ***argv, char *title);
+
+/** Called by the main to start the main loop */
+void engine_loop (void);
+
+/** Called by Game to request quitting the engine */
+void engine_finalize (void);
 
 /*
   Local Variables:
