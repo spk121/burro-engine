@@ -2,13 +2,9 @@
 #include <cairo.h>
 #include <math.h>
 #include "engine.h"
-#include "eng_draw.h"
+#include "eng_video.h"
 
-cairo_t *main_screen_context;
-cairo_surface_t *main_screen_surface;
 
-cairo_t *sub_screen_context;
-cairo_surface_t *sub_screen_surface;
 
 static uint32_t adjust_colorval (uint32_t colorval, double brightness, _Bool color_swap);
 static void draw_backdrop_color(void);
@@ -22,16 +18,27 @@ static void paint_backdrop_color (cairo_t *context, uint32_t r, uint32_t g, uint
 static void paint_transformed_image (cairo_t *context, cairo_matrix_t *m, cairo_surface_t *surface);
 static void unpack_colorval (uint32_t colorval, double brightness, _Bool color_swap, uint32_t *r, uint32_t *g, uint32_t *b, uint32_t *a);
 
-void init_draw ()
+void initialize_video()
 {
-    initialize_context_and_surface (&main_screen_context, &main_screen_surface, MAIN_SCREEN_WIDTH_IN_PIXELS, MAIN_SCREEN_HEIGHT_IN_PIXELS);
-    initialize_context_and_surface (&sub_screen_context, &sub_screen_surface, SUB_SCREEN_WIDTH_IN_PIXELS, SUB_SCREEN_HEIGHT_IN_PIXELS);
+    int i;
+
+    for (i = 0; i < MAIN_BACKGROUNDS_COUNT; i ++)
+        e.main_bg[i].expansion = 1.0;
+    for(i = 0; i < MAIN_SPRITES_COUNT; i++)
+        e.main_obj[i].expansion = 1.0;
+    for (i = 0; i < SUB_BACKGROUNDS_COUNT; i ++)
+        e.sub_bg[i].expansion = 1.0;
+    for(i = 0; i < SUB_SPRITES_COUNT; i++)
+        e.sub_obj[i].expansion = 1.0;
+
+    initialize_context_and_surface (&e.priv.main_screen_context, &e.priv.main_screen_surface, MAIN_SCREEN_WIDTH_IN_PIXELS, MAIN_SCREEN_HEIGHT_IN_PIXELS);
+    initialize_context_and_surface (&e.priv.sub_screen_context, &e.priv.sub_screen_surface, SUB_SCREEN_WIDTH_IN_PIXELS, SUB_SCREEN_HEIGHT_IN_PIXELS);
 }
 
 void fini_draw ()
 {
-    finalize_context_and_surface (main_screen_context, main_screen_surface);
-    finalize_context_and_surface (sub_screen_context, sub_screen_surface);
+    finalize_context_and_surface (e.priv.main_screen_context, e.priv.main_screen_surface);
+    finalize_context_and_surface (e.priv.sub_screen_context, e.priv.sub_screen_surface);
 }
 
 /*************************************************************************
@@ -75,8 +82,8 @@ static void draw_backdrop_color()
     uint32_t r, g, b, a;
 
     unpack_colorval(e.bg_color, e.brightness, e.color_swap, &r, &g, &b, &a);
-    paint_backdrop_color (main_screen_context, r, g, b);
-    paint_backdrop_color (sub_screen_context, r, g, b);
+    paint_backdrop_color (e.priv.main_screen_context, r, g, b);
+    paint_backdrop_color (e.priv.sub_screen_context, r, g, b);
 }
 
 static void draw_background_layer (const struct bg_entry * const bg, cairo_t * const screen_context)
@@ -315,8 +322,8 @@ void draw ()
     int priority;
     int layer, sprite;
 
-    cairo_surface_flush (main_screen_surface);
-    cairo_surface_flush (sub_screen_surface);
+    cairo_surface_flush (e.priv.main_screen_surface);
+    cairo_surface_flush (e.priv.sub_screen_surface);
 
     /* blank the screens to a solid color */
     draw_backdrop_color ();
@@ -328,28 +335,28 @@ void draw ()
         for (layer = MAIN_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
         {
             if (e.main_bg[layer].enable && e.main_bg[layer].priority == priority)
-                draw_background_layer (&(e.main_bg[layer]), main_screen_context);
+                draw_background_layer (&(e.main_bg[layer]), e.priv.main_screen_context);
         }
         for (layer = SUB_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
         {
             if (e.sub_bg[layer].enable && e.sub_bg[layer].priority == priority)
-                draw_background_layer (&(e.sub_bg[layer]), sub_screen_context);
+                draw_background_layer (&(e.sub_bg[layer]), e.priv.sub_screen_context);
         }
         for (sprite = MAIN_SPRITES_COUNT; sprite >= 0; sprite --)
         {
             if (e.main_obj[sprite].enable && e.main_obj[sprite].priority == priority)
-                draw_sprite(&(e.main_obj[sprite]), &(e.main_objsheet), main_screen_context);
+                draw_sprite(&(e.main_obj[sprite]), &(e.main_objsheet), e.priv.main_screen_context);
         }
         for (sprite = SUB_SPRITES_COUNT; sprite >= 0; sprite --)
         {
             if (e.sub_obj[sprite].enable && e.sub_obj[sprite].priority == priority)
-                draw_sprite(&(e.main_obj[sprite]), &(e.main_objsheet), main_screen_context);
+                draw_sprite(&(e.main_obj[sprite]), &(e.main_objsheet), e.priv.main_screen_context);
 
         }
     }
 
 end_draw:
-    cairo_surface_mark_dirty (main_screen_surface);
-    cairo_surface_mark_dirty (sub_screen_surface);
+    cairo_surface_mark_dirty (e.priv.main_screen_surface);
+    cairo_surface_mark_dirty (e.priv.sub_screen_surface);
 }
 

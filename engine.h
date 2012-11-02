@@ -70,9 +70,9 @@
 #define TONE_COUNT (3)
 #define WAVE_COUNT (2)
 #define NOISE_COUNT (1)
-#define WAVEFORM_SAMPLE_RATE_MAX_IN_HZ (22050)
+#define AUDIO_SAMPLE_RATE_IN_HZ (22050)
 #define WAVEFORM_MAX_DURATION_IN_SEC (12)
-#define WAVEFORM_MAX_DURATION_IN_SAMPLES ((WAVEFORM_MAX_DURATION_IN_SEC) * (WAVEFORM_SAMPLE_RATE_MAX_IN_HZ))
+#define WAVEFORM_MAX_DURATION_IN_SAMPLES ((WAVEFORM_MAX_DURATION_IN_SEC) * (AUDIO_SAMPLE_RATE_IN_HZ))
 
 /* These are the main event timers */
 #define TIMER_COUNT (4)
@@ -121,7 +121,7 @@ enum bg_entry_mode
     BG_MODE_TRUE_COLOR_BITMAP
 };
 
-struct bg_entry
+typedef struct bg_entry
 {
     /* BG is display when true */
     _Bool enable;
@@ -150,15 +150,15 @@ struct bg_entry
         struct bg_bmp8_data bmp8;
         struct bg_bmp32_data bmp32;
     };
-};
+} bg_entry_t;
 
-struct obj_data
+typedef struct obj_data
 {
     uint8_t bmp[OBJSHEET_HEIGHT_IN_PIXELS][OBJSHEET_WIDTH_IN_PIXELS];
     uint32_t palette[PALETTE_COLORS_COUNT];
-};
+} obj_data_t;
 
-struct obj_entry
+typedef struct obj_entry
 {
     /** Sprite is visible if true */
     _Bool enable;
@@ -183,11 +183,11 @@ struct obj_entry
 
     /** the rotation angle of the sprite about its rotation center, in radians */
     double rotation;
-};
+} obj_entry_t;
 
 
 /* Tones are squarish waves */
-struct tone_entry
+typedef struct tone_entry
 {
     /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
         Engine will set it FALSE once it has been processed. */
@@ -232,10 +232,9 @@ struct tone_entry
 
     /** (Write) the ratio between the length of the high part of the square wave to the total period, usually 0.5 */
     double duty;
-};
+} tone_entry_t;
 
-/* Tones are squarish waves */
-struct tone_entry
+typedef struct noise_entry
 {
     /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
         Engine will set it FALSE once it has been processed. */
@@ -280,9 +279,9 @@ struct tone_entry
 
     /** (Write) the ratio between the length of the high part of the square wave to the total period, usually 0.5 */
     double duty;
-};
+} noise_entry_t;
 
-struct wave_entry
+typedef struct wave_entry
 {
     /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
         Engine will set it FALSE once it has been processed. */
@@ -300,14 +299,14 @@ struct wave_entry
 
     /** (Write) An 8-bit unsigned PCM waveform sampled at WAVEFORM_SAMPLE_RATE_MAX_IN_HZ */
     uint8_t wave[WAVEFORM_MAX_DURATION_IN_SAMPLES];
-};
+} wave_entry_t;
 
 typedef struct eng engine_t;
 
 typedef int (*eng_delta_t_handler)(double delta_t);
 typedef int (*eng_id_handler)(int id);
 
-struct eng
+typedef struct engine_tag
 {
     /* RW: When true, all graphics are drawn just as the background color */
     _Bool blank;
@@ -323,17 +322,17 @@ struct eng
 
     struct priv_entry priv;
 
-    struct bg_entry main_bg[MAIN_BACKGROUNDS_COUNT];
-    struct obj_entry main_obj[MAIN_SPRITES_COUNT];
-    struct obj_data main_objsheet;
+    bg_entry_t main_bg[MAIN_BACKGROUNDS_COUNT];
+    obj_entry_t main_obj[MAIN_SPRITES_COUNT];
+    obj_data_t main_objsheet;
 
-    struct bg_entry sub_bg[SUB_BACKGROUNDS_COUNT];
-    struct obj_entry sub_obj[SUB_SPRITES_COUNT];
-    struct obj_data sub_objsheet;
+    bg_entry_t sub_bg[SUB_BACKGROUNDS_COUNT];
+    obj_entry_t sub_obj[SUB_SPRITES_COUNT];
+    obj_data_t sub_objsheet;
 
-    struct tone_entry tone[TONE_COUNT];
-    struct wave_entry wave[WAVE_COUNT];
-    struct noise_entry noise[NOISE_COUNT];
+    tone_entry_t tone[TONE_COUNT];
+    wave_entry_t wave[WAVE_COUNT];
+    noise_entry_t noise[NOISE_COUNT];
 
     //struct timer_entry timers[TIMER_COUNT];
     uint8_t key_up;
@@ -351,7 +350,7 @@ struct eng
     //eng_callback_handler do_after_keypress;
     eng_id_handler do_after_timer[TIMER_COUNT];
     eng_id_handler do_sound_channel[CHANNEL_COUNT];
-};
+} engine_t;
 
 extern engine_t e;
 

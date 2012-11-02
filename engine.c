@@ -8,26 +8,13 @@
 #include <gdk/gdkkeysyms.h>
 //#include <gst/gst.h>
 #include "engine.h"
-#include "eng_draw.h"
+#include "eng_state.h"
+#include "eng_video.h"
 #include "eng_audio.h"
+#include "eng_timers.h"
+#include "eng_input.h"
 
-/* For the GUI */
-static GtkWidget *window;
-static GtkWidget *fixed;
-static GtkWidget *main_screen;
-static GtkWidget *sub_screen;
-
-/* Global state */
-static gboolean initialized_flag = FALSE;
-static gboolean minimized_flag = FALSE;
-static gboolean active_flag = FALSE;
-static gboolean quitting_flag = FALSE;
 #define REFRESH_RATE (1.0 / 30.0)
-
-/* For frames-per-second calculation */
-static int frame_count;
-static GTimer *fps_timer;
-static double prev_time, cur_time;
 
 /* The main engine data store */
 engine_t e;
@@ -54,56 +41,50 @@ void engine_initialize(int *argc, char ***argv, char *title)
     gtk_init(argc, argv);
     gst_init(argc, argv);
 
-    /* Set up the frame count timer */
-    fps_timer = g_timer_new();
-    g_timer_start (fps_timer);
-    frame_count = 0;
-    prev_time = g_timer_elapsed (fps_timer, NULL);
-    cur_time =  g_timer_elapsed (fps_timer, NULL);
+    memset(e, 0, sizeof(engine_t));
 
-    window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_container_set_border_width (GTK_CONTAINER (window), 8);
-    gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    /* Set up the window */
+    e.priv.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+    gtk_container_set_border_width (GTK_CONTAINER (e.priv.window), 8);
+    gtk_window_set_position(GTK_WINDOW(e.priv.window), GTK_WIN_POS_CENTER);
     if (title && strlen(title) > 0)
-        gtk_window_set_title (GTK_WINDOW (window), title);
+        gtk_window_set_title (GTK_WINDOW (e.priv.window), title);
     else
-        gtk_window_set_title(GTK_WINDOW(window), "Project Burro Engine");
+        gtk_window_set_title(GTK_WINDOW(e.priv.window), "Project Burro Engine");
 
-    gtk_widget_realize (window);
+    gtk_widget_realize (e.priv.window);
 
-    fixed = gtk_fixed_new ();
-    gtk_container_add (GTK_CONTAINER (window), fixed);
+    e.priv.fixed = gtk_fixed_new ();
+    gtk_container_add (GTK_CONTAINER (e.priv.window), e.priv.fixed);
 
-    sub_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request (sub_screen,
+    e.priv.sub_screen = gtk_drawing_area_new();
+    gtk_widget_set_size_request (e.priv.sub_screen,
                                  SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION,
                                  SUB_SCREEN_HEIGHT_IN_PIXELS * SUB_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(fixed), sub_screen, 0, 0);
+    gtk_fixed_put(GTK_FIXED(e.priv.fixed), e.priv.sub_screen, 0, 0);
 
-    main_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request(main_screen,
+    e.priv.main_screen = gtk_drawing_area_new();
+    gtk_widget_set_size_request(e.priv.main_screen,
                                 MAIN_SCREEN_WIDTH_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION,
                                 MAIN_SCREEN_HEIGHT_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(fixed), main_screen, SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10, 0);
+    gtk_fixed_put(GTK_FIXED(e.priv.fixed), e.priv.main_screen, SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10, 0);
 
-    g_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (GTK_WIDGET(window), "window-state-event", (GCallback) window_state_event_cb, NULL);
+    g_signal_connect (G_OBJECT(e.priv.window), "destroy", G_CALLBACK (destroy_cb), NULL);
+    g_signal_connect (G_OBJECT (e.priv.window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
+    g_signal_connect (G_OBJECT (e.priv.window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    g_signal_connect (GTK_WIDGET(e.priv.window), "window-state-event", (GCallback) window_state_event_cb, NULL);
 
-    gtk_widget_show_all (window);
+    gtk_widget_show_all (e.priv.window);
 
-    e.brightness =  1.0;
-
-    initialize_globals();
+    initialize_state();
     initialize_video();
     initialize_audio();
     initialize_timers();
-    initialize_io();
+    initialize_input();
 
-    initialized_flag = TRUE;
+    e.priv.initialized_flag = TRUE;
 }
 
 
