@@ -22,17 +22,17 @@ void initialize_audio()
     count = 0;
     for (i = 0; i < TONE_COUNT; i ++)
     {
-        initialize_audio_source(e.priv.tone[i], "tone%d", i);
+        initialize_audio_source(e.priv.pipeline, e.priv.adder, e.priv.tone[i], "tone%d", i);
         count ++;
     }
     for (i = 0; i < NOISE_COUNT; i ++)
     {
-        initialize_audio_source(e.priv.noise[i], "noise%d", i);
+        initialize_audio_source(e.priv.pipeline, e.priv.adder, e.priv.noise[i], "noise%d", i);
         count ++;
     }
     for (i = 0; i < WAVE_COUNT; i ++)
     {
-        initialize_audio_source(e.priv.wave[i], "wave%d", i);
+        initialize_audio_source(e.priv.pipeline, e.priv.adder, e.priv.wave[i], "wave%d", i);
         count ++;
     }
 	gst_element_set_state (e.priv.pipeline, GST_STATE_NULL);
@@ -71,10 +71,8 @@ void eng_audio_fini ()
 {
     GST_DEBUG ("stopping");
 
-    gst_element_set_state (app->pipeline, GST_STATE_NULL);
+    gst_element_set_state (e.priv.pipeline, GST_STATE_NULL);
 
-    gst_object_unref (bus);
-    g_main_loop_unref (app->loop);
 }
 
 void generate_tone_data(double frequency, double amplitude, double duration, double duty,
@@ -86,9 +84,9 @@ void generate_tone_data(double frequency, double amplitude, double duration, dou
     double period, cycle_t;
 
     period = 1.0 / frequency;
-    length = ceil(duration * (double) SAMPLE_RATE);
-    buffer = g_new (uint8_t, length);
-    for (t = 0.0, cycle_t = 0.0; t < duration; t += 1.0 / SAMPLE_RATE, cycle_t += 1.0 / SAMPLE_RATE)
+    *length = ceil(duration * (double) AUDIO_SAMPLE_RATE_IN_HZ);
+    buffer = g_new (uint8_t, *length);
+    for (t = 0.0, cycle_t = 0.0; t < duration; t += 1.0 / AUDIO_SAMPLE_RATE_IN_HZ, cycle_t += 1.0 / AUDIO_SAMPLE_RATE_IN_HZ)
     {
         if (cycle_t > period)
             cycle_t -= period;

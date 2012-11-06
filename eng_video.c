@@ -90,7 +90,7 @@ static void draw_background_layer (const struct bg_entry * const bg, cairo_t * c
 {
     switch (bg->mode)
     {
-    case BG_MODE_TILE_AND_MAP:
+    case BG_MODE_MAP_AND_TILE:
         draw_background_map_layer (bg, screen_context);
         break;
     case BG_MODE_INDEXED_BITMAP:
@@ -186,24 +186,20 @@ static void draw_background_map_layer (const struct bg_entry * const bg, cairo_t
                 {
                     index = bg->map.tiles[delta_tile_j + tile_j][delta_tile_i + tile_i];
 
-                    /* For Burro, palette index zero is always transparent */
-                    if (index == 0)
-                        data[tile_j * stride / sizeof(uint32_t) + tile_i] = 0;
-                    else
-                    {
-                        c = adjust_colorval (bg->map.palette[index], e.brightness, e.color_swap);
-                        data[tile_j * stride / sizeof(uint32_t) + tile_i] = c;
-                    }
+		    c = adjust_colorval (bg->map.palette[index], e.brightness, e.color_swap);
+		    data[tile_j * stride / sizeof(uint32_t) + tile_i] = c;
                 }
             }
             cairo_surface_mark_dirty (surf);
+	    // cairo_surface_write_to_png(surf, "surf.png");
             compute_transform (&matrix, bg->center_x, bg->center_y,
-                               bg->center_i - tile_i * TILESHEET_WIDTH_IN_PIXELS,
-                               bg->center_j - tile_j * TILESHEET_HEIGHT_IN_PIXELS,
+                               bg->center_i - map_i * TILE_WIDTH_IN_PIXELS,
+                               bg->center_j - map_j * TILE_HEIGHT_IN_PIXELS,
                                bg->rotation, bg->expansion);
             paint_transformed_image (screen_context, &matrix, surf);
         }
     }
+
     cairo_surface_destroy (surf);
 }
 

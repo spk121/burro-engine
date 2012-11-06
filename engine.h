@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "engine_constants.h"
 #include "engine_priv.h"
 
 #define BASE_WIDTH 240
@@ -67,9 +68,7 @@
    - wav
 */
 
-#define TONE_COUNT (3)
-#define WAVE_COUNT (2)
-#define NOISE_COUNT (1)
+
 #define AUDIO_SAMPLE_RATE_IN_HZ (22050)
 #define WAVEFORM_MAX_DURATION_IN_SEC (12)
 #define WAVEFORM_MAX_DURATION_IN_SAMPLES ((WAVEFORM_MAX_DURATION_IN_SEC) * (AUDIO_SAMPLE_RATE_IN_HZ))
@@ -209,8 +208,8 @@ typedef struct tone_entry
     /** (Write) the duration of the release portion of the tone in seconds */
     double release_duration;
 
-    /** (Write) the duration of the tone in seconds */
-    double total_duration;
+    /** (Write) the duration of the sustain portion of the tone in seconds */
+    double sustain_duration;
 
     /** (Write) the initial frequency of the tone in Hz */
     double initial_frequency;
@@ -236,45 +235,45 @@ typedef struct tone_entry
 
 typedef struct noise_entry
 {
-    /** (Write Only) When Game sets this TRUE, this tone will start on the next idle cycle.
+    /** (Write Only) When Game sets this TRUE, this noise will start on the next idle cycle.
         Engine will set it FALSE once it has been processed. */
     _Bool start_trigger;
 
-    /** (Write Only) When Game sets this TRUE, the currently playing tone will stop on the next idle cycle.
+    /** (Write Only) When Game sets this TRUE, the currently playing noise will stop on the next idle cycle.
         Engine will set it FALSE once it has been processed. */
     _Bool stop_trigger;
 
-    /** (Read) Engine sets this to TRUE when it is playing a tone on this channel.  */
+    /** (Read) Engine sets this to TRUE when it is playing a noise on this channel.  */
     _Bool is_playing;
 
-    /** (Write) the duration of the attack portion of the tone in seconds */
+    /** (Write) the duration of the attack portion of the noise in seconds */
     double attack_duration;
 
-    /** (Write) the duration of the decay portion of the tone in seconds */
+    /** (Write) the duration of the decay portion of the noise in seconds */
     double decay_duration;
 
-    /** (Write) the duration of the release portion of the tone in seconds */
+    /** (Write) the duration of the release portion of the noise in seconds */
     double release_duration;
 
-    /** (Write) the duration of the tone in seconds */
-    double total_duration;
+    /** (Write) the duration of the sustain portion of the noise in seconds */
+    double sustain_duration;
 
-    /** (Write) the initial frequency of the tone in Hz */
+    /** (Write) the initial frequency of the noise in Hz */
     double initial_frequency;
 
-    /** (Write) the frequency of the tone at the end of the attack, in Hz */
+    /** (Write) the frequency of the noise at the end of the attack, in Hz */
     double attack_frequency;
 
-    /** (Write) the frequency of the tone at the end of the decay, in Hz */
+    /** (Write) the frequency of the noise at the end of the decay, in Hz */
     double sustain_frequency;
 
-    /** (Write) the frequency of the tone at the end of the release, in Hz */
+    /** (Write) the frequency of the noise at the end of the release, in Hz */
     double release_frequency;
 
-    /** (Write) the amplitude of the tone at the end of the attack, from 0 to 1.  Usually 1 */
+    /** (Write) the amplitude of the noise at the end of the attack, from 0 to 1.  Usually 1 */
     double attack_amplitude;
 
-    /** (Write) the amplitude of the tone at the end of the decay, from 0 to 1.  Usually between 0.5 and 1 */
+    /** (Write) the amplitude of the noise at the end of the decay, from 0 to 1.  Usually between 0.5 and 1 */
     double sustain_amplitude;
 
     /** (Write) the ratio between the length of the high part of the square wave to the total period, usually 0.5 */
@@ -301,7 +300,6 @@ typedef struct wave_entry
     uint8_t wave[WAVEFORM_MAX_DURATION_IN_SAMPLES];
 } wave_entry_t;
 
-typedef struct eng engine_t;
 
 typedef int (*eng_delta_t_handler)(double delta_t);
 typedef int (*eng_id_handler)(int id);
@@ -335,16 +333,18 @@ typedef struct engine_tag
     noise_entry_t noise[NOISE_COUNT];
 
     //struct timer_entry timers[TIMER_COUNT];
-    uint8_t key_up;
-    uint8_t key_down;
-    uint8_t key_left;
-    uint8_t key_right;
-    uint8_t key_a;
-    uint8_t key_b;
-    uint8_t key_left_trigger;
-    uint8_t key_right_trigger;
-    uint8_t key_start;
-    uint8_t key_select;
+    _Bool key_up;
+    _Bool key_down;
+    _Bool key_left;
+    _Bool key_right;
+    _Bool key_a;
+    _Bool key_b;
+    _Bool key_x;
+    _Bool key_y;
+    _Bool key_left_trigger;
+    _Bool key_right_trigger;
+    _Bool key_start;
+    _Bool key_select;
     eng_delta_t_handler do_idle;
     eng_delta_t_handler do_after_draw_frame;
     //eng_callback_handler do_after_keypress;

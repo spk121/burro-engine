@@ -14,6 +14,7 @@
 #include "eng_timers.h"
 #include "eng_input.h"
 
+#define UPDATE_RATE (1.0 / 60.0)
 #define REFRESH_RATE (1.0 / 30.0)
 
 /* The main engine data store */
@@ -21,7 +22,7 @@ engine_t e;
 
 cairo_surface_t *eng_main_surface;
 cairo_surface_t *eng_sub_surface;
-GMainLoop *main_loop;
+
 
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy);
@@ -38,10 +39,11 @@ void engine_initialize(int *argc, char ***argv, char *title)
     g_warn_if_fail(argc != NULL && *argc > 0);
     g_warn_if_fail(argv != NULL);
 
+    g_debug("Entering engine_initialize()");
     gtk_init(argc, argv);
     gst_init(argc, argv);
 
-    memset(e, 0, sizeof(engine_t));
+    memset(&e, 0, sizeof(engine_t));
 
     /* Set up the window */
     e.priv.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -88,31 +90,29 @@ void engine_initialize(int *argc, char ***argv, char *title)
 }
 
 
-void eng_main()
+void engine_loop()
 {
-    active_flag = TRUE;
+    g_debug("Entering engine_loop()");
+    e.priv.active_flag = TRUE;
 
     /* Set up the main loop.  I use glib because I need an idle function */
-    {
+    e.priv.main_loop = g_main_loop_new (NULL, TRUE);
 
-        main_loop = g_main_loop_new (NULL, TRUE);
+    /* All our game processing goes in the idle func */
+    g_idle_add (idle_state_event_cb, NULL);
 
-        /* All our game processing goes in the idle func */
-        g_idle_add (idle_state_event_cb, NULL);
-
-        /* What is this GDK voodoo?  Grabbed it from the gtk repo */
-        gdk_threads_leave ();
-        g_main_loop_run (main_loop);
-        gdk_threads_enter ();
-        gdk_flush ();
-        g_main_loop_unref (main_loop);
-    }
+    /* What is this GDK voodoo?  Grabbed it from the gtk repo */
+    gdk_threads_leave ();
+    g_main_loop_run (e.priv.main_loop);
+    gdk_threads_enter ();
+    gdk_flush ();
+    g_main_loop_unref (e.priv.main_loop);
 }
 
 static void destroy_cb(GtkWidget* widget, gpointer dummy)
 {
-    quitting_flag = TRUE;
-    g_main_loop_quit(main_loop);
+    e.priv.quitting_flag = TRUE;
+    g_main_loop_quit(e.priv.main_loop);
 }
 
 static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy)
@@ -120,9 +120,9 @@ static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpoin
     if (event->window_state.changed_mask & GDK_WINDOW_STATE_ICONIFIED)
     {
         if (event->window_state.new_window_state & GDK_WINDOW_STATE_ICONIFIED)
-            minimized_flag = TRUE;
+            e.priv.minimized_flag = TRUE;
         else
-            minimized_flag = FALSE;
+            e.priv.minimized_flag = FALSE;
     }
     return TRUE;
 }
@@ -131,20 +131,50 @@ static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer du
 {
     switch (gdk_keyval_to_upper(event->keyval))
     {
-    case GDK_KEY_W:
+    case GDK_KEY_a:
+    case GDK_KEY_A:
+        e.key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_b:
+    case GDK_KEY_B:
+        e.key_b = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_x:
+    case GDK_KEY_X:
+        e.key_x = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_y:
+    case GDK_KEY_Y:
+        e.key_y = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Up:
+    case GDK_KEY_KP_Up:
         e.key_up = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-    case GDK_KEY_A:
-        e.key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
-        break;
-    case GDK_KEY_D:
+    case GDK_KEY_Down:
+    case GDK_KEY_KP_Down:
         e.key_down = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-    case GDK_KEY_F:
+    case GDK_KEY_Left:
+    case GDK_KEY_KP_Left:
+        e.key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Right:
+    case GDK_KEY_KP_Right:
         e.key_right = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
+    case GDK_KEY_Start:
+        e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Select:
+    case GDK_KEY_SelectButton:
+    case GDK_KEY_KP_Tab:
+    case GDK_KEY_Tab:
+        e.key_select = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_KP_Enter:
     case GDK_KEY_space:
-        e.key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
+        e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
     default:
         return FALSE;
     }
@@ -154,34 +184,48 @@ static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer du
 
 static gboolean idle_state_event_cb (void *dummy)
 {
-    static double cur_tick = 0.0;
-    static double last_update = 0.0;
-    static double last_draw = 0.0;
-    static gboolean run_full_speed = FALSE;
+    double cur_time;
 
-    if (quitting_flag)
+    if (e.priv.quitting_flag)
         return FALSE;
 
-    if (initialized_flag && !minimized_flag)
+    cur_time = g_timer_elapsed (e.priv.timer, NULL);
+
+    if (e.priv.initialized_flag && !e.priv.minimized_flag)
     {
-        if (active_flag)
+        if (e.priv.active_flag)
         {
-            cur_tick = g_timer_elapsed (fps_timer, NULL);
-
-            if (e.do_idle != NULL)
-                e.do_idle (&e, cur_tick - last_update);
-            last_update = cur_tick;
-
-            /* FIXME: check ini to see if we're running full speed */
-            if (run_full_speed || ((cur_tick - last_draw) > REFRESH_RATE))
+            if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_update_time) > UPDATE_RATE))
             {
-                if (e.do_before_draw_frame != NULL)
-                    e.do_before_draw_frame (&e, cur_tick - last_update);
-                paint ();
-                audio_update ();
-                last_draw = cur_tick;
+                if (e.do_idle != NULL)
+                    e.do_idle (cur_time - e.priv.before_update_time);
+
+                e.priv.update_count ++;
+                e.priv.before_update_time = cur_time;
+                e.priv.after_update_time = g_timer_elapsed (e.priv.timer, NULL);
+
+                /* FIXME: check ini to see if we're running full speed */
+                if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_draw_time) > REFRESH_RATE))
+                {
+                    paint ();
+                    audio_update ();
+                    if (e.do_after_draw_frame != NULL)
+                        e.do_after_draw_frame (e.priv.before_draw_time - e.priv.after_draw_time);
+
+                    e.priv.draw_count ++;
+                    e.priv.before_draw_time = cur_time;
+                    e.priv.after_draw_time = g_timer_elapsed (e.priv.timer, NULL);
+
+                    if (e.priv.draw_count % 100 == 0)
+                    {
+                        g_debug("FPS: %f", 100.0 / (e.priv.after_draw_time - e.priv.hundred_frames_draw_time));
+                        e.priv.hundred_frames_draw_time = e.priv.after_draw_time;
+                    }
+                }
             }
-            g_usleep (2);
+
+            if (!e.priv.run_full_speed_flag)
+                g_usleep (2);
         }
         else
         {
@@ -207,33 +251,27 @@ static void present()
 {
     cairo_t *cr;
 
-    if (quitting_flag)
+    if (e.priv.quitting_flag)
         return;
     /* Have the video view draw the video model onto the screen */
 
-    cr = gdk_cairo_create (gtk_widget_get_window (main_screen));
+    cr = gdk_cairo_create (gtk_widget_get_window (e.priv.main_screen));
 
     cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
     cairo_scale(cr, 2.0, 2.0);
-    cairo_set_source_surface (cr, main_screen_surface, 0, 0);
+    cairo_set_source_surface (cr, e.priv.main_screen_surface, 0, 0);
+    // cairo_surface_write_to_png(e.priv.main_screen_surface, "burro_main_screen_present.png");
     cairo_paint (cr);
     cairo_destroy(cr);
 
-    cr = gdk_cairo_create (gtk_widget_get_window (sub_screen));
+    cr = gdk_cairo_create (gtk_widget_get_window (e.priv.sub_screen));
 
     cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
     cairo_scale(cr, 1.0, 1.0);
-    cairo_set_source_surface (cr, sub_screen_surface, 0, 0);
+    cairo_set_source_surface (cr, e.priv.sub_screen_surface, 0, 0);
+    // cairo_surface_write_to_png(e.priv.sub_screen_surface, "burro_sub_screen_present.png");
     cairo_paint (cr);
     cairo_destroy(cr);
-
-    frame_count ++;
-    if (frame_count % 100 == 0)
-    {
-        cur_time = g_timer_elapsed(fps_timer, NULL);
-        printf("%f\n", 100.0 / (cur_time - prev_time));
-        prev_time = cur_time;
-    }
 }
 
 static void audio_update ()

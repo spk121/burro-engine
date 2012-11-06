@@ -1,17 +1,26 @@
 #include <gtk/gtk.h>
 #include "engine.h"
-#ifndef NO_GAME
+#ifdef GAME
 #include "game.h"
 #endif
+
+
+static void log_handler (const gchar *log_domain,
+                                                         GLogLevelFlags log_level,
+                                                         const gchar *message,
+                                                         gpointer user_data)
+                                                         {
+                                                            printf("%s\n", message);
+                                                         }
 
 int main(int argc, char **argv)
 {
     int i;
 
-    g_log_set_handler ("Gtk", G_LOG_LEVEL_WARNING, (GLogFunc) gtk_false, NULL);
-    g_log_set_handler (NULL, G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, g_log_default_handler, NULL);
+    g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    g_log_set_handler ("GLib", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
 
-#ifndef NO_GAME
+#ifdef GAME
     /* Initialize the engine */
     engine_initialize(&argc, &argv, game_get_title());
     game_initialize (&argc, &argv, e);

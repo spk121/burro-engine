@@ -2456,13 +2456,15 @@
 	"engine.h"
 	"eng_draw.h"
 
-1350756841 /home/mike/burro-engine/engine.h
+1351948359 /home/mike/burro-engine/engine.h
 	<stdint.h>
 	<stdbool.h>
+	"engine_constants.h"
+	"engine_priv.h"
 
 1350767475 /home/mike/burro-engine/eng_draw.h
 
-1350767472 source:/home/mike/burro-engine/engine.c
+1351955404 source:/home/mike/burro-engine/engine.c
 	"engine.h"
 	<glib.h>
 	<math.h>
@@ -2471,21 +2473,26 @@
 	<gtk/gtk.h>
 	<gdk/gdkkeysyms.h>
 	"engine.h"
-	"eng_draw.h"
+	"eng_state.h"
+	"eng_video.h"
+	"eng_audio.h"
+	"eng_timers.h"
+	"eng_input.h"
 
-1350778217 source:/home/mike/burro-engine/main.c
+1351955834 source:/home/mike/burro-engine/main.c
 	<gtk/gtk.h>
 	"engine.h"
 	"game.h"
 
-1350779238 source:/home/mike/burro-engine/game.c
+1350904990 source:/home/mike/burro-engine/game.c
 	<gtk/gtk.h>
 	<gio/gio.h>
 	"game.h"
 	"engine.h"
 	"tga.h"
 
-1350766794 /home/mike/burro-engine/game.h
+1350904734 /home/mike/burro-engine/game.h
+	"engine.h"
 
 1350769471 /home/mike/burro-engine/tga.h
 	<glib.h>
@@ -2511,4 +2518,477 @@
 	<glib.h>
 	<stdio.h>
 	<stdarg.h>
+
+1351955074 /home/mike/burro-engine/engine_priv.h
+	<gtk/gtk.h>
+	<cairo.h>
+	<gst/gst.h>
+	"engine_constants.h"
+
+1351948327 /home/mike/burro-engine/engine_constants.h
+
+1351948575 source:/home/mike/burro-engine/eng_audio.c
+	<gst/gst.h>
+	"engine.h"
+	"eng_audio.h"
+
+1330522421 /usr/include/gstreamer-0.10/gst/gst.h
+	<glib.h>
+	<gst/glib-compat.h>
+	<gst/gstenumtypes.h>
+	<gst/gstversion.h>
+	<gst/gstatomicqueue.h>
+	<gst/gstbin.h>
+	<gst/gstbuffer.h>
+	<gst/gstbufferlist.h>
+	<gst/gstcaps.h>
+	<gst/gstchildproxy.h>
+	<gst/gstclock.h>
+	<gst/gstdatetime.h>
+	<gst/gstdebugutils.h>
+	<gst/gstelement.h>
+	<gst/gsterror.h>
+	<gst/gstevent.h>
+	<gst/gstghostpad.h>
+	<gst/gstindex.h>
+	<gst/gstindexfactory.h>
+	<gst/gstinfo.h>
+	<gst/gstinterface.h>
+	<gst/gstiterator.h>
+	<gst/gstmarshal.h>
+	<gst/gstmessage.h>
+	<gst/gstminiobject.h>
+	<gst/gstobject.h>
+	<gst/gstpad.h>
+	<gst/gstparamspecs.h>
+	<gst/gstpipeline.h>
+	<gst/gstplugin.h>
+	<gst/gstpoll.h>
+	<gst/gstpreset.h>
+	<gst/gstquery.h>
+	<gst/gstregistry.h>
+	<gst/gstsegment.h>
+	<gst/gststructure.h>
+	<gst/gstsystemclock.h>
+	<gst/gsttaglist.h>
+	<gst/gsttagsetter.h>
+	<gst/gsttask.h>
+	<gst/gsttaskpool.h>
+	<gst/gsttrace.h>
+	<gst/gsttypefind.h>
+	<gst/gsttypefindfactory.h>
+	<gst/gsturi.h>
+	<gst/gstutils.h>
+	<gst/gstvalue.h>
+	<gst/gstxml.h>
+	<gst/gstparse.h>
+	<gst/gstcompat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/glib-compat.h
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstenumtypes.h
+	<glib-object.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstversion.h
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstatomicqueue.h
+	<glib.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstbin.h
+	<gst/gstelement.h>
+	<gst/gstiterator.h>
+	<gst/gstbus.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstelement.h
+	<gst/gstconfig.h>
+	<gst/gstobject.h>
+	<gst/gstpad.h>
+	<gst/gstbus.h>
+	<gst/gstclock.h>
+	<gst/gstelementfactory.h>
+	<gst/gstplugin.h>
+	<gst/gstpluginfeature.h>
+	<gst/gstindex.h>
+	<gst/gstindexfactory.h>
+	<gst/gstiterator.h>
+	<gst/gstmessage.h>
+	<gst/gsttaglist.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstconfig.h
+	<libxml/parser.h>
+
+1347370901 /usr/include/libxml2/libxml/parser.h
+	<stdarg.h>
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+	<libxml/dict.h>
+	<libxml/hash.h>
+	<libxml/valid.h>
+	<libxml/entities.h>
+	<libxml/xmlerror.h>
+	<libxml/xmlstring.h>
+	<libxml/encoding.h>
+	<libxml/xmlIO.h>
+	<libxml/globals.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlversion.h
+	<libxml/xmlexports.h>
+	<ansidecl.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlexports.h
+
+1347370901 /usr/include/libxml2/libxml/tree.h
+	<stdio.h>
+	<libxml/xmlversion.h>
+	<libxml/xmlstring.h>
+	<libxml/xmlregexp.h>
+	<libxml/xmlmemory.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlstring.h
+	<stdarg.h>
+	<libxml/xmlversion.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlregexp.h
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+	<libxml/dict.h>
+
+1347370901 /usr/include/libxml2/libxml/dict.h
+	<limits.h>
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlmemory.h
+	<stdio.h>
+	<libxml/xmlversion.h>
+	<libxml/threads.h>
+	<libxml/globals.h>
+
+1347370901 /usr/include/libxml2/libxml/threads.h
+	<libxml/xmlversion.h>
+	<libxml/globals.h>
+
+1347370901 /usr/include/libxml2/libxml/globals.h
+	<libxml/xmlversion.h>
+	<libxml/parser.h>
+	<libxml/xmlerror.h>
+	<libxml/SAX.h>
+	<libxml/SAX2.h>
+	<libxml/xmlmemory.h>
+	<libxml/threads.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlerror.h
+	<libxml/parser.h>
+
+1347370901 /usr/include/libxml2/libxml/SAX.h
+	<stdio.h>
+	<stdlib.h>
+	<libxml/xmlversion.h>
+	<libxml/parser.h>
+	<libxml/xlink.h>
+
+1347370901 /usr/include/libxml2/libxml/xlink.h
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+
+1347370901 /usr/include/libxml2/libxml/SAX2.h
+	<stdio.h>
+	<stdlib.h>
+	<libxml/xmlversion.h>
+	<libxml/parser.h>
+	<libxml/xlink.h>
+
+1347370901 /usr/include/libxml2/libxml/hash.h
+	<libxml/xmlversion.h>
+	<libxml/parser.h>
+	<libxml/dict.h>
+
+1347370901 /usr/include/libxml2/libxml/valid.h
+	<libxml/xmlversion.h>
+	<libxml/xmlerror.h>
+	<libxml/tree.h>
+	<libxml/list.h>
+	<libxml/xmlautomata.h>
+	<libxml/xmlregexp.h>
+
+1347370901 /usr/include/libxml2/libxml/list.h
+	<libxml/xmlversion.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlautomata.h
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+	<libxml/xmlregexp.h>
+
+1347370901 /usr/include/libxml2/libxml/entities.h
+	<libxml/xmlversion.h>
+	<libxml/tree.h>
+
+1347370901 /usr/include/libxml2/libxml/encoding.h
+	<libxml/xmlversion.h>
+	<iconv.h>
+	<unicode/ucnv.h>
+	<libxml/tree.h>
+
+1347370901 /usr/include/libxml2/libxml/xmlIO.h
+	<stdio.h>
+	<libxml/xmlversion.h>
+	<libxml/globals.h>
+	<libxml/tree.h>
+	<libxml/parser.h>
+	<libxml/encoding.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstobject.h
+	<gst/gstconfig.h>
+	<glib-object.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpad.h
+	<gst/gstconfig.h>
+	<gst/gstobject.h>
+	<gst/gstbuffer.h>
+	<gst/gstbufferlist.h>
+	<gst/gstcaps.h>
+	<gst/gstevent.h>
+	<gst/gstquery.h>
+	<gst/gsttask.h>
+	<gst/gstpadtemplate.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstbuffer.h
+	<gst/gstminiobject.h>
+	<gst/gstclock.h>
+	<gst/gstcaps.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstminiobject.h
+	<gst/gstconfig.h>
+	<glib-object.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstclock.h
+	<gst/gstobject.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstcaps.h
+	<gst/gstconfig.h>
+	<gst/gststructure.h>
+	<gst/glib-compat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gststructure.h
+	<gst/gstconfig.h>
+	<glib-object.h>
+	<gst/gstclock.h>
+	<gst/gstdatetime.h>
+	<gst/glib-compat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstdatetime.h
+	<time.h>
+	<glib.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstbufferlist.h
+	<gst/gstbuffer.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstevent.h
+	<gst/gstminiobject.h>
+	<gst/gstformat.h>
+	<gst/gstobject.h>
+	<gst/gstclock.h>
+	<gst/gststructure.h>
+	<gst/gsttaglist.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstformat.h
+	<glib.h>
+	<gst/gstiterator.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstiterator.h
+	<glib-object.h>
+	<gst/gstconfig.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttaglist.h
+	<gst/gstdatetime.h>
+	<gst/gstbuffer.h>
+	<gst/gststructure.h>
+	<gst/glib-compat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstquery.h
+	<glib.h>
+	<gst/gstiterator.h>
+	<gst/gstminiobject.h>
+	<gst/gststructure.h>
+	<gst/gstformat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttask.h
+	<gst/gstobject.h>
+	<gst/gsttaskpool.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttaskpool.h
+	<gst/gstobject.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpadtemplate.h
+	<gst/gstconfig.h>
+	<gst/gstobject.h>
+	<gst/gstbuffer.h>
+	<gst/gstcaps.h>
+	<gst/gstevent.h>
+	<gst/gstquery.h>
+	<gst/gsttask.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstbus.h
+	<gst/gstmessage.h>
+	<gst/gstclock.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstmessage.h
+	<gst/gstminiobject.h>
+	<gst/gstobject.h>
+	<gst/gstelement.h>
+	<gst/gsttaglist.h>
+	<gst/gststructure.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstelementfactory.h
+	<gst/gstconfig.h>
+	<gst/gstelement.h>
+	<gst/gstobject.h>
+	<gst/gstplugin.h>
+	<gst/gstpluginfeature.h>
+	<gst/gstiterator.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstplugin.h
+	<gst/gstconfig.h>
+	<time.h>
+	<sys/types.h>
+	<sys/stat.h>
+	<gmodule.h>
+	<gst/gstobject.h>
+	<gst/gstmacros.h>
+	<gst/gststructure.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstmacros.h
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpluginfeature.h
+	<glib-object.h>
+	<gst/gstobject.h>
+	<gst/gstplugin.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstindex.h
+	<gst/gstobject.h>
+	<gst/gstformat.h>
+	<gst/gstpluginfeature.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstindexfactory.h
+	<gst/gstobject.h>
+	<gst/gstformat.h>
+	<gst/gstpluginfeature.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstchildproxy.h
+	<glib-object.h>
+	<gst/gst.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstdebugutils.h
+	<glib.h>
+	<glib-object.h>
+	<gst/gstconfig.h>
+	<gst/gstbin.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsterror.h
+	<glib.h>
+	<glib-object.h>
+	<errno.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstghostpad.h
+	<gst/gstpad.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstinfo.h
+	<glib.h>
+	<glib-object.h>
+	<gst/gstconfig.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstinterface.h
+	<gst/gstelement.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstmarshal.h
+	<glib-object.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstparamspecs.h
+	<gst/gstvalue.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstvalue.h
+	<gst/gstconfig.h>
+	<gst/gstcaps.h>
+	<gst/gststructure.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpipeline.h
+	<gst/gstbin.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpoll.h
+	<glib.h>
+	<glib-object.h>
+	<gst/gstclock.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstpreset.h
+	<glib-object.h>
+	<gst/gstconfig.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstregistry.h
+	<gst/gstconfig.h>
+	<gst/gstplugin.h>
+	<gst/gstpluginfeature.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstsegment.h
+	<gst/gstevent.h>
+	<gst/gstformat.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstsystemclock.h
+	<gst/gstclock.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttagsetter.h
+	<gst/gst.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttrace.h
+	<glib.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttypefind.h
+	<gst/gstcaps.h>
+	<gst/gstplugin.h>
+	<gst/gstpluginfeature.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsttypefindfactory.h
+	<gst/gstcaps.h>
+	<gst/gstplugin.h>
+	<gst/gstpluginfeature.h>
+	<gst/gsttypefind.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gsturi.h
+	<glib.h>
+	<gst/gstelement.h>
+	<gst/gstpluginfeature.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstutils.h
+	<glib.h>
+	<gst/gstbin.h>
+	<gst/gstparse.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstparse.h
+	<gst/gstelement.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstxml.h
+	<gst/gstconfig.h>
+	<gst/gstelement.h>
+
+1330522421 /usr/include/gstreamer-0.10/gst/gstcompat.h
+
+1351859164 /home/mike/burro-engine/eng_audio.h
+
+1351950455 source:/home/mike/burro-engine/eng_state.c
+	"engine.h"
+	"eng_state.h"
+
+1351857595 /home/mike/burro-engine/eng_state.h
+
+1351948611 source:/home/mike/burro-engine/eng_video.c
+	<stddef.h>
+	<cairo.h>
+	<math.h>
+	"engine.h"
+	"eng_video.h"
+
+1351858493 /home/mike/burro-engine/eng_video.h
+
+1351865646 /home/mike/burro-engine/eng_timers.h
+
+1351865732 /home/mike/burro-engine/eng_input.h
 

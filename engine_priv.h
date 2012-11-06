@@ -1,7 +1,10 @@
 #ifndef ENGINE_PRIV_H_INCLUDED
 #define ENGINE_PRIV_H_INCLUDED
 
+#include <gtk/gtk.h>
 #include <cairo.h>
+#include <gst/gst.h>
+#include "engine_constants.h"
 
 /* These are the internal states of the engine */
 struct priv_entry
@@ -14,6 +17,7 @@ struct priv_entry
     GtkWidget *fixed;
     GtkWidget *main_screen;
     GtkWidget *sub_screen;
+    GMainLoop *main_loop;
 
     cairo_t *main_screen_context;
     cairo_surface_t *main_screen_surface;
@@ -21,15 +25,19 @@ struct priv_entry
     cairo_surface_t *sub_screen_surface;
 
     /* For frames-per-second calculation */
-    int frame_count;
-    GTimer *fps_timer;
-    double prev_time, cur_time;
+    GTimer *timer;
+    int update_count;
+    int draw_count;
+    double before_update_time, after_update_time;
+    double before_draw_time, after_draw_time;
+    double hundred_frames_draw_time;
 
     /* Basic state flags */
     _Bool initialized_flag;
     _Bool minimized_flag;
     _Bool active_flag;
     _Bool quitting_flag;
+    _Bool run_full_speed_flag;
 
     /* Audio engine */
     GstElement *pipeline, *adder, *sink;

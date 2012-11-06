@@ -54,14 +54,24 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="eng_audio.h" />
-		<Unit filename="eng_draw.c">
+		<Unit filename="eng_input.h">
+			<Option target="&lt;{~None~}&gt;" />
+		</Unit>
+		<Unit filename="eng_state.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="eng_draw.h" />
+		<Unit filename="eng_state.h" />
+		<Unit filename="eng_timers.h" />
+		<Unit filename="eng_video.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="eng_video.h" />
 		<Unit filename="engine.c">
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="engine.h" />
+		<Unit filename="engine_constants.h" />
+		<Unit filename="engine_priv.h" />
 		<Unit filename="game.c">
 			<Option compilerVar="CC" />
 		</Unit>
