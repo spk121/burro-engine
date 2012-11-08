@@ -195,7 +195,7 @@ void draw_gui()
 
 int idle_cb(double delta_t)
 {
-	if (e.key_start || e.key_a || e.key_b)
+    if (splash_flag == TRUE && (e.key_start || e.key_a || e.key_b))
 	{
 		splash_flag = FALSE;
 		clear_bg0();
@@ -219,7 +219,7 @@ int idle_cb(double delta_t)
 	draw_gui();
 
 	if (key_a_prev == FALSE && e.key_a == TRUE)
-		play_tone();
+		do_key_a();
 	if (key_b_prev == FALSE && e.key_b == TRUE)
 		play_noise();
 
@@ -274,3 +274,13 @@ void load_bg0_art()
 	e.main_bg[0].map.palette[0] = 0xff112233;
 	e.main_bg[0].map.palette[1] = 0xff00eeee;
 }
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

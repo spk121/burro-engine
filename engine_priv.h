@@ -12,6 +12,9 @@ struct priv_entry
     /* The volume of heat juice flowing from my head, in milliliters. */
     float philogistan;
 
+    /* Glib's random seed */
+    GRand *seed;
+    
     /* For the GUI */
     GtkWidget *window;
     GtkWidget *fixed;
@@ -46,3 +49,13 @@ struct priv_entry
 
 
 #endif // ENGINE_PRIV_H_INCLUDED
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

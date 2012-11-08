@@ -6,12 +6,12 @@
 
 
 static void log_handler (const gchar *log_domain,
-                                                         GLogLevelFlags log_level,
-                                                         const gchar *message,
-                                                         gpointer user_data)
-                                                         {
-                                                            printf("%s\n", message);
-                                                         }
+                         GLogLevelFlags log_level,
+                         const gchar *message,
+                         gpointer user_data)
+{
+    printf("%s\n", message);
+}
 
 int main(int argc, char **argv)
 {

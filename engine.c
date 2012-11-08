@@ -25,13 +25,12 @@ cairo_surface_t *eng_sub_surface;
 
 
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
-static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy);
-static gboolean idle_state_event_cb (void *dummy);
-static gboolean key_event_cb (G_GNUC_UNUSED GtkWidget *widget, GdkEventKey *event, gpointer dummy);
-static void paint (void);
+static gboolean window_state_event_cb(GtkWidget *widget, GdkEvent *event, gpointer dummy);
+static gboolean idle_state_event_cb(void *dummy);
+static gboolean key_event_cb(G_GNUC_UNUSED GtkWidget *widget, GdkEventKey *event, gpointer dummy);
+static void paint(void);
 static void present(void);
-static void audio_update (void);
-static void audio_pause (void);
+static void audio_pause(void);
 
 void engine_initialize(int *argc, char ***argv, char *title)
 {
@@ -44,6 +43,9 @@ void engine_initialize(int *argc, char ***argv, char *title)
     gst_init(argc, argv);
 
     memset(&e, 0, sizeof(engine_t));
+
+    /* Set up the random seed */
+    e.priv.seed = g_rand_new();
 
     /* Set up the window */
     e.priv.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -86,7 +88,6 @@ void engine_initialize(int *argc, char ***argv, char *title)
     initialize_timers();
     initialize_input();
 
-    e.priv.initialized_flag = TRUE;
 }
 
 
@@ -100,6 +101,18 @@ void engine_loop()
 
     /* All our game processing goes in the idle func */
     g_idle_add (idle_state_event_cb, NULL);
+
+    /* Set up the frame count timer */
+    e.priv.timer = g_timer_new();
+    g_timer_start (e.priv.timer);
+    e.priv.update_count = 0;
+    e.priv.draw_count = 0;
+    e.priv.before_update_time = g_timer_elapsed (e.priv.timer, NULL);
+    e.priv.after_update_time = e.priv.before_update_time;
+    e.priv.before_draw_time =  e.priv.before_update_time;
+    e.priv.after_draw_time =  e.priv.before_update_time;
+
+    e.priv.initialized_flag = TRUE;
 
     /* What is this GDK voodoo?  Grabbed it from the gtk repo */
     gdk_threads_leave ();
@@ -272,11 +285,6 @@ static void present()
     // cairo_surface_write_to_png(e.priv.sub_screen_surface, "burro_sub_screen_present.png");
     cairo_paint (cr);
     cairo_destroy(cr);
-}
-
-static void audio_update ()
-{
-    /* update each of the 3 tone channels */
 }
 
 static void audio_pause ()
