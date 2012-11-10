@@ -46,11 +46,11 @@ note_control_t control[CONTROL_COUNT] = {
 	{"D_sustain", FALSE, 0.1, 0.0, 1.0, 0.05},
 	{"D_release", FALSE, 0.1, 0.0, 1.0, 0.05},
 	{"F_initial", TRUE,  440.0, 20.0, 12000.0, TWELFTH_ROOT_OF_2},
-	{"F_attack",  TRUE,  440.0, 20.0, 12000.0, FORTY_EIGHTH_ROOT_OF_2},
-	{"F_sustain", TRUE,  440.0, 20.0, 12000.0, FORTY_EIGHTH_ROOT_OF_2},
-	{"F_release", TRUE,  440.0, 20.0, 12000.0, FORTY_EIGHTH_ROOT_OF_2},
-	{"A_attack",  FALSE, 1.0, 0.1, 1.0, 0.05},
-	{"A_sustain", FALSE, 0.9, 0.1, 1.0, 0.05},
+	{"F_attack",  TRUE,  440.0, 20.0, 12000.0, TWELFTH_ROOT_OF_2},
+	{"F_sustain", TRUE,  440.0, 20.0, 12000.0, TWELFTH_ROOT_OF_2},
+	{"F_release", TRUE,  440.0, 20.0, 12000.0, TWELFTH_ROOT_OF_2},
+	{"A_attack",  FALSE, 1.0, 0.05, 1.0, 0.05},
+	{"A_sustain", FALSE, 1.0, 0.05, 1.0, 0.05},
 	{"Duty",      FALSE, 0.5, 0.0, 1.0, 0.05}};
 
 int main(int argc, char **argv)
@@ -221,7 +221,7 @@ int idle_cb(double delta_t)
 	if (key_a_prev == FALSE && e.key_a == TRUE)
 		do_key_a();
 	if (key_b_prev == FALSE && e.key_b == TRUE)
-		play_noise();
+		do_key_b();
 
 	key_up_prev = e.key_up;
 	key_down_prev = e.key_down;

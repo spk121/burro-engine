@@ -122,6 +122,21 @@ void engine_loop()
     g_main_loop_unref (e.priv.main_loop);
 }
 
+/* This main-loop "idle" func is called as a result of the
+ * audio EOS callback placing an idle event on the main loop.
+ * This juggling is so that this callback is called from the
+ * main-loop thread. DATA is the channel number of the audio
+ * channel that has reached the end of stream.  */
+gboolean eos_cb(gpointer data)
+{
+    int channel = (int)data;
+    if(e.do_sound_channel[channel] != NULL)
+        (e.do_sound_channel[channel])(channel);
+
+    /* Return FALSE so that it is detached from future idle events. */
+    return FALSE;
+}
+
 static void destroy_cb(GtkWidget* widget, gpointer dummy)
 {
     e.priv.quitting_flag = TRUE;
@@ -208,6 +223,7 @@ static gboolean idle_state_event_cb (void *dummy)
     {
         if (e.priv.active_flag)
         {
+            audio_update ();
             if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_update_time) > UPDATE_RATE))
             {
                 if (e.do_idle != NULL)
@@ -221,7 +237,6 @@ static gboolean idle_state_event_cb (void *dummy)
                 if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_draw_time) > REFRESH_RATE))
                 {
                     paint ();
-                    audio_update ();
                     if (e.do_after_draw_frame != NULL)
                         e.do_after_draw_frame (e.priv.before_draw_time - e.priv.after_draw_time);
 

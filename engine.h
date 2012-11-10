@@ -363,6 +363,10 @@ void engine_loop (void);
 /** Called by Game to request quitting the engine */
 void engine_finalize (void);
 
+/** Called internally by the audio engine to signal the end of a tone or noise */
+gboolean eos_cb(gpointer channel);
+
+
 /*
   Local Variables:
   mode:C

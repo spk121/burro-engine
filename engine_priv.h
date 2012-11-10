@@ -43,8 +43,9 @@ struct priv_entry
     _Bool run_full_speed_flag;
 
     /* Audio engine */
-    GstElement *pipeline, *adder, *sink;
-    GstElement *tone[TONE_COUNT], *noise[NOISE_COUNT], *wave[WAVE_COUNT];
+    GstElement *tone_pipeline[TONE_COUNT], *tone_source[TONE_COUNT], *tone_sink[TONE_COUNT];
+    GstElement *noise_pipeline[NOISE_COUNT], *noise_source[NOISE_COUNT], *noise_sink[NOISE_COUNT];
+    GstElement *wave_pipeline[WAVE_COUNT], *wave_source[WAVE_COUNT], *wave_sink[WAVE_COUNT];
 };
 
 
