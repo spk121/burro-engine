@@ -53,11 +53,23 @@ note_control_t control[CONTROL_COUNT] = {
 	{"A_sustain", FALSE, 1.0, 0.05, 1.0, 0.05},
 	{"Duty",      FALSE, 0.5, 0.0, 1.0, 0.05}};
 
+void log_handler(const gchar *log_domain,
+                    GLogLevelFlags log_level,
+                    const gchar *message,
+                    gpointer user_data)
+{
+    fprintf(stdout, "%s\n", message);
+    fflush(stdout);
+}
+
 int main(int argc, char **argv)
 {
 	/* Prep the game engine */
-	engine_initialize(&argc, &argv, "tones");
+    g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    g_log_set_handler ("GLib", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    g_log_set_handler ("Gtk", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
 
+	engine_initialize(&argc, &argv, "tones");
 	g_type_init();
 
 	e.do_idle = idle_cb;

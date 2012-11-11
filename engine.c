@@ -40,8 +40,8 @@ void engine_initialize(int *argc, char ***argv, char *title)
 
     g_debug("Entering engine_initialize()");
     gtk_init(argc, argv);
-    gst_init(argc, argv);
-
+    // gst_init(argc, argv);
+    
     memset(&e, 0, sizeof(engine_t));
 
     /* Set up the random seed */
@@ -55,6 +55,11 @@ void engine_initialize(int *argc, char ***argv, char *title)
         gtk_window_set_title (GTK_WINDOW (e.priv.window), title);
     else
         gtk_window_set_title(GTK_WINDOW(e.priv.window), "Project Burro Engine");
+
+    /* Set GNOME properties that PulseAudio likes to have */
+    g_set_application_name(title);
+    gtk_window_set_default_icon_name(title);
+    g_setenv("PULSE_PROP_media.role", "game", TRUE);
 
     gtk_widget_realize (e.priv.window);
 
@@ -161,47 +166,57 @@ static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer du
     {
     case GDK_KEY_a:
     case GDK_KEY_A:
+        g_debug("Key A received");
         e.key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_b:
     case GDK_KEY_B:
+        g_debug("Key B received");
         e.key_b = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_x:
     case GDK_KEY_X:
+        g_debug("Key X received");
         e.key_x = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_y:
     case GDK_KEY_Y:
+        g_debug("Key Y received");
         e.key_y = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Up:
     case GDK_KEY_KP_Up:
+        g_debug("Key Up received");
         e.key_up = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Down:
     case GDK_KEY_KP_Down:
+        g_debug("Key Down received");
         e.key_down = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Left:
     case GDK_KEY_KP_Left:
+        g_debug("Key Left received");
         e.key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Right:
     case GDK_KEY_KP_Right:
+        g_debug("Key Right received");
         e.key_right = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Start:
+    case GDK_KEY_KP_Enter:
+    case GDK_KEY_space:
+        g_debug("Key Start received");
         e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Select:
     case GDK_KEY_SelectButton:
     case GDK_KEY_KP_Tab:
     case GDK_KEY_Tab:
+        g_debug("Key Select received");
         e.key_select = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-    case GDK_KEY_KP_Enter:
-    case GDK_KEY_space:
         e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
     default:
         return FALSE;
@@ -223,9 +238,11 @@ static gboolean idle_state_event_cb (void *dummy)
     {
         if (e.priv.active_flag)
         {
-            audio_update ();
+            audio_update();
             if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_update_time) > UPDATE_RATE))
             {
+
+            
                 if (e.do_idle != NULL)
                     e.do_idle (cur_time - e.priv.before_update_time);
 

@@ -68,6 +68,9 @@
    - wav
 */
 
+/* PulseAudio can't deal with samples that are too short */
+#define MIN_AUDIO_SAMPLE_LENGTH (1024)
+
 
 #define AUDIO_SAMPLE_RATE_IN_HZ (22050)
 #define WAVEFORM_MAX_DURATION_IN_SEC (12)
