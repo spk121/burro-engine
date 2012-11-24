@@ -1,0 +1,20 @@
+TONES is a program to test the audio of the Project Burro 2D game engine.
+
+When the TONES 'game' is run, it presents a set of slider bar controls
+
+Initial Pitch
+Attack Pitch
+Sustain Pitch
+Decay Pitch
+Attack Duration
+Decay Duration
+Sustain Duration
+Release Duration
+Attack Amplitude
+Sustain Amplitude
+Duty
+
+up/down jumps from slider to slider
+left/right adjusts the slider
+A plays it as tone
+B plays it as noise
