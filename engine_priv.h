@@ -3,7 +3,6 @@
 
 #include <gtk/gtk.h>
 #include <cairo.h>
-#include <pulse/pulseaudio.h>
 #include "engine_constants.h"
 
 /* These are the internal states of the engine */
@@ -44,18 +43,15 @@ struct priv_entry
 
     /* Audio engine */
     int audio_state;
-    pa_mainloop *audio_loop;
-    pa_mainloop_api *audio_loop_vtable;
-    pa_proplist *audio_loop_proplist;
-    pa_context *audio_context;
-    pa_sample_spec audio_sample_spec;
-    uint8_t *audio_buf[CHANNEL_COUNT];
-    int audio_len[CHANNEL_COUNT], audio_pos[CHANNEL_COUNT];
-    pa_stream *audio_stream[CHANNEL_COUNT];
-    int audio_waiting[CHANNEL_COUNT];
+    int audio_latency;
+    double audio_time_cur, audio_time_head;
+    double song_start_time;
+    int16_t audio_buf[AUDIO_BUFFER_SIZE];
+    int8_t audio_count[AUDIO_BUFFER_SIZE];
 };
 
 #define NOISE(x) ((x)+TONE_COUNT)
+#define WAVE(x) ((x)+TONE_COUNT+NOISE_COUNT)
 #define TONE(x) (x)
 
 #endif // ENGINE_PRIV_H_INCLUDED

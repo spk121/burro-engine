@@ -68,13 +68,6 @@
    - wav
 */
 
-/* PulseAudio can't deal with samples that are too short */
-#define MIN_AUDIO_SAMPLE_LENGTH (1024)
-
-
-#define AUDIO_SAMPLE_RATE_IN_HZ (22050)
-#define WAVEFORM_MAX_DURATION_IN_SEC (12)
-#define WAVEFORM_MAX_DURATION_IN_SAMPLES ((WAVEFORM_MAX_DURATION_IN_SEC) * (AUDIO_SAMPLE_RATE_IN_HZ))
 
 /* These are the main event timers */
 #define TIMER_COUNT (4)
@@ -300,7 +293,7 @@ typedef struct wave_entry
     int count;
 
     /** (Write) An 8-bit unsigned PCM waveform sampled at WAVEFORM_SAMPLE_RATE_MAX_IN_HZ */
-    uint8_t wave[WAVEFORM_MAX_DURATION_IN_SAMPLES];
+    uint8_t wave[AUDIO_WAVEFORM_DURATION_MAX_IN_SAMPLES];
 } wave_entry_t;
 
 

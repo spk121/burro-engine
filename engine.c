@@ -238,6 +238,7 @@ static gboolean idle_state_event_cb (void *dummy)
     {
         if (e.priv.active_flag)
         {
+            e.priv.audio_time_cur = cur_time;
             audio_update();
             if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_update_time) > UPDATE_RATE))
             {
