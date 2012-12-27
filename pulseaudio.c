@@ -14,6 +14,7 @@ typedef struct pulse_priv_tag {
     int state;
     pa_mainloop *loop;
     _Bool finalize;
+    int samples_written;
 } pulse_priv_t;
 static pulse_priv_t pulse;
 
@@ -80,7 +81,7 @@ void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     {
         if(e.priv.audio_count[i] > 0)
             // y = e.priv.audio_buf[i] / e.priv.audio_count[i] - INT8_MIN;
-            y = e.priv.audio_buf[i] / 10 - INT8_MIN;
+            y = e.priv.audio_buf[i] / 5 - INT8_MIN;
         else
             y = -INT8_MIN;
         if(y > UINT8_MAX)
@@ -108,7 +109,7 @@ void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     g_memmove(e.priv.audio_count, e.priv.audio_count + n, sizeof(int8_t) * (AUDIO_BUFFER_SIZE - n));
     memset(e.priv.audio_count + AUDIO_BUFFER_SIZE - n, 0, n);
 
-    g_debug("Wrote %d samples to PulseAudio", n);
+    pulse.samples_written += n;
 }
 
 void pulse_initialize_audio()
@@ -289,8 +290,12 @@ void pulse_finalize_audio()
 
 void pulse_update_audio()
 {
+    pulse.samples_written = 0;
     while (pa_mainloop_iterate(pulse.loop, 0, NULL) > 0)
         ;
+    if (pulse.samples_written > 0)
+        g_debug("Wrote %d samples to PulseAudio", pulse.samples_written);
+
 }
 
 /* This finalizer is called on EXIT */

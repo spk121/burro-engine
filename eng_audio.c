@@ -7,7 +7,7 @@
 static void generate_tone_data(double D_attack, double D_decay, double D_sustain, double D_release,
                                double F_initial, double F_attack, double F_sustain, double F_release,
                                double A_attack, double A_sustain,
-                               double duty, _Bool noise,
+                               double duty, _Bool noise, int waveform,
                                int8_t **buffer, size_t *length);
 void initialize_channel(int i);
 static void noise_update(int i);
@@ -38,7 +38,7 @@ void audio_update(void)
 static void generate_tone_data(double D_attack, double D_decay, double D_sustain, double D_release,
                                double F_initial, double F_attack, double F_sustain, double F_release,
                                double A_attack, double A_sustain,
-                               double duty, _Bool noise,
+                               double duty, _Bool noise, int waveform,
                                int8_t **buffer, size_t *length)
 {
     /* D = duration in sec
@@ -119,16 +119,30 @@ static void generate_tone_data(double D_attack, double D_decay, double D_sustain
 
         }
         if (t - t_start < period * duty)
-            (*buffer)[i] = level_a;
+        {
+            if(waveform == 0)
+                (*buffer)[i] = level_a;
+            else if (waveform == 1)
+                (*buffer)[i] = level_a * sin(M_PI * (t - t_start) / (period * duty));
+        }
         else if (t - t_start < period)
-            (*buffer)[i] = level_b;
+        {
+            if(waveform == 0)
+                (*buffer)[i] = level_b;
+            else if (waveform == 1)
+                (*buffer)[i] = level_b * sin(M_PI * ((t - t_start) - period * duty) / (period * (1.0 - duty)));
+        }
         i ++;
         t += 1.0 / (double) AUDIO_SAMPLE_RATE_IN_HZ;
     }
-#if 0
+#if 1
     {
-        FILE *fp = fopen("wav.txt", "wt");
+        FILE *fp;
         int i;
+        if(noise)
+            fp = fopen("noise.txt", "wt");
+        else
+            fp = fopen("wave.txt", "wt");
         for(i = 0; i < *length; i++)
             fprintf(fp, "%d %d\n", i, (int)(*buffer)[i]);
         fclose(fp);
@@ -159,7 +173,7 @@ static void tone_update(int channel)
                            e.tone[channel].attack_amplitude,
                            e.tone[channel].sustain_amplitude,
                            e.tone[channel].duty,
-                           FALSE,
+                           FALSE, 0, 
                            &buffer, &length);
         delta = AUDIO_LATENCY_REQUESTED_IN_SAMPLES;
         for(i = 0; i < length; i++)
@@ -195,7 +209,7 @@ static void noise_update(int channel)
                            e.noise[channel].attack_amplitude,
                            e.noise[channel].sustain_amplitude,
                            e.noise[channel].duty,
-                           TRUE,
+                           TRUE, 1,
                            &buffer, &length);
         delta = AUDIO_LATENCY_REQUESTED_IN_SAMPLES;
         for(i = 0; i < length; i++)
