@@ -1,4 +1,4 @@
-#include "engine.h"
+#include <string.h>
 #include <glib.h>
 #include <math.h>
 #include <gtk/gtk.h>
@@ -13,6 +13,9 @@
 #include "eng_audio.h"
 #include "eng_timers.h"
 #include "eng_input.h"
+#include "socket.h"
+#include "extern.h"
+
 
 #define UPDATE_RATE (1.0 / 60.0)
 #define REFRESH_RATE (1.0 / 30.0)
@@ -34,11 +37,7 @@ static void audio_pause(void);
 
 void engine_initialize(int *argc, char ***argv, char *title)
 {
-    g_warn_if_fail(title != NULL && strlen(title) > 0);
-    g_warn_if_fail(argc != NULL && *argc > 0);
-    g_warn_if_fail(argv != NULL);
-
-    g_debug("Entering engine_initialize()");
+    xdebug("Entering engine_initialize()");
     gtk_init(argc, argv);
     // gst_init(argc, argv);
     
@@ -92,7 +91,7 @@ void engine_initialize(int *argc, char ***argv, char *title)
     initialize_audio();
     initialize_timers();
     initialize_input();
-
+    initialize_socket();
 }
 
 

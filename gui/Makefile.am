@@ -16,13 +16,10 @@ AM_CFLAGS = ${my_CFLAGS} \
 
 AM_LDFLAGS = \
 	${DEPS_LIBS}
-AM_LDFLAGS =
 
 bin_PROGRAMS = burro
 
 burro_SOURCES =\
-	dl.c \
-	dl.h \
 	eng_audio.c \
 	eng_audio.h \
 	engine.c \
@@ -35,11 +32,11 @@ burro_SOURCES =\
 	eng_timers.h \
 	eng_video.c \
 	eng_video.h \
-	game.c \
-	game.h \
 	io.c \
 	io.h \
 	main.c \
 	pulseaudio.c \
-	pulseaudio.h
+	pulseaudio.h \
+	socket.c \
 	extern.c \
+	commands.c
