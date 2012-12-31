@@ -11,8 +11,11 @@ AM_CPPFLAGS = \
 	-I${top_srcdir}/src
 
 AM_CFLAGS = ${my_CFLAGS} \
+	${DEPS_CFLAGS} \
 	-fvisibility=hidden
 
+AM_LDFLAGS = \
+	${DEPS_LIBS}
 AM_LDFLAGS =
 
 bin_PROGRAMS = burro
@@ -39,3 +42,4 @@ burro_SOURCES =\
 	main.c \
 	pulseaudio.c \
 	pulseaudio.h
+	extern.c \
