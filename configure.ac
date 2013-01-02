@@ -52,6 +52,7 @@ AC_SUBST([my_CFLAGS])
 AC_CONFIG_FILES([
         Makefile
 	gui/Makefile
+	game/Makefile
 ])
 #	libburro/Makefile
 #	game/Makefile
