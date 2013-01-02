@@ -86,6 +86,16 @@ void engine_initialize(int *argc, char ***argv, char *title)
 
     gtk_widget_show_all (e.priv.window);
 
+    /* Set up the frame count timer */
+    e.priv.timer = g_timer_new();
+    g_timer_start (e.priv.timer);
+    e.priv.update_count = 0;
+    e.priv.draw_count = 0;
+    e.priv.before_update_time = g_timer_elapsed (e.priv.timer, NULL);
+    e.priv.after_update_time = e.priv.before_update_time;
+    e.priv.before_draw_time =  e.priv.before_update_time;
+    e.priv.after_draw_time =  e.priv.before_update_time;
+
     initialize_state();
     initialize_video();
     initialize_audio();
@@ -106,15 +116,6 @@ void engine_loop()
     /* All our game processing goes in the idle func */
     g_idle_add (idle_state_event_cb, NULL);
 
-    /* Set up the frame count timer */
-    e.priv.timer = g_timer_new();
-    g_timer_start (e.priv.timer);
-    e.priv.update_count = 0;
-    e.priv.draw_count = 0;
-    e.priv.before_update_time = g_timer_elapsed (e.priv.timer, NULL);
-    e.priv.after_update_time = e.priv.before_update_time;
-    e.priv.before_draw_time =  e.priv.before_update_time;
-    e.priv.after_draw_time =  e.priv.before_update_time;
 
     e.priv.initialized_flag = TRUE;
 
