@@ -38,11 +38,14 @@ GSocketConnection * xg_socket_client_connect_to_host     (GSocketClient *client,
 GSocketClient *     xg_socket_client_new                 (void);
 GSocket *           xg_socket_connection_get_socket      (GSocketConnection *connection);
 int                 xg_socket_get_fd                     (GSocket *socket);
+gssize              xg_socket_send                       (GSocket *socket,
+                                                          const gchar *buffer,
+                                                          gsize size);
 gboolean            xg_str_has_prefix                    (const gchar *str,
-							  const gchar *prefix);
+                                                          const gchar *prefix);
 gchar **            xg_strsplit_set                      (const gchar *string,
-							  const gchar *delimiters,
-							  gint max_tokens);
+                                                          const gchar *delimiters,
+                                                          gint max_tokens);
 #endif
 /*
   Local Variables:

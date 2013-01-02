@@ -5,6 +5,7 @@
 #include "extern.h"
 
 
+
 guint
 xg_io_add_watch                      (GIOChannel *channel,
                                       GIOCondition condition,
@@ -20,9 +21,24 @@ xg_io_channel_read_to_end            (GIOChannel *channel,
                                       gsize *length)
 {
     GIOStatus s;
-    s = g_io_channel_read_to_end (channel, str_return, length, NULL);
-    if (s != G_IO_STATUS_NORMAL)
-        xerror ("g_io_channel_read_to_end returned %d", s);
+    GError *e = NULL;
+    const char *nm = "(no message)";
+
+    s = g_io_channel_read_to_end (channel, str_return, length, &e);
+    switch (s) {
+    case G_IO_STATUS_ERROR:
+        xerror ("g_io_channel_read_to_end returned ERROR: %s",
+                (e && e->message) ? e->message : nm);
+        break;
+    case G_IO_STATUS_EOF:
+        xerror ("g_io_channel_read_to_end returned EOF: %s",
+                (e && e->message) ? e->message : nm);
+        break;
+    case G_IO_STATUS_AGAIN:
+    case G_IO_STATUS_NORMAL:
+        // xdebug ("g_io_channel_read_to_end returned %d bytes", *length);
+        break;
+    }
 }
 
 GIOChannel *
@@ -78,6 +94,18 @@ xg_socket_get_fd (GSocket *socket)
     if (fd == -1)
         xerror("g_socket_get_fd() returned -1");
     return fd;
+}
+
+gssize
+xg_socket_send (GSocket *socket,
+                const gchar *buffer,
+                gsize size)
+{
+    gssize n;
+    n = g_socket_send (socket, buffer, size, NULL, NULL);
+    if (n == -1)
+        xerror("g_socket_send() returned -1");
+    return n;
 }
 
 gboolean
