@@ -293,8 +293,8 @@ void pulse_update_audio()
     pulse.samples_written = 0;
     while (pa_mainloop_iterate(pulse.loop, 0, NULL) > 0)
         ;
-    if (pulse.samples_written > 0)
-        g_debug("Wrote %d samples to PulseAudio", pulse.samples_written);
+    /* if (pulse.samples_written > 0) */
+    /*     g_debug("Wrote %d samples to PulseAudio", pulse.samples_written); */
 
 }
 
