@@ -22,7 +22,8 @@ AC_CHECK_LIB([m],[cos])
 PKG_CHECK_MODULES([DEPS], [glib-2.0 gio-2.0 gtk+-3.0 cairo libpulse])
 PKG_CHECK_MODULES([GUILE], [guile-2.0],,
   [PKG_CHECK_MODULES([GUILE], [guile-1.8])])
-GUILEVER=`guile -c "(display (version))"`
+GUILEVER=`guile -c "(display (string-append (major-version) \".\" (minor-version)))"`
+AC_SUBST([GUILEVER])
 AC_MSG_NOTICE([Using guile version ${GUILEVER}])
 AC_PATH_PROG([GUILE_EXE],[guile])
 

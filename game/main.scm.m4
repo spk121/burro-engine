@@ -1,8 +1,13 @@
-(use-modules (rnrs bytevectors)
-	     (serveez-mg lib))
+;;; -*- mode: scheme -*-
+;;; m4_changequote(`<<',`>>')
+;;; m4_changecom(<<:M4_COMMENT_BEGIN:>>,<<:M4_COMMENT_END:>>)
+
+(use-modules (serveez-mg lib)
+	     m4_ifelse(GUILE_VERSION,
+		       <<1.8>>,
+		       <<>>,
+		       <<(rnrs bytevectors)>>))
 	     
-
-
 ;; The Dynamic Ports should be between 49152 and 65535
 (define +base-port+ 50000)
 
