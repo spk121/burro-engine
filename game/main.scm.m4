@@ -47,8 +47,12 @@
   (let ((input-bytes (svz:sock:receive-buffer socket))
 	(remote-address (svz:sock:remote-address socket)))
 
-    (if (bytevector-contains (svz:sock:receive-buffer socket) 
-			     (string->utf8 "HELLO"))
+    (if (m4_ifelse(GUILE_VERSION,
+		   <<1.8>>,
+		   <<string-contains (svz:sock:receive-buffer socket)
+		   "HELLO">>,
+		   <<bytevector-contains (svz:sock:receive-buffer socket) 
+		   (string->utf8 "HELLO")>>))
 	;; If true, allow connection
 	(begin 
 	  (format #t "Valid connection from ~a:~a~%" 
@@ -67,7 +71,11 @@
 ;; If it receives "WHAT TIME IT IS?", return the time.
 ;; Otherwise, return ERROR.
 (define (pb-handle-request socket request len)
-  (let ((command (strip-boundary (utf8->string request))))
+  (let ((command (strip-boundary
+		  (m4_ifelse(GUILE_VERSION,
+			     <<1.8>>,
+			     <<request>>,
+			     <<(utf8->string request)>>)))))
     (format #t "Handling request '~s'~%" command)
     (cond
      ((string=? command "HELLO")
