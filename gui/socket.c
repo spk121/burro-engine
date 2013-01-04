@@ -16,10 +16,11 @@ static gboolean io_watch_cb(GIOChannel *channel, GIOCondition cond, gpointer dat
     if (length > 0)
     {
         do_commands_from_string (str, length);
-    }
-    g_free (str);
+        g_free (str);
 
-    return TRUE;
+        return TRUE;
+    }
+    return FALSE;
 }
 
 void
@@ -37,6 +38,10 @@ initialize_socket()
     fd = xg_socket_get_fd(socket);
 
     channel = xg_io_channel_unix_new(fd);
+
+    g_io_channel_set_flags(channel, 
+                           g_io_channel_get_flags(channel) & (~G_IO_FLAG_NONBLOCK),
+                           NULL);
 
     /* Declare oneself to the game server */
     xg_socket_send (socket, hello, strlen (hello));

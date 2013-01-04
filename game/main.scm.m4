@@ -72,14 +72,18 @@
 ;; Otherwise, return ERROR.
 (define (pb-handle-request socket request len)
   (let ((command (strip-boundary
-		  (m4_ifelse(GUILE_VERSION,
-			     <<1.8>>,
-			     <<request>>,
-			     <<(utf8->string request)>>)))))
+		  m4_ifelse(GUILE_VERSION,
+			    <<1.8>>,
+			    <<request>>,
+			    <<(utf8->string request)>>))))
     (format #t "Handling request '~s'~%" command)
     (cond
      ((string=? command "HELLO")
-      (svz:sock:print socket "HELLO, WORLD!\r\n"))
+      (svz:sock:send-buffer-size socket (string-length "HELLO, WORLD!\r\n"))
+      (svz:sock:print socket "HELLO, WORLD!\r\n")
+      (sleep 10)
+      (svz:sock:print socket "HELLO, WORLD!!\r\n")
+      )
      ((string=? command "WHAT TIME IS IT?")
       (svz:sock:print socket (strftime "%c" (localtime (current-time))))
       (svz:sock:print socket "\r\n"))
