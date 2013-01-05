@@ -27,16 +27,16 @@ xg_io_channel_read_to_end            (GIOChannel *channel,
     s = g_io_channel_read_to_end (channel, str_return, length, &e);
     switch (s) {
     case G_IO_STATUS_ERROR:
-        xerror ("g_io_channel_read_to_end returned ERROR: %s",
+        g_critical ("g_io_channel_read_to_end returned ERROR: %s",
                 (e && e->message) ? e->message : nm);
         break;
     case G_IO_STATUS_EOF:
-        xerror ("g_io_channel_read_to_end returned EOF: %s",
+        g_critical ("g_io_channel_read_to_end returned EOF: %s",
                 (e && e->message) ? e->message : nm);
         break;
     case G_IO_STATUS_AGAIN:
     case G_IO_STATUS_NORMAL:
-        // xdebug ("g_io_channel_read_to_end returned %d bytes", *length);
+        // g_debug ("g_io_channel_read_to_end returned %d bytes", *length);
         break;
     }
 }
@@ -47,7 +47,7 @@ xg_io_channel_unix_new               (int fd)
     GIOChannel *c;
     c = g_io_channel_unix_new (fd);
     if (c == NULL)
-        xerror ("g_io_channel_unix_new() returned NULL");
+        g_critical ("g_io_channel_unix_new() returned NULL");
     return c;
 }
 
@@ -63,7 +63,7 @@ xg_socket_client_connect_to_host     (GSocketClient *client,
                                          NULL,
                                          NULL);
     if (c == NULL)
-        xerror ("g_socket_client_connect_to_host() returned NULL");
+        g_critical ("g_socket_client_connect_to_host() returned NULL");
     return c;
 }
 
@@ -72,8 +72,22 @@ xg_socket_client_new (void)
 {
     GSocketClient *s = g_socket_client_new ();
     if (s == NULL)
-        xerror("g_socket_client_new() returned NULL");
+        g_critical("g_socket_client_new() returned NULL");
     return s;
+}
+
+void
+xg_socket_connect (GSocket *socket,
+                   GSocketAddress *address)
+{
+    gboolean ret;
+    GError *error;
+    ret = g_socket_connect(socket, address, NULL, &error);
+    if (ret == FALSE)
+    {
+        g_critical ("g_socket_connect returned FALSE: %s",
+                    error->message);
+    }
 }
 
 GSocket *
@@ -82,7 +96,7 @@ xg_socket_connection_get_socket (GSocketConnection *connection)
     GSocket *s;
     s = g_socket_connection_get_socket (connection);
     if (s == NULL)
-        xerror("g_socket_connection_get_socket() returned NULL");
+        g_critical("g_socket_connection_get_socket() returned NULL");
     return s;
 }
 
@@ -92,8 +106,21 @@ xg_socket_get_fd (GSocket *socket)
     int fd;
     fd = g_socket_get_fd(socket);
     if (fd == -1)
-        xerror("g_socket_get_fd() returned -1");
+        g_critical("g_socket_get_fd() returned -1");
     return fd;
+}
+
+GSocket *
+xg_socket_new (GSocketFamily family,
+               GSocketType type,
+               GSocketProtocol protocol)
+{
+    GSocket *s;
+    GError *error;
+    s = g_socket_new (family, type, protocol, &error);
+    if (s == NULL)
+        g_critical ("g_socket_new() returns NULL: %s", error->message);
+    return s;
 }
 
 gssize
@@ -101,10 +128,13 @@ xg_socket_send (GSocket *socket,
                 const gchar *buffer,
                 gsize size)
 {
+    GError *error;
     gssize n;
-    n = g_socket_send (socket, buffer, size, NULL, NULL);
+    n = g_socket_send (socket, buffer, size, NULL, &error);
     if (n == -1)
-        xerror("g_socket_send() returned -1");
+    {
+        g_critical("g_socket_send() returned -1: %s", error->message);
+    }
     return n;
 }
 
@@ -122,7 +152,7 @@ xg_strsplit_set (const gchar *string,
     gchar **strv;
     strv = g_strsplit_set (string, delimiters, max_tokens);
     if (strv == NULL)
-        xerror ("g_strsplit_set() returned NULL");
+        g_critical ("g_strsplit_set() returned NULL");
     return strv;
 }
 

@@ -3,6 +3,7 @@
 #include <glib.h>
 #include <gio/gio.h>
 
+#if 0
 #ifdef ENABLE_DEBUG
 # define xdebug(...) g_debug(__VA_ARGS__);
 #else
@@ -22,7 +23,10 @@
 #  define xerror(...)
 # endif
 #endif
+#endif
 
+#define xdebug(...) g_debug(__VA_ARGS__)
+#define xerror(...) g_debug(__VA_ARGS__)
 
 guint               xg_io_add_watch                      (GIOChannel *channel,
 							  GIOCondition condition,
@@ -36,8 +40,13 @@ GSocketConnection * xg_socket_client_connect_to_host     (GSocketClient *client,
                                                           const gchar *host_and_port,
                                                           guint16 default_port);
 GSocketClient *     xg_socket_client_new                 (void);
+void                xg_socket_connect                    (GSocket *socket,
+                                                          GSocketAddress *address);
 GSocket *           xg_socket_connection_get_socket      (GSocketConnection *connection);
 int                 xg_socket_get_fd                     (GSocket *socket);
+GSocket *           xg_socket_new                        (GSocketFamily family,
+                                                          GSocketType type,
+                                                          GSocketProtocol protocol);
 gssize              xg_socket_send                       (GSocket *socket,
                                                           const gchar *buffer,
                                                           gsize size);

@@ -2,7 +2,8 @@
 ;;; m4_changequote(`<<',`>>')
 ;;; m4_changecom(<<:M4_COMMENT_BEGIN:>>,<<:M4_COMMENT_END:>>)
 
-(use-modules (serveez-mg lib)
+(use-modules (serveez-mg core)
+	     (serveez-mg lib)
 	     m4_ifelse(GUILE_VERSION,
 		       <<1.8>>,
 		       <<>>,
@@ -35,7 +36,7 @@
 (println "Game loaded")
 
 (define-public (pb-init server)
-  (display "HELLO ")
+  (display "GAME SERVER INIT ")
   (display server)
   (newline)
   0)
@@ -79,10 +80,8 @@
     (format #t "Handling request '~s'~%" command)
     (cond
      ((string=? command "HELLO")
-      (svz:sock:send-buffer-size socket (string-length "HELLO, WORLD!\r\n"))
+      ;; (svz:sock:send-buffer-size socket (string-length "HELLO, WORLD!\r\n"))
       (svz:sock:print socket "HELLO, WORLD!\r\n")
-      (sleep 10)
-      (svz:sock:print socket "HELLO, WORLD!!\r\n")
       )
      ((string=? command "WHAT TIME IS IT?")
       (svz:sock:print socket (strftime "%c" (localtime (current-time))))
