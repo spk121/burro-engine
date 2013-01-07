@@ -4,6 +4,7 @@
 
 (use-modules (serveez-mg core)
 	     (serveez-mg lib)
+	     (game)
 	     m4_ifelse(GUILE_VERSION,
 		       <<1.8>>,
 		       <<>>,
@@ -30,76 +31,6 @@
 (println "Serveez loadpath: " (serveez-loadpath))
 
 ;; === Load game scripts =====================================================
-
-(println "Loading game")
-;;(include "/home/mike/Documents/burro-engine/game/game.scm")
-(println "Game loaded")
-
-(define-public (pb-init server)
-  (display "GAME SERVER INIT ")
-  (display server)
-  (newline)
-  0)
-
-;; The protocol detection function: this function is called the 
-;; first time a client connects.  The client is expected to
-;; identify itself by sending the string "HELLO".
-(define (pb-detect-proto server socket)
-  (let ((input-bytes (svz:sock:receive-buffer socket))
-	(remote-address (svz:sock:remote-address socket)))
-
-    (if (m4_ifelse(GUILE_VERSION,
-		   <<1.8>>,
-		   <<string-contains (svz:sock:receive-buffer socket)
-		   "HELLO">>,
-		   <<bytevector-contains (svz:sock:receive-buffer socket) 
-		   (string->utf8 "HELLO")>>))
-	;; If true, allow connection
-	(begin 
-	  (format #t "Valid connection from ~a:~a~%" 
-		  (inet-ntop AF_INET (htonl (car remote-address)))
-		  (cdr remote-address))
-	  1)
-	;; Otherwise, ignore
-	0)))
-
-
-(define (strip-boundary str)
-  (string-trim-right str (string->char-set "\r\n")))
-
-;; The request handler.
-;; If it receives "HELLO", return "HELLO, WORLD!".
-;; If it receives "WHAT TIME IT IS?", return the time.
-;; Otherwise, return ERROR.
-(define (pb-handle-request socket request len)
-  (let ((command (strip-boundary
-		  m4_ifelse(GUILE_VERSION,
-			    <<1.8>>,
-			    <<request>>,
-			    <<(utf8->string request)>>))))
-    (format #t "Handling request '~s'~%" command)
-    (cond
-     ((string=? command "HELLO")
-      ;; (svz:sock:send-buffer-size socket (string-length "HELLO, WORLD!\r\n"))
-      (svz:sock:print socket "HELLO, WORLD!\r\n")
-      )
-     ((string=? command "WHAT TIME IS IT?")
-      (svz:sock:print socket (strftime "%c" (localtime (current-time))))
-      (svz:sock:print socket "\r\n"))
-     (else
-      (svz:sock:print socket "ERROR\r\n")))
-    ;; Return zero to indicate success
-    0))
-
-;; The connect socket function: after a client has been detected by
-;; detect-proto, this function handles each request
-(define (pb-connect-socket server socket)
-  ;; Each packet is going to be delimited by CR/LF
-  (svz:sock:boundary socket "\r\n")
-  ;; Connect to the request handler
-  (svz:sock:handle-request socket pb-handle-request)
-  ;; Zero indicates success
-  0)
 
 
 ;; Control protocol server for remote control. ===============================
@@ -143,24 +74,6 @@
 
 ;; Game App server. =======================================================
 
-;; Port configuration
-(define-port! 'app-port `((proto . tcp)
-			  (port . ,(+ 2 +base-port+))))
-
-;; Servertype definitions
-(define-servertype! 
-  `((prefix  . "app")
-    (description . "project-burro game engine")
-    (detect-proto . ,pb-detect-proto)
-    (init . ,pb-init)
-    (connect-socket . ,pb-connect-socket)
-    (configuration . ())
-    ))
-
-;; Server instantiation
-(define-server! 'app-server '())
-
-(bind-server! 'app-port 'app-server)
 
 ;; === general options for serveez ===========================================
 

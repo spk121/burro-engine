@@ -51,6 +51,31 @@ xg_io_channel_unix_new               (int fd)
     return c;
 }
 
+gchar *
+xg_scanner_get_next_token_identifier (GScanner *scanner)
+{
+    g_scanner_get_next_token (scanner);
+    if (scanner->token != G_TOKEN_IDENTIFIER)
+    {
+        g_scanner_error (scanner, "expected an integer");
+        return NULL;
+    }
+    return g_scanner_cur_value (scanner).v_identifier;
+}
+
+gulong
+xg_scanner_get_next_token_int (GScanner *scanner)
+{
+    g_scanner_get_next_token (scanner);
+    if (scanner->token != G_TOKEN_INT)
+    {
+        g_scanner_error (scanner, "expected an integer");
+        return 0;
+    }
+    return g_scanner_cur_value (scanner).v_int;
+}
+
+
 GSocketConnection *
 xg_socket_client_connect_to_host     (GSocketClient *client,
                                       const gchar *host_and_port,
