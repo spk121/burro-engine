@@ -38,20 +38,20 @@ void do_commands_from_string (gchar *str, gsize length)
                     xg_scanner_get_next_token_float (m_scanner), /* expansion */
                     xg_scanner_get_next_token_float (m_scanner) /* rotation */
                 );
-        else if (g_str_equal (id, "OBJ"))
-            cmd_obj (xg_scanner_get_next_token_int (m_scanner), /* OBJ # */
-                     xg_scanner_get_next_token_int (m_scanner), /* enable */
-                     xg_scanner_get_next_token_int (m_scanner), /* priority */
-                     xg_scanner_get_next_token_int (m_scanner), /* spritesheet_i */
-                     xg_scanner_get_next_token_int (m_scanner), /* spritesheet_j */
-                     xg_scanner_get_next_token_int (m_scanner), /* sprite_width_i */
-                     xg_scanner_get_next_token_int (m_scanner), /* sprite_width_j */
-                     xg_scanner_get_next_token_float (m_scanner), /* center x */
-                     xg_scanner_get_next_token_float (m_scanner), /* center y */
-                     xg_scanner_get_next_token_int (m_scanner), /* center i */
-                     xg_scanner_get_next_token_int (m_scanner), /* center j */
-                     xg_scanner_get_next_token_float (m_scanner), /* expansion */
-                     xg_scanner_get_next_token_float (m_scanner) /* rotation */
+        else if (g_str_equal (id, "SPRITE"))
+            cmd_sprite (xg_scanner_get_next_token_int (m_scanner), /* OBJ # */
+                        xg_scanner_get_next_token_int (m_scanner), /* enable */
+                        xg_scanner_get_next_token_int (m_scanner), /* priority */
+                        xg_scanner_get_next_token_int (m_scanner), /* spritesheet_i */
+                        xg_scanner_get_next_token_int (m_scanner), /* spritesheet_j */
+                        xg_scanner_get_next_token_int (m_scanner), /* sprite_width_i */
+                        xg_scanner_get_next_token_int (m_scanner), /* sprite_width_j */
+                        xg_scanner_get_next_token_float (m_scanner), /* center x */
+                        xg_scanner_get_next_token_float (m_scanner), /* center y */
+                        xg_scanner_get_next_token_int (m_scanner), /* center i */
+                        xg_scanner_get_next_token_int (m_scanner), /* center j */
+                        xg_scanner_get_next_token_float (m_scanner), /* expansion */
+                        xg_scanner_get_next_token_float (m_scanner) /* rotation */
                 );
         else if (g_str_equal (id, "TONE"))
             cmd_tone (xg_scanner_get_next_token_int (m_scanner), /* Channel # */
@@ -92,20 +92,24 @@ void do_commands_from_string (gchar *str, gsize length)
             cmd_load_bg_map (xg_scanner_get_next_token_int (m_scanner), /* BG # */
                     xg_scanner_get_next_token_string (m_scanner) /* map name */
                 );
+        else if (g_str_equal (id, "LOAD_BG_TILESHEET"))
+            cmd_load_bg_map (xg_scanner_get_next_token_int (m_scanner), /* BG # */
+                    xg_scanner_get_next_token_string (m_scanner) /* tilesheet name */
+                );
         else if (g_str_equal (id, "LOAD_BG_BMP8"))
             cmd_load_bg_bmp8 (xg_scanner_get_next_token_int (m_scanner), /* BG # */
                     xg_scanner_get_next_token_string (m_scanner) /* bmp name */
                 );
-        else if (g_str_equal (id, "LOAD_BG_BMP32"))
-            cmd_load_bg_bmp32 (xg_scanner_get_next_token_int (m_scanner), /* BG # */
+        else if (g_str_equal (id, "LOAD_BG_BMP16"))
+            cmd_load_bg_bmp16 (xg_scanner_get_next_token_int (m_scanner), /* BG # */
                     xg_scanner_get_next_token_string (m_scanner) /* bmp name */
                 );
-        else if (g_str_equal (id, "LOAD_SPRITES"))
+        else if (g_str_equal (id, "LOAD_FG_SPRITESHEET"))
             cmd_load_spritesheet (xg_scanner_get_next_token_int (m_scanner), /* FG # */
                     xg_scanner_get_next_token_string (m_scanner) /* spritesheet name */
                 );
         else if (g_str_equal (id, "LOAD_WAV"))
-            cmd_load_wave (xg_scanner_get_next_token_int (m_scanner), /* FG # */,
+            cmd_load_wave (xg_scanner_get_next_token_int (m_scanner), /* WAVE BUFFER # */,
                            xg_scanner_get_next_token_string (m_scanner) /* wave name */
                 );
         else
