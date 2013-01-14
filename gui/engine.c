@@ -15,7 +15,7 @@
 #include "eng_input.h"
 #include "socket.h"
 #include "extern.h"
-
+#include "commands.h"
 
 #define UPDATE_RATE (1.0 / 60.0)
 #define REFRESH_RATE (1.0 / 30.0)
@@ -101,6 +101,7 @@ void engine_initialize(int *argc, char ***argv, char *title)
     initialize_audio();
     initialize_timers();
     initialize_input();
+    initialize_command_parser();
     initialize_socket();
 }
 

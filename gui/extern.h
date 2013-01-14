@@ -36,6 +36,8 @@ void                xg_io_channel_read_to_end            (GIOChannel *channel,
 							  gchar **str_return,
 							  gsize *length);
 GIOChannel *        xg_io_channel_unix_new               (int fd);
+gdouble             xg_scanner_get_next_token_float      (GScanner *scanner);
+gulong              xg_scanner_get_next_token_hex        (GScanner *scanner);
 gchar *             xg_scanner_get_next_token_identifier (GScanner *scanner);
 gulong              xg_scanner_get_next_token_int        (GScanner *scanner);
 

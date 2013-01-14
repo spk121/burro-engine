@@ -4,7 +4,87 @@
 #include <gio/gio.h>
 #include "extern.h"
 
+const guint
+token_index[23] = {
+    G_TOKEN_EOF,
+  
+  G_TOKEN_LEFT_PAREN,
+  G_TOKEN_RIGHT_PAREN,
+  G_TOKEN_LEFT_CURLY,
+  G_TOKEN_RIGHT_CURLY,
+  G_TOKEN_LEFT_BRACE,
+  G_TOKEN_RIGHT_BRACE,
+  G_TOKEN_EQUAL_SIGN,
+  G_TOKEN_COMMA,
+  
+  G_TOKEN_NONE,
+  
+  G_TOKEN_ERROR,
+  
+  G_TOKEN_CHAR,
+  G_TOKEN_BINARY,
+  G_TOKEN_OCTAL,
+  G_TOKEN_INT,
+  G_TOKEN_HEX,
+  G_TOKEN_FLOAT,
+  G_TOKEN_STRING,
+  
+  G_TOKEN_SYMBOL,
+  G_TOKEN_IDENTIFIER,
+  G_TOKEN_IDENTIFIER_NULL,
+  
+  G_TOKEN_COMMENT_SINGLE,
+  G_TOKEN_COMMENT_MULTI,
+};
 
+const char *
+token_name[23] = 
+{
+    "EOF",
+    "LEFT_PAREN",
+    "RIGHT_PAREN",
+    "LEFT_CURLY",
+    "RIGHT_CURLY",
+    "LEFT_BRACE",
+    "RIGHT_BRACE",
+    "EQUAL_SIGN",
+    "COMMA",
+    "NONE",
+    "ERROR",
+    "CHAR",
+    "BINARY",
+    "OCTAL",
+    "INT",
+    "HEX",
+    "FLOAT",
+    "STRING",
+    "SYMBOL",
+    "IDENTIFIER",
+    "IDENTIFIER_NULL",
+    "COMMENT_SINGLE",
+    "COMMENT_MULTI"
+};
+
+static void
+g_scanner_critical (const gchar *func, GTokenType expected, GTokenType received)
+{
+    GTokenType tt[2] = {expected, received};
+    int ti[2];
+    int i, j;
+    for (j = 0; j < 2; j ++)
+    {
+        ti[j] = token_index[G_TOKEN_ERROR];
+        for (i = 0; i < 23; i ++)
+        {
+            if (tt[j] == token_index[i])
+            {
+                ti[j] = i;
+                break;
+            }
+        }
+    }
+    g_critical ("%s: expected %s but found %s", func, token_name[ti[0]], token_name[ti[1]]);
+}
 
 guint
 xg_io_add_watch                      (GIOChannel *channel,
@@ -51,13 +131,37 @@ xg_io_channel_unix_new               (int fd)
     return c;
 }
 
+gdouble
+xg_scanner_get_next_token_float (GScanner *scanner)
+{
+    g_scanner_get_next_token (scanner);
+    if (scanner->token != G_TOKEN_FLOAT)
+    {
+        g_scanner_critical (__func__, G_TOKEN_FLOAT, scanner->token);
+        return 0;
+    }
+    return g_scanner_cur_value (scanner).v_float;
+}
+
+gulong
+xg_scanner_get_next_token_hex (GScanner *scanner)
+{
+    g_scanner_get_next_token (scanner);
+    if (scanner->token != G_TOKEN_HEX)
+    {
+        g_scanner_critical (__func__, G_TOKEN_HEX, scanner->token);
+        return 0;
+    }
+    return g_scanner_cur_value (scanner).v_int;
+}
+
 gchar *
 xg_scanner_get_next_token_identifier (GScanner *scanner)
 {
     g_scanner_get_next_token (scanner);
     if (scanner->token != G_TOKEN_IDENTIFIER)
     {
-        g_scanner_error (scanner, "expected an integer");
+        g_scanner_critical (__func__, G_TOKEN_IDENTIFIER, scanner->token);
         return NULL;
     }
     return g_scanner_cur_value (scanner).v_identifier;
@@ -69,7 +173,7 @@ xg_scanner_get_next_token_int (GScanner *scanner)
     g_scanner_get_next_token (scanner);
     if (scanner->token != G_TOKEN_INT)
     {
-        g_scanner_error (scanner, "expected an integer");
+        g_scanner_critical (__func__, G_TOKEN_INT, scanner->token);
         return 0;
     }
     return g_scanner_cur_value (scanner).v_int;
@@ -106,7 +210,7 @@ xg_socket_connect (GSocket *socket,
                    GSocketAddress *address)
 {
     gboolean ret;
-    GError *error;
+    GError *error = NULL;
     ret = g_socket_connect(socket, address, NULL, &error);
     if (ret == FALSE)
     {

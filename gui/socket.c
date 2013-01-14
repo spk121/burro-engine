@@ -12,7 +12,6 @@ read_socket_cb(gpointer data)
 {
     GSocket *sock = data;
     gchar str[256];
-    gsize length;
     gssize n;
     n = g_socket_receive_with_blocking(sock, str, 256, FALSE, NULL, NULL);
     if (n > 0)
@@ -27,11 +26,8 @@ read_socket_cb(gpointer data)
 void
 initialize_socket()
 {
-    GSocketConnectable *address;
     GSocketAddress *socket_address;
     GInetAddress *inet_address;
-    int fd;
-    GIOChannel *channel;
     const char *hello = "HELLO\r\n";
     
     m_socket = xg_socket_new (G_SOCKET_FAMILY_IPV4,

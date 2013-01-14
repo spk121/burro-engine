@@ -1,14 +1,21 @@
 #include <string.h>
+#include "engine.h"
 #include "extern.h"
 #include "commands.h"
 
 GScanner *m_scanner;
 
+static void cmd_noop (void);
+static void cmd_blank (gboolean flag);
+static void cmd_color_swap (gboolean flag);
+static void cmd_brightness (gdouble brightness);
+static void cmd_bg_color (guint32 colorval);
+
 void
 initialize_command_parser()
 {
     m_scanner = g_scanner_new (NULL);
-    m_scanner->input_name = "Game Commands"
+    m_scanner->input_name = "Game Commands";
 }
 
 void do_commands_from_string (gchar *str, gsize length)
@@ -16,9 +23,9 @@ void do_commands_from_string (gchar *str, gsize length)
     g_scanner_input_text (m_scanner, str, length);
     while (1)
     {
-        gchar *id = xg_scanner_get_next_identifier (m_scanner);
+        gchar *id = xg_scanner_get_next_token_identifier (m_scanner);
         if (g_str_equal (id, "NOOP"))
-            cmd_noop();
+            cmd_noop ();
         else if (g_str_equal (id, "BLANK"))
             cmd_blank (xg_scanner_get_next_token_int (m_scanner));
         else if (g_str_equal (id, "COLORSWAP"))
@@ -27,6 +34,7 @@ void do_commands_from_string (gchar *str, gsize length)
             cmd_brightness (xg_scanner_get_next_token_float (m_scanner));
         else if (g_str_equal (id, "BGCOLOR"))
             cmd_bg_color (xg_scanner_get_next_token_hex (m_scanner));
+#if 0
         else if (g_str_equal (id, "BG"))
             cmd_bg (xg_scanner_get_next_token_int (m_scanner), /* BG # */
                     xg_scanner_get_next_token_int (m_scanner), /* enable */
@@ -112,9 +120,11 @@ void do_commands_from_string (gchar *str, gsize length)
             cmd_load_wave (xg_scanner_get_next_token_int (m_scanner), /* WAVE BUFFER # */,
                            xg_scanner_get_next_token_string (m_scanner) /* wave name */
                 );
+#endif
         else
             xerror ("unknown command %s", id);
-
+        if (g_scanner_peek_next_token (m_scanner) == G_TOKEN_EOF)
+            break;
     }
 }
 
@@ -130,7 +140,7 @@ cmd_blank (gboolean flag)
 }
 
 static void
-cmd_colorswap (gboolean flag)
+cmd_color_swap (gboolean flag)
 {
     e.color_swap = flag;
 }
@@ -149,6 +159,7 @@ cmd_bg_color (guint32 colorval)
     e.bg_color = colorval;
 }
 
+#if 0
 static void
 cmd_bg (guint bg_index, gboolean enable, gint priority,
         gdouble center_x, gdouble center_y,
@@ -156,21 +167,21 @@ cmd_bg (guint bg_index, gboolean enable, gint priority,
         gdouble expansion, gdouble rotation)
 {
     bg_entry_t *bg;
-    if (bg_index >= 0 && bg_index < MAIN_BACKGROUNDS_COUNT)
-        bg = main_bg[bg_index];
+    if (bg_index < MAIN_BACKGROUNDS_COUNT)
+        bg = e.main_bg[bg_index];
     else if ((bg_index >= MAIN_BACKGROUNDS_COUNT) 
              && (bg_index < MAIN_BACKGROUNDS_COUNT + SUB_BACKGROUNDS_COUNT))
-        bg = sub_bg[bg_index - MAIN_BACKGROUNDS_COUNT];
+        bg = e.sub_bg[bg_index - MAIN_BACKGROUNDS_COUNT];
     else
     {
-        g_critical ("%s: bg_index out of range", __func__, bg_index);
+        g_critical ("%s: bg_index out of range: %d", __func__, bg_index);
         return;
     }
     bg->enable = enable;
     if (priority >= 0 && priority < PRIORITY_COUNT)
         bg->priority = priority;
     else
-        g_critical ("%s: priority out of range", __func__, priority);
+        g_critical ("%s: priority out of range: %d", __func__, priority);
     bg->center_x = center_x;
     bg->center_y = center_y;
     bg->center_i = center_i;
@@ -178,7 +189,7 @@ cmd_bg (guint bg_index, gboolean enable, gint priority,
     if (expansion > 0.0)
         bg->expansion = expansion;
     else
-        g_critical ("%s: expansion out of range", __func__, expansion);
+        g_critical ("%s: expansion out of range: %f", __func__, expansion);
     bg->rotation = rotation;
 }
 
@@ -189,29 +200,29 @@ cmd_obj (guint obj_index, gboolean enable, gint priority,
         gdouble expansion, gdouble rotation)
 {
     obj_entry_t *obj;
-    if (obj_index >= 0 && obj_index < MAIN_SPRITES_COUNT)
-        obj = main_obj[obj_index];
+    if (obj_index < MAIN_SPRITES_COUNT)
+        obj = e.main_obj[obj_index];
     else if ((obj_index >= MAIN_SPRITES_COUNT) 
              && (obj_index < MAIN_SPRITES_COUNT + SUB_SPRITES_COUNT))
-        obj = sub_obj[obj_index - MAIN_SPRITES_COUNT];
+        obj = e.sub_obj[obj_index - MAIN_SPRITES_COUNT];
     else
     {
-        g_critical ("%s: obj_index out of range", __func__, obj_index);
+        g_critical ("%s: obj_index out of range: %d", __func__, obj_index);
         return;
     }
     obj->enable = enable;
     if (priority >= 0 && priority < PRIORITY_COUNT)
         obj->priority = priority;
     else
-        g_critical ("%s: priority out of range", __func__, priority);
+        g_critical ("%s: priority out of range: %d", __func__, priority);
     if (spritesheet_i >= 0 && spritesheet_i < OBJSHEET_WIDTH_IN_PIXELS)
         obj->spritesheet_i = spritesheet_i;
     else
-        g_critical ("%s: spritesheet_i out of range", __func__, spritesheet_i);
+        g_critical ("%s: spritesheet_i out of range: %d", __func__, spritesheet_i);
     if (spritesheet_j >= 0 && spritesheet_j < OBJSHEET_HEIGHT_IN_PIXELS)
         obj->spritesheet_j = spritesheet_j;
     else
-        g_critical ("%s: spritesheet_j out of range", __func__, spritesheet_i);
+        g_critical ("%s: spritesheet_j out of range: %d", __func__, spritesheet_i);
     obj->sprite_width_i = sprite_width_i;
     obj->sprite_width_j = sprite_width_j
     obj->center_x = center_x;
@@ -289,7 +300,7 @@ cmd_load_bg_bmp32 (guint bg_index, char *name)
 {
 
 }
-
+#endif
 /*
   Local Variables:
   mode:C
