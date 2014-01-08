@@ -3,6 +3,7 @@
 #include <pulse/pulseaudio.h>
 #include <glib.h>
 #include <string.h>
+#include "x/xpulseaudio.h"
 #include "pulseaudio.h"
 #include "engine.h"
 
@@ -11,23 +12,23 @@
 #define BURRO_PROP_APPLICATION_NAME "ProjectBurro"
 
 typedef struct pulse_priv_tag {
-    int state;
+    pa_context_state_t state;
     pa_mainloop *loop;
-    _Bool finalize;
+    gboolean finalize;
     int samples_written;
 } pulse_priv_t;
 static pulse_priv_t pulse;
 
 static void cb_audio_context_state(pa_context *c, void *userdata);
-void cb_audio_stream_started(pa_stream *p,
-                                 void *userdata);
-void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata);
+static void cb_audio_stream_started(pa_stream *p,
+                                    void *userdata);
+static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata);
 
 /* This callback gets called when our context changes state.  We
  * really only care about when it's ready or if it has failed. */
 static void cb_audio_context_state(pa_context *c, void *userdata)
 {
-    pulse.state = (int) pa_context_get_state(c);
+    pulse.state = (int) xpa_context_get_state(c);
     switch(pulse.state)
     {
     case PA_CONTEXT_UNCONNECTED:
@@ -59,7 +60,7 @@ static void cb_audio_context_state(pa_context *c, void *userdata)
 
 /* This callback is called when the server starts playback after an
  * underrun or on initial startup. */
-void cb_audio_stream_started(pa_stream *p, void *userdata)
+static void cb_audio_stream_started(pa_stream *p, void *userdata)
 {
     g_debug("PulseAudio started playback");
 }
@@ -67,10 +68,8 @@ void cb_audio_stream_started(pa_stream *p, void *userdata)
 /* This is called when new data may be written to the stream.  If we
   have data, we can ship it, otherwise we just note that the stream is
   waiting.  */
-void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
+static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
 {
-    size_t from_len, from_pos;
-    int ret;
     int n = nbytes;
     int16_t y;
     uint8_t *buf;
@@ -80,8 +79,7 @@ void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     for(i = 0; i < n; i ++)
     {
         if(e.priv.audio_count[i] > 0)
-            // y = e.priv.audio_buf[i] / e.priv.audio_count[i] - INT8_MIN;
-            y = e.priv.audio_buf[i] / 5 - INT8_MIN;
+            y = e.priv.audio_buf[i] / e.priv.audio_count[i] - INT8_MIN;
         else
             y = -INT8_MIN;
         if(y > UINT8_MAX)
@@ -96,12 +94,7 @@ void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
         }
         buf[i] = y;
     }
-    ret = pa_stream_write(p, 
-                          buf, 
-                          n, 
-                          NULL, 
-                          0, 
-                          PA_SEEK_RELATIVE);
+    xpa_stream_write(p, buf, n);
     g_free(buf);
 
     g_memmove(e.priv.audio_buf, e.priv.audio_buf + n, sizeof(int16_t) * (AUDIO_BUFFER_SIZE - n));
@@ -115,10 +108,9 @@ void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
 void pulse_initialize_audio()
 {
     pa_mainloop_api *vtable;
-    pa_proplist *main_proplist, *stream_proplist;
+    pa_proplist *main_proplist;
+    pa_proplist *stream_proplist;
     pa_context *context;
-    int ret;
-    int i;
     pa_sample_spec sample_specification;
     pa_channel_map channel_map;
     pa_buffer_attr buffer_attributes;
@@ -127,72 +119,33 @@ void pulse_initialize_audio()
     memset(&pulse, 0, sizeof(pulse));
 
     /* Allocate a new mainloop object to handle the audio polling */
-    pulse.loop = pa_mainloop_new();
-
-    if (pulse.loop == NULL)
-        g_error("Could not allocation PulseAudio mainloop");
+    pulse.loop = xpa_mainloop_new();
 
     /* For some stupid reason, we can't use the mainloop structure
        directly to make a context.  We instead grab its vtable. */
-    vtable = pa_mainloop_get_api(pulse.loop);
+    vtable = xpa_mainloop_get_api(pulse.loop);
 
-    /* Property lists for PulseAudio */
-    main_proplist = pa_proplist_new();
-    if(main_proplist == NULL)
-    {
-        pa_mainloop_free(pulse.loop);
-        g_error("Could not create a new PulseAudio mainloop property list");
-    }
-    
     /* Only the PA_PROP_MEDIA_ROLE is important.  */
-    ret = pa_proplist_sets(main_proplist, PA_PROP_MEDIA_ROLE, BURRO_PROP_MEDIA_ROLE);
-    if (ret != 0)
-        g_warning("Failed to set PulseAudio mainloop property '%s' to '%s'", PA_PROP_MEDIA_ROLE, BURRO_PROP_MEDIA_ROLE);
-    ret = pa_proplist_sets(main_proplist, PA_PROP_APPLICATION_ID, BURRO_PROP_APPLICATION_ID);
-    if (ret != 0)
-        g_warning("Failed to set PulseAudio mainloop property '%s' to '%s'",  PA_PROP_APPLICATION_ID, BURRO_PROP_APPLICATION_ID);
-    pa_proplist_sets(main_proplist, PA_PROP_APPLICATION_NAME, BURRO_PROP_APPLICATION_NAME);
-    if (ret != 0)
-        g_warning("Failed to set PulseAudio mainloop property '%s' to '%s'",  PA_PROP_APPLICATION_ID, BURRO_PROP_APPLICATION_ID);
-
+    main_proplist = xpa_proplist_new();
+    xpa_proplist_sets(main_proplist, PA_PROP_MEDIA_ROLE, BURRO_PROP_MEDIA_ROLE);
+    xpa_proplist_sets(main_proplist, PA_PROP_APPLICATION_ID, BURRO_PROP_APPLICATION_ID);
+    xpa_proplist_sets(main_proplist, PA_PROP_APPLICATION_NAME, BURRO_PROP_APPLICATION_NAME);
+    
     /* A context is the basic object for a connection to a PulseAudio
        server. It multiplexes commands, data streams and events
        through a single channel.
-
-       There is no need for more than one context per application,
-       unless connections to multiple servers are needed.
-
-       Instantiate a new connection context with an abstract mainloop
-       API and an application name, and specify the initial client
-       property list.
     */
-    context = pa_context_new_with_proplist(vtable,
-                                           BURRO_PROP_APPLICATION_NAME,
-                                           main_proplist);
-    pa_proplist_free(main_proplist);
-    if (context == NULL)
-    {
-        pa_mainloop_free(pulse.loop);        
-        g_error("Could not create new PulseAudio context");
-    }
+    context = xpa_context_new_with_proplist(vtable,
+                                            BURRO_PROP_APPLICATION_NAME,
+                                            main_proplist);
+    xpa_proplist_free (main_proplist);
 
     /* A context must be connected to a server before any operation
-     * can be issued. Calling pa_context_connect() will initiate the
-     * connection procedure. Unlike most asynchronous operations,
-     * connecting does not result in a pa_operation object. Instead,
-     * the application should register a callback using
-     * pa_context_set_state_callback() */
+     * can be issued. */
     pulse.state = PA_CONTEXT_UNCONNECTED;
-    ret = pa_context_connect(context,
-                             NULL, /* Default server*/ 
-                             PA_CONTEXT_NOFLAGS, NULL);
-    if(ret != 0)
-    {
-        g_error("Failed to connect to the PulseAudio daemon");
-    }
-
-    pa_context_set_state_callback(context,
-                                  cb_audio_context_state, NULL);
+    xpa_context_connect_to_default_server(context);
+    xpa_context_set_state_callback(context,
+                                   cb_audio_context_state, NULL);
 
 
     /* We wait (blocking) for the daemon to reply that the connection
@@ -200,7 +153,7 @@ void pulse_initialize_audio()
      * cb_audio_context_state().  */
     while(TRUE)
     { 
-        pa_mainloop_iterate(pulse.loop, 1, NULL);
+        xpa_mainloop_blocking_iterate (pulse.loop);
         if (pulse.state == PA_CONTEXT_FAILED)
             g_error("Failed to ready the connection to the PulseAudio daemon");
         else if  (pulse.state == PA_CONTEXT_TERMINATED)
@@ -237,10 +190,8 @@ void pulse_initialize_audio()
        http://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/Developer/Clients/LatencyControl
     */
     
-    buffer_attributes.tlength = pa_usec_to_bytes(AUDIO_LATENCY_REQUESTED_IN_MILLISECONDS * MICROSECONDS_PER_MILLISECOND,
-                                                 &sample_specification);
-    //buffer_attributes.tlength = pa_usec_to_bytes(1000 * MICROSECONDS_PER_MILLISECOND,
-    //                                             &sample_specification);
+    buffer_attributes.tlength = pa_usec_to_bytes (AUDIO_LATENCY_REQUESTED_IN_MILLISECONDS * MICROSECONDS_PER_MILLISECOND,
+                                                  &sample_specification);
     buffer_attributes.maxlength = -1; /* -1 == default */
     buffer_attributes.prebuf = -1;
     buffer_attributes.minreq = -1;
@@ -248,32 +199,25 @@ void pulse_initialize_audio()
 
     /* PROPERTY_LIST: Then we set up a structure to hold PulseAudio
      * properties for this. */
-    stream_proplist = pa_proplist_new();
-    pa_proplist_sets(stream_proplist, PA_PROP_MEDIA_NAME, "mono channel");
-    pa_proplist_sets(stream_proplist, PA_PROP_MEDIA_ROLE, "game");
+    stream_proplist = xpa_proplist_new();
+    xpa_proplist_sets(stream_proplist, PA_PROP_MEDIA_NAME, "mono channel");
+    xpa_proplist_sets(stream_proplist, PA_PROP_MEDIA_ROLE, "game");
 
     /* STREAM: Group everything together as a stream */
-    stream = pa_stream_new_with_proplist(context,
-                                         "mono channel", /* Stream name */
-                                         &sample_specification,
-                                         &channel_map,
-                                         stream_proplist); /* Proplist */
-    if(stream == NULL)
-        g_error("Failed to create new stream");
-    
-    pa_stream_set_started_callback(stream, cb_audio_stream_started, NULL);
-    pa_stream_set_write_callback(stream, cb_audio_stream_write, NULL);
+    stream = xpa_stream_new_with_proplist(context,
+                                          "mono channel", /* Stream name */
+                                          &sample_specification,
+                                          &channel_map,
+                                          stream_proplist); 
+    xpa_proplist_free (stream_proplist);
+
+    xpa_stream_set_started_callback(stream, cb_audio_stream_started, NULL);
+    xpa_stream_set_write_callback(stream, cb_audio_stream_write, NULL);
     
     /* Connect the stream to the audio loop */
-    ret = pa_stream_connect_playback(stream,
-                                     NULL, /* Default sink device */
-                                     &buffer_attributes,
-                                     PA_STREAM_ADJUST_LATENCY,
-                                     NULL, /* Default volume */
-                                     NULL); /* Not synced with another stream */
-    if(ret < 0)
-        g_error("Error connecting audio stream to server");
-
+    xpa_stream_connect_playback_to_default_device (stream,
+                                                   &buffer_attributes,
+                                                   PA_STREAM_ADJUST_LATENCY);
     /* Finally done! */
 
     g_debug("PulseAudio initialization complete");
@@ -283,7 +227,7 @@ void pulse_initialize_audio()
    cleanly */
 void pulse_finalize_audio()
 {
-    pa_mainloop_free(pulse.loop);
+    xpa_mainloop_free(pulse.loop);
     pulse.finalize = TRUE;
     g_debug("PulseAudio finalization complete");
 }
@@ -291,22 +235,9 @@ void pulse_finalize_audio()
 void pulse_update_audio()
 {
     pulse.samples_written = 0;
-    while (pa_mainloop_iterate(pulse.loop, 0, NULL) > 0)
+    while (xpa_mainloop_nonblocking_iterate(pulse.loop) > 0)
         ;
-    /* if (pulse.samples_written > 0) */
-    /*     g_debug("Wrote %d samples to PulseAudio", pulse.samples_written); */
-
 }
-
-/* This finalizer is called on EXIT */
-void pulse_atexit_audio()
-{
-    if(!pulse.finalize)
-    {
-    }
-    g_debug("PulseAudio atexit complete");
-}
-    
 
 /*
   Local Variables:

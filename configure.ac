@@ -57,12 +57,9 @@ my_CFLAGS="-Wall \
 AC_SUBST([my_CFLAGS])
 AC_CONFIG_FILES([
         Makefile
-	gui/Makefile
-	game/Makefile
+	tools/Makefile
+	src/Makefile
 ])
-#	libburro/Makefile
-#	game/Makefile
-# AC_CONFIG_SUBDIRS([libburro game])
 AC_OUTPUT
 
 AC_MSG_RESULT([

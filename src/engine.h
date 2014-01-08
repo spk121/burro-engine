@@ -10,7 +10,7 @@
 #include "engine_constants.h"
 #include "engine_priv.h"
 
-#define BASE_WIDTH 240
+#define BASE_WIDTH 256
 #define BASE_HEIGHT 192
 
 /* The engine has 2 different displays: Main and Sub */
@@ -22,7 +22,9 @@
 /* Since the pixels in the screen are tiny compared to a normal screen,
    they are magnified */
 #define MAIN_SCREEN_MAGNIFICATION 2
-#define SUB_SCREEN_MAGNIFICATION 1
+#define SUB_SCREEN_MAGNIFICATION 2
+
+#define REFRESH_RATE (1.0 / 60.0)
 
 /* Colors are stored as 4-byte RGBA values in 256 color palettes */
 #define PALETTE_COLORS_COUNT 256
@@ -83,7 +85,7 @@
 #define RGBA_TO_ALPHA_RATIO(x) ((float)(RGBA_TO_ALPHA(x))/256.0f)
 #define RGBA(r,g,b,a) ((r) | ((g)<<8) | ((b)<<16) | ((a)<<24))
 
-
+#if 0
 struct bg_map_data
 {
     int map_height_in_tiles;
@@ -146,6 +148,8 @@ typedef struct bg_entry
         struct bg_bmp32_data bmp32;
     };
 } bg_entry_t;
+#endif
+
 
 typedef struct obj_data
 {
@@ -316,11 +320,11 @@ typedef struct engine_tag
 
     struct priv_entry priv;
 
-    bg_entry_t main_bg[MAIN_BACKGROUNDS_COUNT];
+    // bg_entry_t main_bg[MAIN_BACKGROUNDS_COUNT];
     obj_entry_t main_obj[MAIN_SPRITES_COUNT];
     obj_data_t main_objsheet;
 
-    bg_entry_t sub_bg[SUB_BACKGROUNDS_COUNT];
+    // bg_entry_t sub_bg[SUB_BACKGROUNDS_COUNT];
     obj_entry_t sub_obj[SUB_SPRITES_COUNT];
     obj_data_t sub_objsheet;
 

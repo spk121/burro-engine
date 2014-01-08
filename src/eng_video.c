@@ -1,10 +1,9 @@
 #include <stddef.h>  // NULL
 #include <cairo.h>
 #include <math.h>
+#include "x/xcairo.h"
 #include "engine.h"
 #include "eng_video.h"
-
-
 
 static uint32_t adjust_colorval (uint32_t colorval, double brightness, _Bool color_swap);
 static void draw_backdrop_color(void);
@@ -106,15 +105,15 @@ static void draw_background_layer (const struct bg_entry * const bg, cairo_t * c
 
 static void finalize_context_and_surface (cairo_t *context, cairo_surface_t *surface)
 {
-    cairo_destroy (context);
-    cairo_surface_destroy (surface);
+    xcairo_destroy (context);
+    xcairo_surface_destroy (surface);
 }
 
 static void initialize_context_and_surface (cairo_t **context, cairo_surface_t **surface, int width, int height)
 {
-    *surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
-    *context = cairo_create (*surface);
-    cairo_set_antialias (*context, CAIRO_ANTIALIAS_NONE);
+    *surface = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
+    *context = xcairo_create (*surface);
+    xcairo_set_antialias (*context, CAIRO_ANTIALIAS_NONE);
 }
 
 static void paint_backdrop_color (cairo_t *context, uint32_t r, uint32_t g, uint32_t b)
@@ -124,21 +123,21 @@ static void paint_backdrop_color (cairo_t *context, uint32_t r, uint32_t g, uint
     dr = (double) r / 255.0;
     dg = (double) g / 255.0;
     db = (double) b / 255.0;
-    cairo_set_source_rgb (context, dr, dg, db);
-    cairo_paint (context);
+    xcairo_set_source_rgb (context, dr, dg, db);
+    xcairo_paint (context);
 }
 
 static void paint_transformed_image (cairo_t *context, cairo_matrix_t *matrix, cairo_surface_t *surface)
 {
     /* Set the coordinate transform */
-    cairo_set_matrix (context, matrix);
+    xcairo_set_matrix (context, matrix);
 
     /* Now copy it to the screen */
-    cairo_set_source_surface (context, surface, 0, 0);
-    cairo_paint (context);
+    xcairo_set_source_surface (context, surface, 0, 0);
+    xcairo_paint (context);
 
     /* Restore the coordinate system to normal */
-    cairo_identity_matrix(context);
+    xcairo_identity_matrix (context);
 }
 
 static void unpack_colorval (uint32_t colorval, double brightness, _Bool color_swap, uint32_t *r, uint32_t *g, uint32_t *b, uint32_t *a)
@@ -167,16 +166,16 @@ static void draw_background_map_layer (const struct bg_entry * const bg, cairo_t
     cairo_matrix_t matrix;
 
     /* Make the cairo surface */
-    surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, TILE_WIDTH_IN_PIXELS, TILE_HEIGHT_IN_PIXELS);
-    data = (uint32_t *) cairo_image_surface_get_data (surf);
-    stride = cairo_image_surface_get_stride (surf);
+    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, TILE_WIDTH_IN_PIXELS, TILE_HEIGHT_IN_PIXELS);
+    data = xcairo_image_surface_get_argb32_data (surf);
+    stride = xcairo_image_surface_get_argb32_stride (surf);
 
     for (map_j = 0; map_j < bg->map.map_height_in_tiles; map_j ++)
     {
         for (map_i = 0; map_i < bg->map.map_width_in_tiles; map_i ++)
         {
             /* Fill in the tile brush */
-            cairo_surface_flush (surf);
+            xcairo_surface_flush (surf);
             map_index = bg->map.map[map_j][map_i];
             delta_tile_j = (map_index / TILESHEET_WIDTH_IN_TILES) * TILE_HEIGHT_IN_PIXELS;
             delta_tile_i = (map_index % TILESHEET_WIDTH_IN_TILES) * TILE_WIDTH_IN_PIXELS;
@@ -187,10 +186,10 @@ static void draw_background_map_layer (const struct bg_entry * const bg, cairo_t
                     index = bg->map.tiles[delta_tile_j + tile_j][delta_tile_i + tile_i];
 
 		    c = adjust_colorval (bg->map.palette[index], e.brightness, e.color_swap);
-		    data[tile_j * stride / sizeof(uint32_t) + tile_i] = c;
+		    data[tile_j * stride + tile_i] = c;
                 }
             }
-            cairo_surface_mark_dirty (surf);
+            xcairo_surface_mark_dirty (surf);
 	    // cairo_surface_write_to_png(surf, "surf.png");
             compute_transform (&matrix, bg->center_x, bg->center_y,
                                bg->center_i - map_i * TILE_WIDTH_IN_PIXELS,
@@ -200,7 +199,7 @@ static void draw_background_map_layer (const struct bg_entry * const bg, cairo_t
         }
     }
 
-    cairo_surface_destroy (surf);
+    xcairo_surface_destroy (surf);
 }
 
 static void draw_background_indexed_bitmap_layer (const struct bg_entry * const bg, cairo_t * const screen_context)
@@ -212,10 +211,10 @@ static void draw_background_indexed_bitmap_layer (const struct bg_entry * const 
     cairo_matrix_t matrix;
 
     /* First, make a cairo surface */
-    surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, bg->bmp8.width_in_pixels, bg->bmp8.height_in_pixels);
-    data = (uint32_t *) cairo_image_surface_get_data (surf);
-    stride = cairo_image_surface_get_stride (surf);
-    cairo_surface_flush (surf);
+    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, bg->bmp8.width_in_pixels, bg->bmp8.height_in_pixels);
+    data = xcairo_image_surface_get_argb32_data (surf);
+    stride = xcairo_image_surface_get_argb32_stride (surf);
+    xcairo_surface_flush (surf);
     for (j = 0; j < bg->bmp8.height_in_pixels; j++)
     {
         for (i = 0; i < bg->bmp8.width_in_pixels; i++)
@@ -224,23 +223,23 @@ static void draw_background_indexed_bitmap_layer (const struct bg_entry * const 
             /* For Burro, palette index zero is always transparent */
             if (index == 0)
             {
-                data[j * stride / sizeof(uint32_t) + i] = 0;
+                data[j * stride + i] = 0;
             }
             else
             {
                 c = adjust_colorval (bg->bmp8.palette[index], e.brightness, e.color_swap);
-                data[j * stride / sizeof(uint32_t) + i] = c;
+                data[j * stride + i] = c;
             }
         }
     }
 
     /* Now copy it to the screen */
-    cairo_surface_mark_dirty (surf);
+    xcairo_surface_mark_dirty (surf);
     compute_transform (&matrix, bg->center_x, bg->center_y,
                        bg->center_i, bg->center_j,
                        bg->rotation, bg->expansion);
     paint_transformed_image (screen_context, &matrix, surf);
-    cairo_surface_destroy (surf);
+    xcairo_surface_destroy (surf);
 }
 
 static void draw_background_true_color_bitmap_layer (const struct bg_entry * const bg, cairo_t * const screen_context)
@@ -252,26 +251,26 @@ static void draw_background_true_color_bitmap_layer (const struct bg_entry * con
     cairo_matrix_t matrix;
 
     /* First, make a cairo surface */
-    surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, bg->bmp32.width_in_pixels, bg->bmp32.height_in_pixels);
-    data = (uint32_t *) cairo_image_surface_get_data (surf);
-    stride = cairo_image_surface_get_stride (surf);
-    cairo_surface_flush (surf);
+    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, bg->bmp32.width_in_pixels, bg->bmp32.height_in_pixels);
+    data = xcairo_image_surface_get_argb32_data (surf);
+    stride = xcairo_image_surface_get_argb32_stride (surf);
+    xcairo_surface_flush (surf);
     for (j = 0; j < bg->bmp32.height_in_pixels; j++)
     {
         for (i = 0; i < bg->bmp32.width_in_pixels; i++)
         {
             c = adjust_colorval(bg->bmp32.bmp[j][i], e.brightness, e.color_swap);
-            data[j * stride / sizeof(uint32_t) + i] = c;
+            data[j * stride + i] = c;
         }
     }
 
     /* Now copy it to the screen */
-    cairo_surface_mark_dirty (surf);
+    xcairo_surface_mark_dirty (surf);
     compute_transform (&matrix, bg->center_x, bg->center_y,
                        bg->center_i, bg->center_j,
                        bg->rotation, bg->expansion);
     paint_transformed_image (screen_context, &matrix, surf);
-    cairo_surface_destroy (surf);
+    xcairo_surface_destroy (surf);
 }
 
 static void draw_sprite (struct obj_entry *obj, struct obj_data *spritesheet, cairo_t *screen_context)
@@ -284,10 +283,10 @@ static void draw_sprite (struct obj_entry *obj, struct obj_data *spritesheet, ca
     cairo_matrix_t matrix;
 
     /* Make the cairo surface */
-    surf = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, obj->sprite_width, obj->sprite_height);
-    data = (uint32_t *) cairo_image_surface_get_data (surf);
-    stride = cairo_image_surface_get_stride (surf);
-    cairo_surface_flush (surf);
+    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, obj->sprite_width, obj->sprite_height);
+    data = xcairo_image_surface_get_argb32_data (surf);
+    stride = xcairo_image_surface_get_argb32_stride (surf);
+    xcairo_surface_flush (surf);
     for (sprite_j = 0; sprite_j < obj->sprite_height; sprite_j ++)
     {
         for (sprite_i = 0; sprite_i < obj->sprite_width; sprite_i ++)
@@ -297,20 +296,20 @@ static void draw_sprite (struct obj_entry *obj, struct obj_data *spritesheet, ca
 
             /* For Burro, palette index zero is always transparent */
             if (index == 0)
-                data[sprite_j * stride / sizeof(uint32_t) + sprite_i] = 0;
+                data[sprite_j * stride + sprite_i] = 0;
             else
             {
                 c = adjust_colorval(spritesheet->palette[index], e.brightness, e.color_swap);
-                data[sprite_j * stride / sizeof(uint32_t) + sprite_i] = c;
+                data[sprite_j * stride + sprite_i] = c;
             }
         }
     }
-    cairo_surface_mark_dirty (surf);
+    xcairo_surface_mark_dirty (surf);
 
     /* Set the paintbrush-to-screen coordinate transform */
     compute_transform (&matrix, obj->center_x, obj->center_y, obj->center_i, obj->center_j, obj->rotation, obj->expansion);
     paint_transformed_image(screen_context, &matrix, surf);
-    cairo_surface_destroy (surf);
+    xcairo_surface_destroy (surf);
 }
 
 void draw ()
@@ -318,8 +317,8 @@ void draw ()
     int priority;
     int layer, sprite;
 
-    cairo_surface_flush (e.priv.main_screen_surface);
-    cairo_surface_flush (e.priv.sub_screen_surface);
+    xcairo_surface_flush (e.priv.main_screen_surface);
+    xcairo_surface_flush (e.priv.sub_screen_surface);
 
     /* blank the screens to a solid color */
     draw_backdrop_color ();
@@ -352,7 +351,7 @@ void draw ()
     }
 
 end_draw:
-    cairo_surface_mark_dirty (e.priv.main_screen_surface);
-    cairo_surface_mark_dirty (e.priv.sub_screen_surface);
+    xcairo_surface_mark_dirty (e.priv.main_screen_surface);
+    xcairo_surface_mark_dirty (e.priv.sub_screen_surface);
 }
 

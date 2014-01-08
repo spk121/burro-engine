@@ -1,0 +1,10 @@
+Y-LEVEL ROUTINES
+
+Anything that interacts with the system is on this level: audio,
+video, controls, and sockets.  Also anything that manipulates raw data
+is on this level.
+
+It provides the API used by the z-level routines.
+
+Any call to a system function that has a failure condition that isn't
+explicitely should be pushed down the to x-level.

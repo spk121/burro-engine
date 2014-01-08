@@ -1,0 +1,67 @@
+			TARGA PIXEL ART HOWTO
+
+I chose Targa files because they are simple, have lossless
+compression, and can handle the various functions necessary for pixel
+art.  Later, I found out that many tools have broken implementations
+outside of the most common formats.
+
+================
+GIMP
+================
+
+Gimp has a nasty habit of modifying the internal data reprsentation of
+the image.
+
+Color-mapped files are a particular problem
+
+1. Color-mapped images with 32-bit color-map entries become 32-bit
+true color RGBA, regardless of the number of entries in the color map.
+
+2. Color-mapped files with more than 256 color map entries become RGB
+images.
+
+3. Color-mapped files with any alpha or overlay bits become 32-bit
+RGBA.
+
+4. Color-mapped files with 16-bit indices are not handled at all.
+
+- So, only color-mapped files with 256 or fewer entries and 24-bit
+  color stay unmodified, so, using a key color becomes a requirement
+  for transparency.
+
+High-color Images
+
+1. 15-bit and 16-bit high-color images are upsampled to 24-bit and
+32-bit
+
+2. If the Overlay bit is high, it indicates that we should be transparent,
+e.g. have an alpha of of zero.  This behavior is swapped in Gimp.
+
+
+================
+WORKAROUNDS
+================
+
+MAP
+
+The tile sheet for maps is 32 tiles by 32 tiles, or 1024 tiles.  Thus,
+the map image needs to be 10-bit greyscale, which I was expecting to
+store at 16-bit greyscale.  This is impossible to edit in Gimp.
+
+16-bit greyscale is coming in Gimp 2.10.
+
+Whatever.  I'll edit them as a text file of 16-bit 4-digit hex vals
+and have  `targatool' convert them to a 16-bit TGA anyway.
+
+TILESHEET and BMP8
+
+Tilesheets are supposed to be 8-bit indices with 16-bit palettes with
+the high bit being an overlay bit.  Instead, I'll edit them as 8-bit
+indices with RGB_888 palettes and magenta being the key color, and use
+`targatool' to convert them to 8-bit indices with ORGB_1555 palettes.
+
+BMP16
+
+High color bitmaps are supposed to be ORGB_1555.  I'll edit them as
+32-bit ARGB_8888, and use `targatool' to convert them to ORGB_1555
+high-color.

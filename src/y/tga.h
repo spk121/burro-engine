@@ -178,8 +178,17 @@ typedef struct targa_header_tag
 typedef struct targa_data_tag
 {
     char *id_string;
+  union {
     guint8 *color_map_data;
-    guint8 *image_data;
+    guint16 *color_map_data_u16;
+    guint32 *color_map_data_u32;
+  };
+    union {
+      guint8 *image_data;
+      guint8 *image_data_u8;
+      guint16 *image_data_u16;
+      guint32 *image_data_u32;
+    };
 } targa_data_t;
 
 typedef struct targa_image_tag
@@ -188,8 +197,12 @@ typedef struct targa_image_tag
     targa_data_t data;
 } targa_image_t;
 
+targa_image_t *tga_load(const char *name);
+targa_image_t *tga_load_from_resource (const gchar *resource);
+void tga_free (targa_image_t *t);
+
 // Reads in the file FP and unpacks all the information into a targa image
-targa_error_t targa_parse_stream (GInputStream *fp, targa_image_t *t);
+targa_error_t targa_parse_stream (GInputStream *fp, targa_image_t *t, gsize filesize);
 
 gboolean targa_has_image (const targa_image_t *t);
 
@@ -204,6 +217,10 @@ void targa_get_image_orientation (const targa_image_t *t,
 
 guint targa_get_color_map_first_index (const targa_image_t *t);
 
-guint targa_get_color_map_size (const targa_image_t *t);
+guint targa_get_color_map_length (const targa_image_t *t);
+
+guint16 *tga_get_image_data_u16_ptr (const targa_image_t *t);
+guint8 *tga_get_image_data_u8_ptr (const targa_image_t *t);
+guint16 *tga_get_color_map_data_u16_ptr (const targa_image_t *t);
 
 #endif // TGA_H_INCLUDED

@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "eng_audio.h"
 #include "pulseaudio.h"
+#include "x/xglib.h"
 
 static void generate_tone_data(double D_attack, double D_decay, double D_sustain, double D_release,
                                double F_initial, double F_attack, double F_sustain, double F_release,
@@ -18,8 +19,8 @@ static void tone_update(int i);
 
 void initialize_audio(void)
 {
-    e.priv.audio_time_head = g_timer_elapsed (e.priv.timer, NULL);
-    e.priv.song_start_time = g_timer_elapsed (e.priv.timer, NULL) + 1.0;
+    e.priv.audio_time_head = xg_timer_elapsed (e.priv.timer);
+    e.priv.song_start_time = xg_timer_elapsed (e.priv.timer) + 1.0;
     pulse_initialize_audio();
 }
 
@@ -46,7 +47,8 @@ static void generate_tone_data(double D_attack, double D_decay, double D_sustain
        A = amplitude, from 0.0 to 1.0 */
 	double t, t_start, amplitude, frequency, period;
     double duration;
-    int i, first;
+    size_t i;
+    int first;
     int level_a, level_b;
 
     *buffer = NULL;
@@ -57,7 +59,7 @@ static void generate_tone_data(double D_attack, double D_decay, double D_sustain
     
     duration = D_attack + D_decay + D_sustain + D_release;
     *length = ceil(duration * (double) AUDIO_SAMPLE_RATE_IN_HZ);
-    *buffer = g_new(uint8_t, *length);
+    *buffer = g_new(int8_t, *length);
 
     t = 0.0;
     t_start = 0.0;
@@ -138,13 +140,12 @@ static void generate_tone_data(double D_attack, double D_decay, double D_sustain
 #if 1
     {
         FILE *fp;
-        int i;
         if(noise)
             fp = fopen("noise.txt", "wt");
         else
             fp = fopen("wave.txt", "wt");
-        for(i = 0; i < *length; i++)
-            fprintf(fp, "%d %d\n", i, (int)(*buffer)[i]);
+        for(size_t i2 = 0; i2 < *length; i2++)
+            fprintf(fp, "%d %d\n", i2, (int)(*buffer)[i]);
         fclose(fp);
     }
 #endif    
@@ -154,10 +155,7 @@ static void tone_update(int channel)
 {
     int8_t *buffer;
     size_t length;
-    char *str;
-    int i, delta;
-    int n;
-    int y;
+    int delta;
 
     if(e.tone[channel].start_trigger == TRUE)
     {
@@ -176,7 +174,7 @@ static void tone_update(int channel)
                            FALSE, 0, 
                            &buffer, &length);
         delta = AUDIO_LATENCY_REQUESTED_IN_SAMPLES;
-        for(i = 0; i < length; i++)
+        for(size_t i = 0; i < length; i++)
         {
             e.priv.audio_buf[i + delta] += (int16_t) buffer[i];
             e.priv.audio_count[i + delta] += 1;
@@ -190,10 +188,7 @@ static void noise_update(int channel)
 {
     int8_t *buffer;
     size_t length;
-    char *str;
-    int i, delta;
-    int n;
-    int y;
+    int delta;
 
     if(e.noise[channel].start_trigger == TRUE)
     {
@@ -212,7 +207,7 @@ static void noise_update(int channel)
                            TRUE, 1,
                            &buffer, &length);
         delta = AUDIO_LATENCY_REQUESTED_IN_SAMPLES;
-        for(i = 0; i < length; i++)
+        for(size_t i = 0; i < length; i++)
         {
             e.priv.audio_buf[i + delta] += (int16_t) buffer[i];
             e.priv.audio_count[i + delta] += 1;

@@ -21,6 +21,13 @@ struct priv_entry
     GtkWidget *sub_screen;
     GMainLoop *main_loop;
 
+    gulong destroy_signal_id;
+    gulong key_press_event_signal_id;
+    gulong key_release_event_signal_id;
+    gulong window_state_event_signal_id;
+
+    guint idle_event_source_id;
+
     cairo_t *main_screen_context;
     cairo_surface_t *main_screen_surface;
     cairo_t *sub_screen_context;
@@ -33,6 +40,7 @@ struct priv_entry
     double before_update_time, after_update_time;
     double before_draw_time, after_draw_time;
     double hundred_frames_draw_time;
+    double measured_frame_rate;
 
     /* Basic state flags */
     _Bool initialized_flag;

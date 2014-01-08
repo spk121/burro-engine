@@ -1,0 +1,8 @@
+X-LEVEL ROUTINES
+
+All the functions in this directory are wrappers around low-level
+functions that add critical errors for failure conditions.  Any
+library function that needs an error condition checked should be
+wrapped in here.
+
+It provides the functions called by the y-level routines.

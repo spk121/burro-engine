@@ -1,0 +1,11 @@
+Z-LEVEL ROUTINES
+
+All code on this level, other than main, should only interact with the
+abstracted interfaces from the Y-level routines.
+
+The SWIG wrapper interface generator uses the *.i files to create the
+guileapi.c program, which provides a Guile interface to the abstracted
+interfaces from the Y-level routines.
+
+All the Guile code is on this level.  The Guile code contains the game
+logic.

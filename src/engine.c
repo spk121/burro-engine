@@ -7,6 +7,10 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 //#include <gst/gst.h>
+#include "x/xgtk.h"
+#include "x/xglib.h"
+#include "x/xgdk.h"
+#include "x/xcairo.h"
 #include "engine.h"
 #include "eng_state.h"
 #include "eng_video.h"
@@ -18,14 +22,9 @@
 #include "commands.h"
 
 #define UPDATE_RATE (1.0 / 60.0)
-#define REFRESH_RATE (1.0 / 30.0)
 
 /* The main engine data store */
 engine_t e;
-
-cairo_surface_t *eng_main_surface;
-cairo_surface_t *eng_sub_surface;
-
 
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean window_state_event_cb(GtkWidget *widget, GdkEvent *event, gpointer dummy);
@@ -37,61 +36,66 @@ static void audio_pause(void);
 
 void engine_initialize(int *argc, char ***argv, char *title)
 {
-    xdebug("Entering engine_initialize()");
-    gtk_init(argc, argv);
-    // gst_init(argc, argv);
+    xgtk_init_check(argc, argv);
     
     memset(&e, 0, sizeof(engine_t));
 
     /* Set up the random seed */
-    e.priv.seed = g_rand_new();
+    e.priv.seed = xg_rand_new();
 
     /* Set up the window */
-    e.priv.window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_container_set_border_width (GTK_CONTAINER (e.priv.window), 8);
-    gtk_window_set_position(GTK_WINDOW(e.priv.window), GTK_WIN_POS_CENTER);
+    e.priv.window = xgtk_window_new (GTK_WINDOW_TOPLEVEL);
+    xgtk_container_set_border_width (GTK_CONTAINER (e.priv.window), 8);
+    xgtk_window_set_position(GTK_WINDOW(e.priv.window), GTK_WIN_POS_CENTER);
     if (title && strlen(title) > 0)
-        gtk_window_set_title (GTK_WINDOW (e.priv.window), title);
+        xgtk_window_set_title (GTK_WINDOW (e.priv.window), title);
     else
-        gtk_window_set_title(GTK_WINDOW(e.priv.window), "Project Burro Engine");
+        xgtk_window_set_title(GTK_WINDOW(e.priv.window), "Project Burro Engine");
 
     /* Set GNOME properties that PulseAudio likes to have */
-    g_set_application_name(title);
-    gtk_window_set_default_icon_name(title);
-    g_setenv("PULSE_PROP_media.role", "game", TRUE);
+    xg_set_application_name(title);
+    // gtk_window_set_default_icon_name(title);
+    xg_setenv("PULSE_PROP_media.role", "game", TRUE);
 
-    gtk_widget_realize (e.priv.window);
+    xgtk_widget_realize (e.priv.window);
 
-    e.priv.fixed = gtk_fixed_new ();
-    gtk_container_add (GTK_CONTAINER (e.priv.window), e.priv.fixed);
+    e.priv.fixed = xgtk_fixed_new ();
+    xgtk_container_add (GTK_CONTAINER (e.priv.window), e.priv.fixed);
 
-    e.priv.sub_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request (e.priv.sub_screen,
-                                 SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION,
-                                 SUB_SCREEN_HEIGHT_IN_PIXELS * SUB_SCREEN_MAGNIFICATION);
+    e.priv.sub_screen = xgtk_drawing_area_new();
+    xgtk_widget_set_size_request (e.priv.sub_screen,
+                                  SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION,
+                                  SUB_SCREEN_HEIGHT_IN_PIXELS * SUB_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(e.priv.fixed), e.priv.sub_screen, 0, 0);
+    xgtk_fixed_put(GTK_FIXED(e.priv.fixed), e.priv.sub_screen, 0, 0);
 
-    e.priv.main_screen = gtk_drawing_area_new();
-    gtk_widget_set_size_request(e.priv.main_screen,
-                                MAIN_SCREEN_WIDTH_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION,
-                                MAIN_SCREEN_HEIGHT_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION);
+    e.priv.main_screen = xgtk_drawing_area_new();
+    xgtk_widget_set_size_request(e.priv.main_screen,
+                                 MAIN_SCREEN_WIDTH_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION,
+                                 MAIN_SCREEN_HEIGHT_IN_PIXELS * MAIN_SCREEN_MAGNIFICATION);
 
-    gtk_fixed_put(GTK_FIXED(e.priv.fixed), e.priv.main_screen, SUB_SCREEN_WIDTH_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10, 0);
+    xgtk_fixed_put(GTK_FIXED(e.priv.fixed),
+                   e.priv.main_screen,
+                   0,
+                   SUB_SCREEN_HEIGHT_IN_PIXELS * SUB_SCREEN_MAGNIFICATION + 10);
 
-    g_signal_connect (G_OBJECT(e.priv.window), "destroy", G_CALLBACK (destroy_cb), NULL);
-    g_signal_connect (G_OBJECT (e.priv.window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (G_OBJECT (e.priv.window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
-    g_signal_connect (GTK_WIDGET(e.priv.window), "window-state-event", (GCallback) window_state_event_cb, NULL);
+    e.priv.destroy_signal_id = 
+        xg_signal_connect (G_OBJECT(e.priv.window), "destroy", G_CALLBACK (destroy_cb), NULL);
+    e.priv.key_press_event_signal_id = 
+        xg_signal_connect (G_OBJECT (e.priv.window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
+    e.priv.key_release_event_signal_id = 
+        xg_signal_connect (G_OBJECT (e.priv.window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    e.priv.window_state_event_signal_id = 
+        xg_signal_connect (GTK_WIDGET(e.priv.window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL);
 
-    gtk_widget_show_all (e.priv.window);
+    xgtk_widget_show_all (e.priv.window);
 
     /* Set up the frame count timer */
-    e.priv.timer = g_timer_new();
+    e.priv.timer = xg_timer_new();
     g_timer_start (e.priv.timer);
     e.priv.update_count = 0;
     e.priv.draw_count = 0;
-    e.priv.before_update_time = g_timer_elapsed (e.priv.timer, NULL);
+    e.priv.before_update_time = xg_timer_elapsed (e.priv.timer);
     e.priv.after_update_time = e.priv.before_update_time;
     e.priv.before_draw_time =  e.priv.before_update_time;
     e.priv.after_draw_time =  e.priv.before_update_time;
@@ -108,24 +112,18 @@ void engine_initialize(int *argc, char ***argv, char *title)
 
 void engine_loop()
 {
-    g_debug("Entering engine_loop()");
     e.priv.active_flag = TRUE;
 
     /* Set up the main loop.  I use glib because I need an idle function */
-    e.priv.main_loop = g_main_loop_new (NULL, TRUE);
+    e.priv.main_loop = xg_default_main_loop_new ();
 
     /* All our game processing goes in the idle func */
-    g_idle_add (idle_state_event_cb, NULL);
-
+    e.priv.idle_event_source_id = xg_idle_add (idle_state_event_cb, NULL);
 
     e.priv.initialized_flag = TRUE;
 
-    /* What is this GDK voodoo?  Grabbed it from the gtk repo */
-    gdk_threads_leave ();
-    g_main_loop_run (e.priv.main_loop);
-    gdk_threads_enter ();
-    gdk_flush ();
-    g_main_loop_unref (e.priv.main_loop);
+    xg_main_loop_run (e.priv.main_loop);
+    xg_main_loop_unref (e.priv.main_loop);
 }
 
 /* This main-loop "idle" func is called as a result of the
@@ -146,7 +144,7 @@ gboolean eos_cb(gpointer data)
 static void destroy_cb(GtkWidget* widget, gpointer dummy)
 {
     e.priv.quitting_flag = TRUE;
-    g_main_loop_quit(e.priv.main_loop);
+    xg_main_loop_quit (e.priv.main_loop);
 }
 
 static gboolean window_state_event_cb (GtkWidget *widget, GdkEvent *event, gpointer dummy)
@@ -167,63 +165,52 @@ static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer du
     {
     case GDK_KEY_a:
     case GDK_KEY_A:
-        g_debug("Key A received");
         e.key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_b:
     case GDK_KEY_B:
-        g_debug("Key B received");
         e.key_b = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_x:
     case GDK_KEY_X:
-        g_debug("Key X received");
         e.key_x = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_y:
     case GDK_KEY_Y:
-        g_debug("Key Y received");
         e.key_y = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Up:
     case GDK_KEY_KP_Up:
-        g_debug("Key Up received");
         e.key_up = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Down:
     case GDK_KEY_KP_Down:
-        g_debug("Key Down received");
         e.key_down = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Left:
     case GDK_KEY_KP_Left:
-        g_debug("Key Left received");
         e.key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Right:
     case GDK_KEY_KP_Right:
-        g_debug("Key Right received");
         e.key_right = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Start:
     case GDK_KEY_KP_Enter:
     case GDK_KEY_space:
-        g_debug("Key Start received");
         e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
     case GDK_KEY_Select:
     case GDK_KEY_SelectButton:
     case GDK_KEY_KP_Tab:
     case GDK_KEY_Tab:
-        g_debug("Key Select received");
         e.key_select = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
-        e.key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
     default:
-        return FALSE;
+        break;
     }
 
-    return FALSE;
+    return TRUE;
 }
 
 static gboolean idle_state_event_cb (void *dummy)
@@ -233,7 +220,7 @@ static gboolean idle_state_event_cb (void *dummy)
     if (e.priv.quitting_flag)
         return FALSE;
 
-    cur_time = g_timer_elapsed (e.priv.timer, NULL);
+    cur_time = xg_timer_elapsed (e.priv.timer);
 
     if (e.priv.initialized_flag && !e.priv.minimized_flag)
     {
@@ -243,14 +230,12 @@ static gboolean idle_state_event_cb (void *dummy)
             audio_update();
             if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_update_time) > UPDATE_RATE))
             {
-
-            
                 if (e.do_idle != NULL)
                     e.do_idle (cur_time - e.priv.before_update_time);
 
                 e.priv.update_count ++;
                 e.priv.before_update_time = cur_time;
-                e.priv.after_update_time = g_timer_elapsed (e.priv.timer, NULL);
+                e.priv.after_update_time = xg_timer_elapsed (e.priv.timer);
 
                 /* FIXME: check ini to see if we're running full speed */
                 if (e.priv.run_full_speed_flag || ((cur_time - e.priv.before_draw_time) > REFRESH_RATE))
@@ -261,24 +246,25 @@ static gboolean idle_state_event_cb (void *dummy)
 
                     e.priv.draw_count ++;
                     e.priv.before_draw_time = cur_time;
-                    e.priv.after_draw_time = g_timer_elapsed (e.priv.timer, NULL);
+                    e.priv.after_draw_time = xg_timer_elapsed (e.priv.timer);
 
                     if (e.priv.draw_count % 100 == 0)
                     {
-                        g_debug("FPS: %f", 100.0 / (e.priv.after_draw_time - e.priv.hundred_frames_draw_time));
+                        e.priv.measured_frame_rate 
+                            = 100.0 / (e.priv.after_draw_time - e.priv.hundred_frames_draw_time);
                         e.priv.hundred_frames_draw_time = e.priv.after_draw_time;
                     }
                 }
             }
 
             if (!e.priv.run_full_speed_flag)
-                g_usleep (2);
+                xg_usleep (2);
         }
         else
         {
             audio_pause ();
             // Figure out a way to sleep until the next gtk event comes in
-            g_usleep (2);
+            xg_usleep (2);
         }
     }
 
@@ -302,23 +288,23 @@ static void present()
         return;
     /* Have the video view draw the video model onto the screen */
 
-    cr = gdk_cairo_create (gtk_widget_get_window (e.priv.main_screen));
+    cr = xgdk_cairo_create (xgtk_widget_get_window (e.priv.main_screen));
 
-    cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    cairo_scale(cr, 2.0, 2.0);
-    cairo_set_source_surface (cr, e.priv.main_screen_surface, 0, 0);
+    xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
+    xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
+    xcairo_set_source_surface (cr, e.priv.main_screen_surface, 0, 0);
     // cairo_surface_write_to_png(e.priv.main_screen_surface, "burro_main_screen_present.png");
-    cairo_paint (cr);
-    cairo_destroy(cr);
+    xcairo_paint (cr);
+    xcairo_destroy(cr);
 
-    cr = gdk_cairo_create (gtk_widget_get_window (e.priv.sub_screen));
+    cr = xgdk_cairo_create (xgtk_widget_get_window (e.priv.sub_screen));
 
-    cairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    cairo_scale(cr, 1.0, 1.0);
-    cairo_set_source_surface (cr, e.priv.sub_screen_surface, 0, 0);
+    xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
+    xcairo_scale(cr, SUB_SCREEN_MAGNIFICATION, SUB_SCREEN_MAGNIFICATION);
+    xcairo_set_source_surface (cr, e.priv.sub_screen_surface, 0, 0);
     // cairo_surface_write_to_png(e.priv.sub_screen_surface, "burro_sub_screen_present.png");
-    cairo_paint (cr);
-    cairo_destroy(cr);
+    xcairo_paint (cr);
+    xcairo_destroy(cr);
 }
 
 static void audio_pause ()

@@ -18,14 +18,9 @@ targa_error_t targa_parse_stream (GInputStream *istream, targa_image_t *t)
     size_t color_map_size = 0;
     size_t image_unpacked_size = 0;
 
-    if (!g_seekable_seek (G_SEEKABLE(istream), 0, G_SEEK_END, NULL, NULL))
-    {
-        error = TARGA_READ_ERROR;
-        g_printerr ("read error");
-        goto cleanup;
-    }
+    xg_seekable_seek (G_SEEKABLE(istream), 0, G_SEEK_END);
     filesize = g_seekable_tell (G_SEEKABLE(istream)) + 1;
-    g_seekable_seek (G_SEEKABLE(istream), 0, G_SEEK_SET, NULL, NULL);
+    xg_seekable_seek (G_SEEKABLE(istream), 0, G_SEEK_SET);
 
     MEM0 (&(t->header));
     MEM0 (&(t->data));
@@ -332,4 +327,10 @@ guint targa_get_color_map_size (const targa_image_t *t)
 guint targa_get_color_map_first_index (const targa_image_t *t)
 {
     return t->header.color_map_first_entry_index;
+}
+
+guint16 *
+tga_get_image_data_u16_ptr (const targa_image_t *t)
+{
+  return t->data.image_data_u16;
 }
