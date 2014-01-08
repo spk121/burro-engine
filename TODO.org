@@ -1,0 +1,42 @@
+* The Engine
+** X layer - low-level paranoid C wrapper
+    In the X layer are wrappers around the Glib, Gtk, Cairo, Pulseaudio, and Guile functions
+    that agressivly assert input parameters and throw critical warnings when they fail.  This
+    way they can either be treated as errors (during development) or be ignored during release.
+    
+** Y layer - game engine subsystems
+    In this layer, the components that make up a 2D sprite-and-tile game engine are defined.
+    Important components are the main loop, the audio engine, the sprite-and-tile display
+    engine, and keyboard input.  There are also minor components like the INI file reader and
+    the random number generator.  Graphics are stored in a specific dialect of TGA files,
+    and the library to read them is here.  Songs are store in a text format and samples are stored
+    in a binary format, and the library to read those formats are in here as well.
+    
+    Each subsystem will define its public API in a C header.
+    
+** Z layer - game engine main and scripting language
+    In this layer is the top-level of the game engine and the interface to the scripting language.
+
+    The basic idea is that there is a main loop, and about every 1/60 of a second, the engine
+    releases control to the scripting language and calls a function called "update".  It
+    presents to the scripting language an API that it may use during its "update" call.
+    
+    The API is described in C headers in the Y layer and then wrapped using SWIG into a
+    scripting language API.
+
+* The Game
+
+** The X layer - low-level paranoid wrapper
+    Don't know if this is necessary, but, this would be regular library functions that are
+    agressivly type-checked.
+
+** The Y layer - game subsystems
+    In this layer are the game subsystems.  Menuing systems, objects that represent monsters
+    or projectiles, and other such pseudoclasses.
+    
+** The Z layers - game logic
+    In this layer is the code that describes the game logic.
+
+* The Data
+    The data consists of TGA sprites and tiles, MIDI-like song files, and WAV audio files.
+    
