@@ -26,15 +26,30 @@
 
 * The Game
 
-** The X layer - low-level paranoid wrapper
+** The α layer - low-level paranoid wrapper
     Don't know if this is necessary, but, this would be regular library functions that are
     agressivly type-checked.
 
-** The Y layer - game subsystems
+** The β layer - game subsystems
     In this layer are the game subsystems.  Menuing systems, objects that represent monsters
     or projectiles, and other such pseudoclasses.
+    For example,
+    - Item Generator
+    - Item System
+    - Inventory System
+    - Character System
+    - Combat
+    - NPC Dialog
+    - NPC Actions
+    - Vendor System
+    - Crafting system
+    - Achievements system
+    - ToolTip system
+    - Harvesting System
+    - Quest System
+    - Movable map objects
     
-** The Z layers - game logic
+** The ɣ layers - game logic
     In this layer is the code that describes the game logic.
 
 * The Data
