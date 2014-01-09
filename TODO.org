@@ -1,0 +1,32 @@
+* Debugging file - $(userdata)/$(project)/debug.ini
+  The debugging file is a glib key-value file in the user config
+  directory.
+* User options storage $(userdata)/$(project)/options.ini
+  A Glib key-value file in the user config directory
+
+
+
+* Directories
+If we followed all the specifications, data would be spread all over
+the the filesystem.
+** Savefiles - XDG_DATA_HOME
+   when run in tree: $(topdir)/share
+   when installed: g_get_user_data_dir()
+** User configuration - XDG_CONFIG_HOME
+   when run in tree: $(topdir)/config
+   when installed: g_get_user_config_dir()
+** Debug options - XDG_CONFIG_HOME
+   when run in tree: $(topdir)/config
+   when installed: g_get_user_config_dir()
+** Graphical assets
+   when run in tree: 
+     $(topdir)/data/graphics
+     $(topdir)/data/sound
+   when installed: $(datadir)/PACKAGE/
+** Scripts
+   when run in tree:
+     GUILE_LOAD_PATH is $(srcdir)/g
+     GUILE_LOAD_COMPILED_PATH is also $(srcdir)/g
+   when installed: $(datadir)/PACKAGE/scripts
+     GUILE_LOAD_PATH is $(srcdir)/scripts
+     GUILE_LOAD_COMPILED_PATH is also $(srcdir)/scripts
