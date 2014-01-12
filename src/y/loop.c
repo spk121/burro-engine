@@ -93,7 +93,7 @@ static gboolean idle_state_event_cb (void *dummy)
             {
               //if (do_idle != NULL)
               //  do_idle (cur_time - before_update_time);
-              gchar *cmd = g_strdup_printf("(update %f)", cur_time - before_update_time);
+                gchar *cmd = g_strdup_printf("(update %f %u)", cur_time, get_keyinput());
               xscm_c_eval_string(cmd);
               g_free(cmd);
 

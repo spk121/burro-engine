@@ -20,7 +20,14 @@ gboolean blank_flag = FALSE;
 gboolean colorswap_flag = FALSE;
 gdouble brightness = 1.0;
 
+static GMutex keymutex;
+static int key_a, key_b, key_x, key_y;
+static int key_start, key_select;
+static int key_up, key_down, key_left, key_right;
+    
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
+static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy);
+
 
 gboolean
 eng_is_blank ()
@@ -104,13 +111,14 @@ GtkWidget *eng_initialize ()
 		 0,
 		 SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION + 10);
   
+  g_mutex_init(&keymutex);
   
   destroy_signal_id =  
       xg_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL); 
-  /* key_press_event_signal_id =  */
-  /*     xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL); */
-  /* key_release_event_signal_id =  */
-  /*     xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL); */
+  key_press_event_signal_id =
+      xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
+  key_release_event_signal_id =
+      xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
   /* window_state_event_signal_id =  */
   /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
   return window;
@@ -144,4 +152,71 @@ void eng_present()
     // cairo_surface_write_to_png(e.priv.sub_screen_surface, "burro_sub_screen_present.png");
     xcairo_paint (cr);
     xcairo_destroy(cr);
+}
+
+static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy)
+{
+    g_mutex_lock(&keymutex);
+
+    switch (gdk_keyval_to_upper(event->keyval))
+    {
+    case GDK_KEY_A:
+        key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_B:
+        key_b = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_X:
+        key_x = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Y:
+        key_y = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Up:
+    case GDK_KEY_KP_Up:
+        key_up = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Down:
+    case GDK_KEY_KP_Down:
+        key_down = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Left:
+    case GDK_KEY_KP_Left:
+        key_left = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Right:
+    case GDK_KEY_KP_Right:
+        key_right = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Start:
+    case GDK_KEY_KP_Enter:
+    case GDK_KEY_space:
+        key_start = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    case GDK_KEY_Select:
+    case GDK_KEY_SelectButton:
+    case GDK_KEY_KP_Tab:
+    case GDK_KEY_Tab:
+        key_select = event->type == GDK_KEY_PRESS ? 1 : 0;
+        break;
+    default:
+        break;
+    }
+
+    g_mutex_unlock(&keymutex);
+
+    return TRUE;
+}
+
+unsigned int
+get_keyinput()
+{
+    // g_mutex_lock(&keymutex);
+
+    return key_a | (key_b << 1) | (key_select << 2) | (key_start << 3)
+        | (key_right << 4) | (key_left << 5) | (key_up << 6) | (key_down << 7)
+        | (key_x << 8) | (key_y << 9);
+
+    //g_mutex_unlock(&keymutex);
+
 }

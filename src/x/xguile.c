@@ -44,6 +44,8 @@ xscm_c_primitive_load (const gchar *filename)
                         NULL, NULL);
 }
 
+
+
 void
 xscm_init_guile (void)
 {

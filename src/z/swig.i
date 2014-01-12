@@ -5,6 +5,26 @@
 #include "../y/bg.h"
 %}
 
+enum bg_const_tag
+  {
+    MAIN_BACKGROUNDS_COUNT = 4,
+    SUB_BACKGROUNDS_COUNT = 4,
+    MAP_HEIGHT = 512,
+    MAP_WIDTH = 512,
+    TILESHEET_HEIGHT = 256,
+    TILESHEET_WIDTH = 256,
+    TILE_HEIGHT = 8,
+    TILE_WIDTH = 8,
+    TILESHEET_HEIGHT_IN_TILES = (256/8),
+    TILESHEET_WIDTH_IN_TILES = (256/8),
+    PALETTE_COLORS_COUNT = 256,
+    BMP8_HEIGHT = 512,
+    BMP8_WIDTH = 512,
+    BMP16_HEIGHT = 512,
+    BMP16_WIDTH = 512,
+    BG_COLOR16_BLACK = 0x0,
+  };
+
 enum bg_index_tag
   {
     BG_MAIN_0 = 0,
@@ -48,9 +68,9 @@ void bg_show (int id);
 void bg_set_map_from_tga (int id, targa_image_t *t);
 void bg_set_tilesheet_from_tga (int id, targa_image_t *t);
 void bg_set_bmp8_from_tga (int id, targa_image_t *t);
-void bg_set_bmp8_from_resource (int id, const gchar *resource);
+void bg_set_bmp8_from_resource (int id, const char *resource);
 void bg_set_bmp16_from_tga (int id, targa_image_t *t);
-void bg_set_bmp16_from_resource (int id, const gchar *resource);
+void bg_set_bmp16_from_resource (int id, const char *resource);
 void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);
 

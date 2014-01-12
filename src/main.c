@@ -6,12 +6,13 @@
 #include "y/loop.h"
 #include "y/rand.h"
 #include "y/proc.h"
-#include "z/game.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
 
 extern void SWIG_init (void);
+
+// from 
 
 static gboolean fullspeed = FALSE;
 static gint seed = -1;
@@ -19,10 +20,38 @@ static GtkWidget *mainwin;
 
 static GOptionEntry entries[] =
 {
+    // { "uninstalled", 0, 0, G_OPTION_ARG_NONE, &uninstalled, "assume we're running from an uninstalled source tree"},
     { "full-speed", 0, 0, G_OPTION_ARG_NONE, &fullspeed, "Run at maximum frame rate", NULL },
     { "seed", 0, 0, G_OPTION_ARG_INT, &seed, "Random number seed", "positive integer"}, 
     { NULL }
 };
+
+#if 0
+static void
+set_directories()
+{
+    scm_c_eval_string("(set! %load-should-auto-compile #f)");
+    
+    if (uninstalled)
+    {
+        use_resources = FALSE;
+        directories.user_data = g_build_filename(top_builddir, "share");
+        directories.user_config = g_build_filename(top_builddir, "config");
+        directories.data = g_build_filename(top_builddir, "data");
+        directories.scripts = g_build_filename(srcdir, "g");
+        g_strdup_printf("(set! %load-path (cons \"%s\" %load-path))", directories.scripts);
+        g_strdup_printf("(set! %load-compiled-path (cons \"%s\" %load-compiled-path))",
+                        directories.scripts);
+    }
+    else
+    {
+        use_resources = TRUE;
+        directories.user_data = g_get_user_data_dir();
+        directories.user_config = g_get_user_config();
+        scm_c_eval_string("(set! %load-should-auto-compile #f)");
+    }
+}
+#endif
 
 static void
 initialize (GtkApplication *app)
@@ -48,7 +77,9 @@ initialize (GtkApplication *app)
     draw_initialize ();
     /* All other stuff */
     SWIG_init();
-    xscm_c_primitive_load ("burro.scm");
+
+    GBytes *scheme_code = g_resources_lookup_data("/com/lonelycactus/burro/game.scm", 0, NULL);
+    scm_c_eval_string(g_bytes_get_data(scheme_code, NULL));
     pm_init ();
     loop ();
 }
@@ -87,7 +118,7 @@ main (int argc, char **argv)
     }
 
     xgtk_init_check (&argc, &argv);
-    game_initialize ();
+    // game_initialize ();
     // loop_set_full_speed_flag ();
 
     app = gtk_application_new ("com.lonelycactus.projectburro",

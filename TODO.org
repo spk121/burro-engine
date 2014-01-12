@@ -26,7 +26,6 @@
     scripting language API.
 
 * The Game
-
 ** The α layer - low-level paranoid wrapper
     Don't know if this is necessary, but, this would be regular library functions that are
     agressivly type-checked.

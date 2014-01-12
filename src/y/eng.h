@@ -32,4 +32,6 @@ void eng_present (void);
 gdouble eng_get_brightness (void);
 void eng_set_brightness (gdouble brightness);
 
+unsigned int get_keyinput(void); 
+
 #endif

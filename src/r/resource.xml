@@ -3,5 +3,6 @@
   <gresource prefix="/com/lonelycactus/burro">
     <file compressed="true">cga8c_bmp8.tga</file>
     <file compressed="true">splash_bmp16.tga</file>
+    <file compressed="false">game.scm</file>
   </gresource>
 </gresources>
