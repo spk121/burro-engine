@@ -53,6 +53,8 @@ burro_SOURCES = \
 	r/resource.h \
 	x/xcairo.c \
 	x/xcairo.h \
+	x/xpulseaudio.c \
+	x/xpulseaudio.h \
 	x/xgdk.c \
 	x/xgdk.h \
 	x/xgio.c \
@@ -77,6 +79,8 @@ burro_SOURCES = \
 	y/obj.h \
 	y/proc.c \
 	y/proc.h \
+	y/pulseaudio.c \
+	y/pulseaudio.h \
 	y/rand.c \
 	y/rand.h \
 	y/tga.c \

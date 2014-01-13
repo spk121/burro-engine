@@ -217,6 +217,6 @@ get_keyinput()
         | (key_right << 4) | (key_left << 5) | (key_up << 6) | (key_down << 7)
         | (key_x << 8) | (key_y << 9);
 
-    //g_mutex_unlock(&keymutex);
+    // g_mutex_unlock(&keymutex);
 
 }

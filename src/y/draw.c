@@ -48,25 +48,25 @@ void draw_finalize ()
 
 void draw ()
 {
-  draw_backdrop_color ();
-  if (eng_is_blank())
-    goto end_draw;
-
-  for (int priority = PRIORITY_COUNT - 1; priority >= 0; priority --)
+    draw_backdrop_color ();
+    if (eng_is_blank())
+        goto end_draw;
+    
+    for (int priority = PRIORITY_COUNT - 1; priority >= 0; priority --)
     {
-      for (int layer = MAIN_BACKGROUNDS_COUNT + SUB_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
+        for (int layer = MAIN_BACKGROUNDS_COUNT + SUB_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
         {
-	  if (bg_is_shown (layer) && bg_get_priority (layer) == priority)
-	    draw_background_layer (layer);
+            if (bg_is_shown (layer) && bg_get_priority (layer) == priority)
+                draw_background_layer (layer);
         }
         for (int id = MAIN_OBJ_COUNT + SUB_OBJ_COUNT - 1; id >= 0; id --)
         {
-	  if (obj_is_shown (id) && obj_get_priority (id) == priority)
-	    draw_obj (id);
+            if (obj_is_shown (id) && obj_get_priority (id) == priority)
+                draw_obj (id);
         }
     }
-
-end_draw:
+    
+ end_draw:
     xcairo_surface_mark_dirty (main_screen_surface);
     xcairo_surface_mark_dirty (sub_screen_surface);
 }

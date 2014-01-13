@@ -2,6 +2,7 @@
 #include "draw.h"
 #include "eng.h"
 #include "loop.h"
+#include "pulseaudio.h"
 
 const double UPDATE_RATE = 1.0 / 60.0;
 const double REFRESH_RATE = 1.0 / 60.0;
@@ -88,7 +89,7 @@ static gboolean idle_state_event_cb (void *dummy)
       if (active_flag)
         {
           //audio_time_cur = cur_time;
-          //audio_update();
+          pulse_update_audio();
           if (run_full_speed_flag || ((cur_time - before_update_time) > UPDATE_RATE))
             {
               //if (do_idle != NULL)
@@ -144,3 +145,8 @@ static void paint ()
   eng_present ();
 }
 
+double
+loop_time()
+{
+    return xg_timer_elapsed(timer);
+}

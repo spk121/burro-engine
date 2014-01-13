@@ -3,6 +3,9 @@
 %include "glib-types.i"
 %{
 #include "../y/bg.h"
+#include "../y/obj.h"
+#include "../y/loop.h"
+#include "../y/pulseaudio.h"
 %}
 
 enum bg_const_tag
@@ -52,7 +55,7 @@ void bg_set_backdrop_color (guint16 c16);
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
 
 int bg_get_priority (int id);
-gboolean bg_is_shown (int id);
+//gboolean bg_is_shown (int id);
 void bg_hide (int id);
 void bg_init (int id, bg_type_t type, guint width, guint height);
 void bg_rotate (int id, double angle);
@@ -74,3 +77,31 @@ void bg_set_bmp16_from_resource (int id, const char *resource);
 void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);
 
+void obj_hide (int id);
+void obj_show (int id);
+// boolean obj_is_shown (int id);
+void obj_init (int id, int spritesheet_i, int spritesheet_j, int sprite_width, int sprite_height,
+               double rotation_center_x, double rotation_center_y, int hflip, int vflip,
+               int palette_offset);
+void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j);
+
+void obj_set (int id, int priority, double x, double y, double rotation, double expansion,
+              int palette_offset);
+// void obj_set_priority (int id, int priority);
+int obj_get_priority (int id);
+void obj_set_rotation_expansion (int id, double rotation, double expansion);
+void obj_set_position (int id, double x, double y);
+void obj_set_palette_offset (int id, int offset);
+
+// void obj_set_tilesheet_from_resource (int sub_flag, const char *resource);
+
+void tone(int channel, double start_time,
+          double D_attack, double D_decay, double D_sustain, double D_release,
+          double F_initial, double F_attack, double F_sustain, double F_release,
+          double A_attack, double A_sustain,
+          double duty, int noise, int waveform);
+
+////////////////////////////////////////////////////////////////
+// loop.h
+
+double loop_time(void);

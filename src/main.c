@@ -6,6 +6,7 @@
 #include "y/loop.h"
 #include "y/rand.h"
 #include "y/proc.h"
+#include "y/pulseaudio.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
@@ -53,6 +54,15 @@ set_directories()
 }
 #endif
 
+void log_handler(const gchar *log_domain,
+                    GLogLevelFlags log_level,
+                    const gchar *message,
+                    gpointer user_data)
+{
+    fprintf(stdout, "%s\n", message);
+    fflush(stdout);
+}
+
 static void
 initialize (GtkApplication *app)
 {
@@ -65,6 +75,10 @@ initialize (GtkApplication *app)
     else
         rand_init_with_seed (seed);
     /* Load debugging options */
+    g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    g_log_set_handler ("GLib", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    g_log_set_handler ("Gtk", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    
     /* Initialize memory cache */
     g_resources_register (resource_get_resource ());
     /* Create the window */
@@ -72,6 +86,7 @@ initialize (GtkApplication *app)
     gtk_window_set_application (GTK_WINDOW (mainwin), app);
     gtk_widget_show_all (mainwin);
     /* Initialize the audio system */
+    pulse_initialize_audio();
     /* Load player's game options and saved game files */
     /* Create drawing surface */
     draw_initialize ();
@@ -81,6 +96,7 @@ initialize (GtkApplication *app)
     GBytes *scheme_code = g_resources_lookup_data("/com/lonelycactus/burro/game.scm", 0, NULL);
     scm_c_eval_string(g_bytes_get_data(scheme_code, NULL));
     pm_init ();
+    pulse_mainloop();
     loop ();
 }
 
