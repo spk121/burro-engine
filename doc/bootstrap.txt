@@ -1,0 +1,16 @@
+# Building from a clean Fedora20 VM
+yum install autoconf automake
+yum install git
+yum groupinstall 'Development Tools'
+yum install libtool
+yum install glib2-devel
+yum install gtk3-devel
+yum install pulseaudio-libs-devel
+yum install guile-devel
+yum install swig
+git config --global user.name "Mike Gran"
+git config --global user.email "spk121@yahoo.com"
+
+autoreconf -vif
+
+
