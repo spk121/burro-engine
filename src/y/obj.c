@@ -2,6 +2,7 @@
 #include "../x/xglib.h"
 #include "eng.h"
 #include "obj.h"
+#include "tga.h"
 
 typedef struct obj_entry
 {
