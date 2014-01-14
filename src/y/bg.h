@@ -6,10 +6,9 @@
 
 	GPL3+
 ---------------------------------------------------------------------------------*/
-/*   |    1    |    2    |    3    |    4    |    5    |    6    |    7    |    8
 /*! \file bg.h
     \brief background defines and functionality
-<div class="fileHeader">
+
     These are the public as well as the internal API to control backgrounds.
     There are four backgrounds for both the main and sub screens.  BG0 is 
     the one most in the foreground and BG3 is the one most in the background.
@@ -20,9 +19,6 @@
       always transparent.
     - an 8-bit map that points to 8 by 8 pixel tiles in a separate 8-bit indexed
       bitmap with a 15-bit RGB555 colormap
-
-</div>
-      
 */
 
 #ifndef BURRO_BG_H
@@ -32,28 +28,39 @@
 #include <cairo.h>
 #include "tga.h"
 
-enum bg_const_tag
-  {
-    MAIN_BACKGROUNDS_COUNT = 4,
-    SUB_BACKGROUNDS_COUNT = 4,
-    MAP_HEIGHT = 512,
-    MAP_WIDTH = 512,
-    TILESHEET_HEIGHT = 256,
-    TILESHEET_WIDTH = 256,
-    TILE_HEIGHT = 8,
-    TILE_WIDTH = 8,
-    TILESHEET_HEIGHT_IN_TILES = (256/8),
-    TILESHEET_WIDTH_IN_TILES = (256/8),
-    PALETTE_COLORS_COUNT = 256,
-    BMP8_HEIGHT = 512,
-    BMP8_WIDTH = 512,
-    BMP16_HEIGHT = 512,
-    BMP16_WIDTH = 512,
-    BG_COLOR16_BLACK = 0x0,
-  };
+//! The number of background layers for the main screen
+#define BG_MAIN_BACKGROUNDS_COUNT 4
+//! The number of background layers for the sub screen
+#define BG_SUB_BACKGROUNDS_COUNT 4
+//! The maximum height of the map background, in tiles
+#define BG_MAP_HEIGHT_MAX 512
+//! The maximum width, in tiles, of the map background
+#define BG_MAP_WIDTH_MAX 512
+//! The maximum height, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT 256
+//! The maximum width, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH 256
+//! The height of a map background's tile
+#define BG_TILE_HEIGHT 8
+//! The width of a map background's tile
+#define BG_TILE_WIDTH 8
+//! The maximum height, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT_IN_TILES (BG_TILESHEET_HEIGHT/BG_TILE_HEIGHT)
+//! The maximum width, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH_IN_TILES (BG_TILESHEET_WIDTH/BG_TILE_WIDTH)
+//! The number of colors for a map background's tilesheet or a BMP8 background
+#define BG_PALETTE_COLORS_COUNT_MAX 256
+//! The maximum height of a BMP8 background, in pixels
+#define BG_BMP8_HEIGHT_MAX 512
+//! The maximum width of a BMP8 background, in pixels
+#define BG_BMP8_WIDTH_MAX 512
+//! The maximum height of a BMP16 background, in pixels
+#define BG_BMP16_HEIGHT_MAX 512
+//! The maximum width of a BMP16 background, in pixels
+#define BG_BMP16_WIDTH_MAX 512
 
-enum bg_index_tag
-  {
+//! Enumeration of the 8 background layer IDs
+enum bg_index_tag {
     BG_MAIN_0 = 0,
     BG_MAIN_1 = 1,
     BG_MAIN_2 = 2,
@@ -67,12 +74,11 @@ enum bg_index_tag
 typedef enum bg_index_tag bg_index_t;
 
 //! Allowed background types, used in bg_init
-enum bg_type_tag
-  {
+enum bg_type_tag {
     BG_TYPE_MAP, //!< 8bpp Tiled background with 16 bit tile indexes and no allowed rotation or scaling
     BG_TYPE_BMP8, //!< Bitmap background with 8 bit color values which index into a 256-color RGB555 palette, where color #0 is transparent
     BG_TYPE_BMP16, //!< Bitmap background with 16 bit color values of the form ABGR1555
-  };
+};
 
 typedef enum bg_type_tag bg_type_t;
 

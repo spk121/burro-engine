@@ -8,25 +8,36 @@
 #include "../y/pulseaudio.h"
 %}
 
-enum bg_const_tag
-  {
-    MAIN_BACKGROUNDS_COUNT = 4,
-    SUB_BACKGROUNDS_COUNT = 4,
-    MAP_HEIGHT = 512,
-    MAP_WIDTH = 512,
-    TILESHEET_HEIGHT = 256,
-    TILESHEET_WIDTH = 256,
-    TILE_HEIGHT = 8,
-    TILE_WIDTH = 8,
-    TILESHEET_HEIGHT_IN_TILES = (256/8),
-    TILESHEET_WIDTH_IN_TILES = (256/8),
-    PALETTE_COLORS_COUNT = 256,
-    BMP8_HEIGHT = 512,
-    BMP8_WIDTH = 512,
-    BMP16_HEIGHT = 512,
-    BMP16_WIDTH = 512,
-    BG_COLOR16_BLACK = 0x0,
-  };
+//! The number of background layers for the main screen
+#define BG_MAIN_BACKGROUNDS_COUNT 4
+//! The number of background layers for the sub screen
+#define BG_SUB_BACKGROUNDS_COUNT 4
+//! The maximum height of the map background, in tiles
+#define BG_MAP_HEIGHT_MAX 512
+//! The maximum width, in tiles, of the map background
+#define BG_MAP_WIDTH_MAX 512
+//! The maximum height, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT 256
+//! The maximum width, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH 256
+//! The height of a map background's tile
+#define BG_TILE_HEIGHT 8
+//! The width of a map background's tile
+#define BG_TILE_WIDTH 8
+//! The maximum height, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT_IN_TILES (BG_TILESHEET_HEIGHT/BG_TILE_HEIGHT)
+//! The maximum width, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH_IN_TILES (BG_TILESHEET_WIDTH/BG_TILE_WIDTH)
+//! The number of colors for a map background's tilesheet or a BMP8 background
+#define BG_PALETTE_COLORS_COUNT_MAX 256
+//! The maximum height of a BMP8 background, in pixels
+#define BG_BMP8_HEIGHT_MAX 512
+//! The maximum width of a BMP8 background, in pixels
+#define BG_BMP8_WIDTH_MAX 512
+//! The maximum height of a BMP16 background, in pixels
+#define BG_BMP16_HEIGHT_MAX 512
+//! The maximum width of a BMP16 background, in pixels
+#define BG_BMP16_WIDTH_MAX 512
 
 enum bg_index_tag
   {
@@ -68,11 +79,7 @@ void bg_set_rotation (int id, double rotation);
 void bg_set_rotation_expansion (int id, double rotation, double expansion);
 void bg_set_expansion (int id, double expansion);
 void bg_show (int id);
-void bg_set_map_from_tga (int id, targa_image_t *t);
-void bg_set_tilesheet_from_tga (int id, targa_image_t *t);
-void bg_set_bmp8_from_tga (int id, targa_image_t *t);
 void bg_set_bmp8_from_resource (int id, const char *resource);
-void bg_set_bmp16_from_tga (int id, targa_image_t *t);
 void bg_set_bmp16_from_resource (int id, const char *resource);
 void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);

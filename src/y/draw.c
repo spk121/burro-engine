@@ -16,34 +16,34 @@ static void draw_obj (int id);
 
 cairo_surface_t *draw_get_main_screen_surface (void)
 {
-  return main_screen_surface;
+    return main_screen_surface;
 }
 
 cairo_surface_t *draw_get_sub_screen_surface (void)
 {
-  return sub_screen_surface;
+    return sub_screen_surface;
 }
 
 
 void draw_initialize ()
 {
-  main_screen_surface = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-						     MAIN_SCREEN_WIDTH, MAIN_SCREEN_HEIGHT);
-  main_screen_context = xcairo_create (main_screen_surface);
-  xcairo_set_antialias (main_screen_context, CAIRO_ANTIALIAS_NONE);
-
-  sub_screen_surface = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-						    SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT);
-  sub_screen_context = xcairo_create (sub_screen_surface);
-  xcairo_set_antialias (sub_screen_context, CAIRO_ANTIALIAS_NONE);
+    main_screen_surface = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+                                                       MAIN_SCREEN_WIDTH, MAIN_SCREEN_HEIGHT);
+    main_screen_context = xcairo_create (main_screen_surface);
+    xcairo_set_antialias (main_screen_context, CAIRO_ANTIALIAS_NONE);
+    
+    sub_screen_surface = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
+                                                      SUB_SCREEN_WIDTH, SUB_SCREEN_HEIGHT);
+    sub_screen_context = xcairo_create (sub_screen_surface);
+    xcairo_set_antialias (sub_screen_context, CAIRO_ANTIALIAS_NONE);
 }
 
 void draw_finalize ()
 {
-  xcairo_destroy (sub_screen_context);
-  xcairo_surface_destroy (sub_screen_surface);
-  xcairo_destroy (main_screen_context);
-  xcairo_surface_destroy (main_screen_surface);
+    xcairo_destroy (sub_screen_context);
+    xcairo_surface_destroy (sub_screen_surface);
+    xcairo_destroy (main_screen_context);
+    xcairo_surface_destroy (main_screen_surface);
 }
 
 void draw ()
@@ -54,7 +54,7 @@ void draw ()
     
     for (int priority = PRIORITY_COUNT - 1; priority >= 0; priority --)
     {
-        for (int layer = MAIN_BACKGROUNDS_COUNT + SUB_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
+        for (int layer = BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT - 1; layer >= 0; layer --)
         {
             if (bg_is_shown (layer) && bg_get_priority (layer) == priority)
                 draw_background_layer (layer);
@@ -123,44 +123,42 @@ static void paint_transformed_image (cairo_t *context, cairo_matrix_t *matrix, c
 
 static void draw_background_layer (int layer)
 {
-  cairo_surface_t *surf;
-  cairo_matrix_t matrix;
-  double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
-  double rotation, expansion;
-
-  surf = bg_render_to_cairo_surface (layer);
-  xcairo_surface_mark_dirty (surf);
-  bg_get_transform (layer, &scroll_x, &scroll_y, &rotation_center_x, &rotation_center_y,
-		    &rotation, &expansion);
-  compute_transform (&matrix, scroll_x, scroll_y, rotation_center_x, rotation_center_y,
-		     rotation, expansion);
-  if (layer < MAIN_BACKGROUNDS_COUNT)
-    paint_transformed_image (main_screen_context, &matrix, surf);
-  else
-    paint_transformed_image (sub_screen_context, &matrix, surf);
-  xcairo_surface_destroy (surf);
+    cairo_surface_t *surf;
+    cairo_matrix_t matrix;
+    double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
+    double rotation, expansion;
+    
+    surf = bg_render_to_cairo_surface (layer);
+    xcairo_surface_mark_dirty (surf);
+    bg_get_transform (layer, &scroll_x, &scroll_y, &rotation_center_x, &rotation_center_y,
+                      &rotation, &expansion);
+    compute_transform (&matrix, scroll_x, scroll_y, rotation_center_x, rotation_center_y,
+                       rotation, expansion);
+    if (layer < BG_MAIN_BACKGROUNDS_COUNT)
+        paint_transformed_image (main_screen_context, &matrix, surf);
+    else
+        paint_transformed_image (sub_screen_context, &matrix, surf);
+    xcairo_surface_destroy (surf);
 }
 
 
 
 static void draw_obj (int id)
 {
-  cairo_surface_t *surf;
-  cairo_matrix_t matrix;
-  double x, y, rotation_center_x, rotation_center_y;
-  double rotation, expansion;
-
-  surf = obj_render_to_cairo_surface (id);
-  xcairo_surface_mark_dirty (surf);
-  obj_get_location (id, &x, &y, &rotation_center_x, &rotation_center_y,
-		    &rotation, &expansion);
-  compute_transform (&matrix, x, y, rotation_center_x, rotation_center_y,
-		     rotation, expansion);
-  if (id < MAIN_OBJ_COUNT)
-    //paint_transformed_image (main_screen_context, &matrix, surf)
-    ;
-  else
-    //paint_transformed_image (sub_screen_context, &matrix, surf)
-    ;
-  xcairo_surface_destroy (surf);
+    cairo_surface_t *surf;
+    cairo_matrix_t matrix;
+    double x, y, rotation_center_x, rotation_center_y;
+    double rotation, expansion;
+    
+    surf = obj_render_to_cairo_surface (id);
+    xcairo_surface_mark_dirty (surf);
+    obj_get_location (id, &x, &y, &rotation_center_x, &rotation_center_y,
+                      &rotation, &expansion);
+    compute_transform (&matrix, x, y, rotation_center_x, rotation_center_y,
+                       rotation, expansion);
+    if (id < MAIN_OBJ_COUNT)
+        paint_transformed_image (main_screen_context, &matrix, surf);
+    else
+        paint_transformed_image (sub_screen_context, &matrix, surf);
+    xcairo_surface_destroy (surf);
 }

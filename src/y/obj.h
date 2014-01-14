@@ -1,8 +1,6 @@
 #ifndef BURRO_OBJ_H
 #define BURRO_OBJ_H
 
-#include "tga.h"
-
 enum obj_const_tag
   {
     OBJSHEET_HEIGHT = 256,
@@ -31,7 +29,6 @@ void obj_set_palette_offset (int id, int offset);
 void obj_get_location (int id, double *x, double *y, double *rotation_center_x, double *rotation_center_y,
 			 double *rotation, double *expansion);
 
-void obj_set_tilesheet_from_tga (int sub_flag, targa_image_t *t);
 void obj_set_tilesheet_from_resource (int sub_flag, const char *resource);
 cairo_surface_t *obj_render_to_cairo_surface (int id);
 
