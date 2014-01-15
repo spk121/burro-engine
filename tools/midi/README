@@ -1,0 +1,62 @@
+Converting MIDI to waveforms is a three step process.
+
+1. First, a midi file is unpacked.  This results in a note list, which
+is a five-column table.
+
+  - Time: seconds since the beginning of the song
+  - Channel:  a number 1 to 16
+  - Track: a number that indicates the "instrument" of the note
+  - Note: a midi note number that indicates the pitch of the note
+  - Duration: the length of the note
+
+2. Then, a waveform list is generated.  The waveform list describes an
+"attack, decay, sustain, release" waveform.  The envelope has
+five critical points.
+
+
+AMPLITUDE OF WAVEFORM
+
+       /2
+      /  \
+     /    \
+    /      3--------------------4
+   /                             \
+  /                               \
+ /                                 \
+1                                   5
+
+
+   PHASE            AMPLITUDE    FREQUENCY   TIME      
+1  Begin attack     0            F_initial   0         
+2  Begin decay      A_attack     F_attack    D_attack  
+3  Begin sustain    A_sustain    F_sustain   D_attack + D_decay   
+4  Begin release    A_sustain    F_sustain   D_attack + D_decay + D_sustain 
+5  End release      0            F_release   D_attack + D_decay + D_sustain + D_release 
+
+Also, it has 3 parameters
+- Waveform: 0 = square, 1 = sinusoid
+- Noise: 0 = tone, 1 = noise
+- Duty: 0 to 1, relative width of the 1st half of the wave form
+
+
+Duty of 0.5
+   +--+  +--+
+   |  |  |  |
++--+  +--+  +
+
+Duty of 0.75
+     ++    ++
+     ||    ||
++----++----++
+
+To convert a note list to a waveform list, there needs to be
+a mapping transform from
+
+   {track, note, duration}
+   to 
+   {A_attack, A_sustain, F_initial, F_attack, F_sustain, F_release,
+   D_attack, D_decay, D_sustain, D_release, Waveform, Noise, Duty}
+
+Guidance about this mapping could be found in the General MIDI Level 1
+Instrument Patch Map.
+
