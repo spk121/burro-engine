@@ -5,9 +5,7 @@ is a five-column table.
 
   - Time: seconds since the beginning of the song
   - Channel:  a number 1 to 16. Channel 10 is always percussion.
-  - Track: a number that indicates the sequencer's track.
-    A track is assigned as instrument, but, this can be reassigned.
-  - Program: the specific instrument patch for the note.
+  - Patch: a number that indicates the instrument for the note
   - Note: a midi note number that indicates the pitch of the note
   - Duration: the length of the note
   - Velocity: volume?
