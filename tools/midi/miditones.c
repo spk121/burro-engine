@@ -2,10 +2,10 @@
  *
  *   MIDITONES
  *
- *  Convert a MIDI file into a bytestream of notes
- *
+ *   Convert a MIDI file into a list of notes.
  *
  *   (C) Copyright 2011, Len Shustek
+ *   (C) Copyright 2013, 2014 Michael L Gran
  *
  *   This program is free software: you can redistribute it and/or modify
  *   it under the terms of version 3 of the GNU General Public License as
@@ -23,31 +23,17 @@
 
 
 /*
- * Change log
- *  19 January 2011, L.Shustek, V1.0
- *     -Initial release.
- *  26 February 2011, L. Shustek, V1.1
- *     -Expand the documentation generated in the output file.
- *     -End the binary output file with an "end of score" command.
- *     -Fix bug: Some "stop note" commands were generated too early.
- *  04 March 2011, L. Shustek, V1.2
- *     -Minor error message rewording.
- *  13 June 2011, L. Shustek, V1.3
- *     -Add -s2 strategy to try to keep each track on its own tone generator
- *      for when there are separate speakers.  This obviously works only when
- *      each track is monophonic.  (Suggested by Michal Pustejovsky)
- *  20 November 2011, L. Shustek, V1.4
- *     -Add -cn option to mask which channels (tracks) to process
- *     -Add -kn option to change key
- *     Both of these are in support of music-playing on my Tesla Coil.
+ * NOTE: This program is modified from Les Shustek's MIDITONES v1.4, but, is
+ * different from the original.  The program modifications since Len's original
+ * Miditunes v1.4 alter the intention of his original program.
  */
 
-#define VERSION "1.4"
+#define VERSION "1.5"
 
 /*--------------------------------------------------------------------------------
  *
  *
- *                               About MIDITONES
+ *                               About Len's original MIDITONES
  *
  *
  *  MIDITONES converts a MIDI music file into a much simplified stream of commands,
@@ -168,6 +154,20 @@
  *
  *----------------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------------
+ *
+ *
+ *                               About Mike's MIDITONES hack
+ *
+ *  I hacked up his code to generate a list of notes to be used in the Project
+ *  Burro game engine.  I used it as a basis for parsing a Midi file.
+ *
+ *
+ * If you run with -lg and then grep out the lines with "{", you get a note list.
+ *
+ *----------------------------------------------------------------------------------*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -245,30 +245,37 @@ long int outfile_bytecount = 0;
 unsigned int ticks_per_beat = 240;
 unsigned long timenow = 0;
 unsigned long tempo;		/* current tempo in usec/qnote */
+
 struct tonegen_status
-{				/* current status of a tone generator */
+{
+    /* current status of a tone generator */
     bool playing;			/* is it playing? */
-    int track;			/* if so, which track is the note from? */
-    int note;			/* what note is playing? */
+    int track;              /* if so, which track is the note from? */
+    int note;               /* what note is playing? */
+    int patch;              /* what instrument is this */
     int start_time;
     int length;
     int percussion;
+    int velocity;               /* how loud is the note */
 } tonegen[MAX_TONEGENS] =
     {
         0};
 
 struct track_status
-{				/* current processing point of a MIDI track */
-    unsigned char *trkptr;	/* ptr to the next note change */
-    unsigned char *trkend;	/* ptr past the end of the track */
-    unsigned long time;		/* what time we're at in the score */
-    unsigned long tempo;		/* the tempo last set, in usec/qnote */
+{
+    /* current processing point of a MIDI track */
+    unsigned char *trkptr;     /* ptr to the next note change */
+    unsigned char *trkend;     /* ptr past the end of the track */
+    unsigned long time;        /* what time we're at in the score */
+    unsigned long tempo;       /* the tempo last set, in usec/qnote */
     unsigned int preferred_tonegen;	/* for strategy2: try to use this generator */
-    unsigned char cmd;		/* CMD_xxxx  next to do */
-    unsigned char note;		/* for which note */
-    unsigned char last_event;	/* the last event, for MIDI's "running status" */
-    unsigned int percussion;	/* true if this is channel 9 data */
-    bool tonegens[MAX_TONEGENS];	/* which tone generators our notes are playing on */
+    unsigned char cmd;              /* CMD_xxxx  next to do */
+    unsigned char note;             /* for which note */
+    unsigned int percussion;    /* true if this is channel 9 data */
+    unsigned int patch;         /* current instrument sound for this channel */
+    unsigned int velocity;
+    unsigned char last_event; /* the last event, for MIDI's "running status" */
+    bool tonegens[MAX_TONEGENS]; /* which tone generators our notes are playing on */
 } track[MAX_TRACKS] =
     {
         0};
@@ -541,7 +548,7 @@ find_note (int tracknum)
     unsigned long int delta_time;
     int event, chan;
     int i;
-    int note, velocity, parm;
+    int note, velocity, parm, patch;
     int meta_cmd, meta_length;
     unsigned long int sysex_length;
     struct track_status *t;
@@ -562,12 +569,14 @@ find_note (int tracknum)
         if (*t->trkptr < 0x80)	/* "running status" */
             event = t->last_event;	/* means same event as before */
         else
-        {			/* new "status" (event type) */
+        {		   
+            /* new "status" (event type) */
             event = *t->trkptr++;
             t->last_event = event;
         }
         if (event == 0xff)
-        {			/* meta-event */
+        {		   
+            /* meta-event */
             meta_cmd = *t->trkptr++;
             meta_length = *t->trkptr++;
             switch (meta_cmd)
@@ -665,6 +674,7 @@ find_note (int tracknum)
                 t->note = *t->trkptr++;
                 t->percussion = (chan == 9) ? 1 : 0;
                 velocity = *t->trkptr++;
+                t->velocity = velocity;
                 if (velocity == 0)	/* some scores use note-on with zero velocity for off! */
                     goto note_off;
                 if (logparse)
@@ -694,40 +704,41 @@ find_note (int tracknum)
                 break;
             case 0xc:
                 // Program (patch) change
-                note = *t->trkptr++;
+                patch = *t->trkptr++;
+                t->patch = patch;
                 if (logparse) {
-                    fprintf (logfile, "#program patch 0x%02X", note);
-                    if (note < 8)
+                    fprintf (logfile, "#program patch 0x%02X", patch);
+                    if (patch < 8)
                         fprintf(logfile, " piano family");
-                    else if (note < 16)
+                    else if (patch < 16)
                         fprintf(logfile, " chromatic percussion family");
-                    else if (note < 24)
+                    else if (patch < 24)
                         fprintf(logfile, " organ family");
-                    else if (note < 32)
+                    else if (patch < 32)
                         fprintf(logfile, " guitar family");
-                    else if (note < 40)
+                    else if (patch < 40)
                         fprintf(logfile, " bass family");
-                    else if (note < 48)
+                    else if (patch < 48)
                         fprintf(logfile, " strings family");
-                    else if (note < 56)
+                    else if (patch < 56)
                         fprintf(logfile, " ensemble family");
-                    else if (note < 64)
+                    else if (patch < 64)
                         fprintf(logfile, " brass family");
-                    else if (note < 72)
+                    else if (patch < 72)
                         fprintf(logfile, " reed family");
-                    else if (note < 80)
+                    else if (patch < 80)
                         fprintf(logfile, " pipe family");
-                    else if (note < 88)
+                    else if (patch < 88)
                         fprintf(logfile, " synth lead family");
-                    else if (note < 96)
+                    else if (patch < 96)
                         fprintf(logfile, " synth pad family");
-                    else if (note < 104)
+                    else if (patch < 104)
                         fprintf(logfile, " synth effects family");
-                    else if (note < 112)
+                    else if (patch < 112)
                         fprintf(logfile, " ethnic family");
-                    else if (note < 120)
+                    else if (patch < 120)
                         fprintf(logfile, " percussive family");
-                    else if (note < 128)
+                    else if (patch < 128)
                         fprintf(logfile, " sound effects family");
                         
                     fprintf (logfile, "\n");
@@ -1007,17 +1018,20 @@ main (int argc, char *argv[])
 #if 0
                             if (loggen)
                                 fprintf (logfile,
-                                         "%06d channel %d, track %d, note %02d, duration %d\n",
-                                         tg->start_time, tgnum, tracknum,
+                                         "%06d channel %d, track %d, patch %d, note %02d, duration %d\n",
+                                         tg->start_time, tgnum, tracknum, tg->patch,
                                          tg->note, tg->length);
 #else
                             if (loggen)
                                 fprintf (logfile,
-                                         "{ %f, %d, %f, %f, %d },\n",
+                                         "{ %f, %d, %d, %d, %f, %d, %d },\n",
                                          tg->start_time / 1000.0,
                                          tgnum,
-                                         440.0 * pow(2.0,(tg->note-69.0)/12.0),
+                                         tg->patch, 
+                                         tg->note,
+                                         // 440.0 * pow(2.0,(tg->note-69.0)/12.0),
                                          tg->length / 1000.0, 
+                                         tg->velocity,
                                          tg->percussion);
 #endif
                             if (binaryoutput)
@@ -1077,13 +1091,15 @@ main (int argc, char *argv[])
                     tg->note = trk->note;
                     tg->start_time = trk->time;
                     tg->percussion = trk->percussion;
+                    tg->patch = trk->patch;
+                    tg->velocity = trk->velocity;
                     trk->tonegens[tgnum] = true;
                     trk->preferred_tonegen = tgnum;
                     if (loggen)
                         fprintf (logfile,
-                                 "#%06d: Start note %02X, generator %d, track %d\n",
+                                 "#%06d: Start note %02X, generator %d, track %d, patch %d, velocity %d\n",
                                  trk->time,
-                                 trk->note, tgnum, tracknum);
+                                 trk->note, tgnum, tracknum, tg->patch, trk->velocity);
                     shifted_note = trk->note + keyshift;
                     if (shifted_note < 0)
                         shifted_note = 0;
