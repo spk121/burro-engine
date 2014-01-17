@@ -4,11 +4,14 @@ Converting MIDI to waveforms is a three step process.
 is a five-column table.
 
   - Time: seconds since the beginning of the song
-  - Channel:  a number 1 to 16. Channel 10 is always percussion.
+  - Channel:  a number 0 to 15.
   - Patch: a number that indicates the instrument for the note
-  - Note: a midi note number that indicates the pitch of the note
+  - Note: a midi note number that indicates the pitch of the note (or a
+    non-tuned percussion instrument number)
   - Duration: the length of the note
   - Velocity: volume?
+  - Percussion: when true, the note number is non-tuned percussion
+    instrument number
 
 2. Then, a waveform list is generated.  The waveform list describes an
 "attack, decay, sustain, release" waveform.  The envelope has
@@ -53,7 +56,7 @@ Duty of 0.75
 To convert a note list to a waveform list, there needs to be
 a mapping transform from
 
-   {patch, channel, note, duration, velocity}
+   {channel, patch, note, duration, velocity}
    to 
    {A_attack, A_sustain, F_initial, F_attack, F_sustain, F_release,
    D_attack, D_decay, D_sustain, D_release, Waveform, Noise, Duty}
@@ -61,7 +64,3 @@ a mapping transform from
 Guidance about this mapping could be found in the General MIDI Level 1
 Instrument Patch Map.
 
-For MIDI, there are some general categories
-
-Channel 1-8, piano
-9, 11-16, chromatic percussion
