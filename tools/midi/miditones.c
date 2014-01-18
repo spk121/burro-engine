@@ -173,7 +173,10 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <inttypes.h>
 #include <time.h>
+
 size_t
 strlcat (char *dest, const char *src, size_t len)
 {
@@ -214,15 +217,16 @@ strlcpy (char *dest, const char *src, size_t len)
 struct midi_header
 {
     char MThd[4];
-    unsigned long header_size;
-    unsigned short format_type;
-    unsigned short number_of_tracks;
-    unsigned short time_division;
+    uint32_t header_size;
+    uint16_t format_type;
+    uint16_t number_of_tracks;
+    uint16_t time_division;
 };
+
 struct track_header
 {
     char MTrk[4];
-    unsigned long track_size;
+    uint32_t track_size;
 };
 
 /***********  Global variables  ******************/
@@ -230,21 +234,22 @@ struct track_header
 #define MAX_TONEGENS 16		/* max tone generators: tones we can play simultaneously */
 #define DEFAULT_TONEGENS 6	/* default number of tone generators */
 #define MAX_TRACKS 48		/* max number of MIDI tracks we will process */
+
 bool loggen, logparse, parseonly, strategy1, strategy2, binaryoutput;
 FILE *infile, *outfile, *logfile;
 unsigned char *buffer, *hdrptr;
-unsigned long buflen;
+uint32_t buflen;
 int num_tracks;
 int tracks_done = 0;
 int outfile_itemcount = 0;
 int num_tonegens = DEFAULT_TONEGENS;
 int num_tonegens_used = 0;
-unsigned channel_mask = 0xffff;	// bit mask of channels to process
+uint32_t channel_mask = 0xffff;	// bit mask of channels to process
 int keyshift = 0;		// optional chromatic note shift for output file
-long int outfile_bytecount = 0;
-unsigned int ticks_per_beat = 240;
-unsigned long timenow = 0;
-unsigned long tempo;		/* current tempo in usec/qnote */
+int32_t outfile_bytecount = 0;
+uint32_t ticks_per_beat = 240;
+uint32_t timenow = 0;
+uint32_t tempo;		/* current tempo in usec/qnote */
 
 struct tonegen_status
 {
@@ -266,14 +271,14 @@ struct track_status
     /* current processing point of a MIDI track */
     unsigned char *trkptr;     /* ptr to the next note change */
     unsigned char *trkend;     /* ptr past the end of the track */
-    unsigned long time;        /* what time we're at in the score */
-    unsigned long tempo;       /* the tempo last set, in usec/qnote */
-    unsigned int preferred_tonegen;	/* for strategy2: try to use this generator */
+    uint32_t time;        /* what time we're at in the score */
+    uint32_t tempo;       /* the tempo last set, in usec/qnote */
+    uint32_t preferred_tonegen;	/* for strategy2: try to use this generator */
     unsigned char cmd;              /* CMD_xxxx  next to do */
     unsigned char note;             /* for which note */
-    unsigned int percussion;    /* true if this is channel 9 data */
-    unsigned int patch;         /* current instrument sound for this channel */
-    unsigned int velocity;
+    uint32_t percussion;    /* true if this is channel 9 data */
+    uint32_t patch;         /* current instrument sound for this channel */
+    uint32_t velocity;
     unsigned char last_event; /* the last event, for MIDI's "running status" */
     bool tonegens[MAX_TONEGENS]; /* which tone generators our notes are playing on */
 } track[MAX_TRACKS] =
@@ -414,7 +419,7 @@ void
 midi_error (char *msg, unsigned char *bufptr)
 {
     unsigned char *ptr;
-    fprintf (stderr, "---> MIDI file error at position %04X (%d): %s\n",
+    fprintf (stderr, "---> MIDI file error at position %04" PRIxPTR " (%" PRIdPTR "): %s\n",
              bufptr - buffer, bufptr - buffer, msg);
 
     /* print some bytes surrounding the error */
@@ -438,17 +443,17 @@ chk_bufdata (unsigned char *ptr, int len)
 
 
 /* fetch big-endian numbers */
-unsigned short
-rev_short (unsigned short val)
+uint16_t
+rev_short (uint16_t val)
 {
     return ((val & 0xff) << 8) | ((val >> 8) & 0xff);
 }
 
-unsigned long
-rev_long (unsigned long val)
+uint32_t
+rev_long (uint32_t val)
 {
-    return (((rev_short ((unsigned short) val) & 0xffff) << 16) |
-            (rev_short ((unsigned short) (val >> 16)) & 0xffff));
+    return (((rev_short ((uint16_t) val) & 0xffff) << 16) |
+            (rev_short ((uint16_t) (val >> 16)) & 0xffff));
 }
 
 /* account for new items in the non-binary output file
@@ -472,7 +477,7 @@ void
 process_header (void)
 {
     struct midi_header *hdr;
-    unsigned int time_division;
+    uint32_t time_division;
     chk_bufdata (hdrptr, sizeof (struct midi_header));
     hdr = (struct midi_header *) hdrptr;
     if (!charcmp (hdr->MThd, "MThd"))
@@ -486,8 +491,8 @@ process_header (void)
     if (logparse)
 
     {
-        fprintf (logfile, "#Header size %ld\n", rev_long (hdr->header_size));
-        fprintf (logfile, "#Format type %d\n", rev_short (hdr->format_type));
+        fprintf (logfile, "#Header size %" SCNu32 "\n", rev_long (hdr->header_size));
+        fprintf (logfile, "#Format type %" SCNu16" \n", rev_short (hdr->format_type));
         fprintf (logfile, "#Number of tracks %d\n", num_tracks);
         fprintf (logfile, "#Time division %04X\n", time_division);
         fprintf (logfile, "#Ticks/beat = %d\n", ticks_per_beat);
@@ -502,7 +507,7 @@ void
 start_track (int tracknum)
 {
     struct track_header *hdr;
-    unsigned long tracklen;
+    uint32_t tracklen;
     chk_bufdata (hdrptr, sizeof (struct track_header));
     hdr = (struct track_header *) hdrptr;
     if (!charcmp (hdr->MTrk, "MTrk"))
@@ -518,13 +523,13 @@ start_track (int tracknum)
 }
 
 /* Get a MIDI-style variable-length integer */
-unsigned long
+uint32_t
 get_varlen (unsigned char **ptr)
 {
 
     /* Get a 1-4 byte variable-length value and adjust the pointer past it.
        These are a succession of 7-bit values with a MSB bit of zero marking the end */
-    unsigned long val;
+    uint32_t val;
     int i, byte;
     val = 0;
     for (i = 0; i < 4; ++i)
@@ -545,12 +550,12 @@ get_varlen (unsigned char **ptr)
 void
 find_note (int tracknum)
 {
-    unsigned long int delta_time;
+    uint32_t delta_time;
     int event, chan;
     int i;
     int note, velocity, parm, patch;
     int meta_cmd, meta_length;
-    unsigned long int sysex_length;
+    uint32_t sysex_length;
     struct track_status *t;
 
     /* process events */
@@ -588,7 +593,7 @@ find_note (int tracknum)
             case 0x00:
                 if (logparse)
                     fprintf (logfile, "#sequence number %d\n",
-                             rev_short (*(unsigned short *) t->trkptr));
+                             rev_short (*(uint16_t *) t->trkptr));
                 break;
             case 0x20:
                 if (logparse)
@@ -597,25 +602,25 @@ find_note (int tracknum)
             case 0x51:		/* tempo: 3 byte big-endian integer! */
                 t->cmd = CMD_TEMPO;
                 t->tempo =
-                    rev_long (*(unsigned long *) (t->trkptr - 1)) & 0xffffffL;
+                    rev_long (*(uint32_t *) (t->trkptr - 1)) & 0xffffffL;
                 if (logparse)
-                    fprintf (logfile, "#set tempo %ld usec/qnote\n", t->tempo);
+                    fprintf (logfile, "#set tempo %" SCNu32 " usec/qnote\n", t->tempo);
                 t->trkptr += meta_length;
                 return;
             case 0x54:
                 if (logparse)
-                    fprintf (logfile, "#SMPTE offset %08lx\n",
-                             rev_long (*(unsigned long *) t->trkptr));
+                    fprintf (logfile, "#SMPTE offset %08x\n",
+                             rev_long (*(uint32_t *) t->trkptr));
                 break;
             case 0x58:
                 if (logparse)
                     fprintf (logfile, "#time signature %08lx\n",
-                             rev_long (*(unsigned long *) t->trkptr));
+                             rev_long (*(uint32_t *) t->trkptr));
                 break;
             case 0x59:
                 if (logparse)
                     fprintf (logfile, "#key signature %04X\n",
-                             rev_short (*(unsigned short *) t->trkptr));
+                             rev_short (*(uint16_t *) t->trkptr));
                 break;
             default:		/* assume it is a string */
                 if (logparse)
@@ -787,7 +792,7 @@ main (int argc, char *argv[])
     int i;
     int tracknum;
     int earliest_tracknum;
-    unsigned long earliest_time;
+    uint32_t earliest_time;
     int notes_skipped = 0;
     printf ("MIDITONES V%s, (C) 2011 Len Shustek\n", VERSION);
     printf ("See the source code for license information.\n\n");
@@ -914,7 +919,7 @@ main (int argc, char *argv[])
             struct tonegen_status *tg;
             int tgnum;
             int count_tracks;
-            unsigned long delta_time, delta_msec;
+            uint32_t delta_time, delta_msec;
 
             /* Find the track with the earliest event time,
                and output a delay command if time has advanced.
@@ -963,7 +968,7 @@ main (int argc, char *argv[])
 
                 /* Convert ticks to milliseconds based on the current tempo */
                 delta_msec =
-                    ((unsigned long) delta_time * tempo) / ticks_per_beat / 1000;
+                    ((uint32_t) delta_time * tempo) / ticks_per_beat / 1000;
                 if (loggen)
                     fprintf (logfile, "#->Delay %ld msec (%ld ticks)\n", delta_msec,
                              delta_time);

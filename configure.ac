@@ -58,6 +58,7 @@ AC_SUBST([my_CFLAGS])
 AC_CONFIG_FILES([
         Makefile
 	tools/Makefile
+	tools/midi/Makefile
 	src/Makefile
 ])
 AC_OUTPUT
