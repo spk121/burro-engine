@@ -64,3 +64,63 @@ a mapping transform from
 Guidance about this mapping could be found in the General MIDI Level 1
 Instrument Patch Map.
 
+There's no real point in trying to actually mimic these instruments
+perfectly, but, we can ballpark it.
+
+Piano-like instruments
+Attack 10ms           a few cents higher
+Decay  600ms to 20%
+Sustain      at 20%
+Release 10ms      
+
+String-like instruments
+Attack 100ms
+Decay  0 ms  to 100%
+Sustain      at 100%
+Release 100ms
+
+           D_Attack    A_attack  D_Decay  A_sustain  D_release
+
+piano      very short  100%      medium   30%        very short
+clavi      very short  100%      fast     10%        very short
+organ      very short  100%      none     99%        very short
+guitar     short       100%      fast     50%        very short
+strings    medium      100%      med      80%        short
+ensemble   ?
+brass      short       100%      slow     90%        short
+reed 
+pipe
+synth lead  very short 100%      med      80%        very short
+pad        very short 100%       slow     99%        short
+
+Percussion
+
+Bass Drum
+
+Initially a click for the strike then a fading book with a lowering pitch
+
+1  Begin attack     0            150 Hz ?    0         
+2  Begin decay      100%         87 Hz       10 ms  
+3  Begin sustain    0%           70 Hz       80 ms                
+4  Begin release    0%                                                      
+5  End release      0                                                                   
+
+
+35, 36 Bass drum   87Hz
+37     Side stick
+38, 40 Snare        370         100ms
+39     Clap
+41     Low Floor Tom  65 Hz
+42     Closed High Hat 10 kHz    80ms
+43     High Floor Tom 82 Hz
+44     Pedal High Hat  12 kHz
+45     Low Tom        104 Hz
+46     Open High Hat  2900 Hz    700ms
+47     Low/Mid tom   131 Hz
+48     High-Mid Tom  165 Hz
+49     Crash Cymbal  3700 Hz     Decay 60 ms Sustain 0ms Release 900ms 
+50     High Tom      208 Hz
+51     Ride Symbol
+
+Hand clap is 3 10ms pulses followed by a Decay 140ms | Release
+kick

@@ -163,7 +163,7 @@
  *  Burro game engine.  I used it as a basis for parsing a Midi file.
  *
  *
- * If you run with -lg and then grep out the lines with "{", you get a note list.
+ * If you run with -lg you get a note list.
  *
  *----------------------------------------------------------------------------------*/
 
@@ -1029,7 +1029,7 @@ main (int argc, char *argv[])
 #else
                             if (loggen)
                                 fprintf (logfile,
-                                         "{ %f, %d, %d, %d, %f, %d, %d },\n",
+                                         " %f %d %d %d %f %d %d\n",
                                          tg->start_time / 1000.0,
                                          tgnum,
                                          tg->patch, 
