@@ -14,11 +14,6 @@
 #define BURRO_PROP_APPLICATION_ID "com.lonelycactus.projectburro"
 #define BURRO_PROP_APPLICATION_NAME "ProjectBurro"
 
-#define CHANNELS_COUNT 16
-
-int16_t audio_buf[CHANNEL_COUNT][AUDIO_BUFFER_SIZE];
-double audio_time;
-
 typedef struct pulse_priv_tag {
     pa_context_state_t state;
     pa_mainloop *loop;
@@ -85,19 +80,15 @@ static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     
     g_debug("Pulseaudio requests %d bytes", nbytes);
     n = nbytes / 2;
-    buf = g_new(uint16_t, n);
-    for(i = 0; i < n; i ++)
+    if (n > AUDIO_BUFFER_SIZE)
     {
-        buf[i] = 0;
-        for (int j = 0; j < CHANNEL_COUNT; j ++)
-            buf[i] += audio_buf[j][i];
+        g_warning ("Pulseaudio buffer read overflow %d > %d",
+                   n, AUDIO_BUFFER_SIZE);
+        n = AUDIO_BUFFER_SIZE;
+        nbytes = n * 2;
     }
-    xpa_stream_write(p, buf, nbytes);
-    g_free(buf);
-
-    for (int j = 0; j < CHANNEL_COUNT; j ++)
-        g_memmove(&(audio_buf[j][0]), &(audio_buf[j][n]),  sizeof(int16_t) * (AUDIO_BUFFER_SIZE - n));
-    audio_time = loop_time();
+    xpa_stream_write(p, audio_model_get_wave(), nbytes);
+    audio_model_dequeue(n);
     pulse.samples_written += n;
 }
 
@@ -112,8 +103,6 @@ void pulse_initialize_audio()
     pa_buffer_attr buffer_attributes;
     pa_stream *stream;
     int ret = 1;
-
-
 
     /* PROPLIST: Only the PA_PROP_MEDIA_ROLE is important.  */
     main_proplist = xpa_proplist_new();
@@ -233,7 +222,7 @@ void pulse_initialize_audio()
                                                    &buffer_attributes,
                                                    PA_STREAM_ADJUST_LATENCY);
     /* Finally done! */
-    audio_time = loop_time();
+    audio_model_initialize(loop_time());
     g_debug("PulseAudio initialization complete");
 }
 
@@ -258,166 +247,6 @@ void pulse_mainloop()
 {
     // pa_threaded_mainloop_start(pulse.loop);
 }
-
-static void generate_tone_data(double D_attack, double D_decay, double D_sustain, double D_release,
-                               double F_initial, double F_attack, double F_sustain, double F_release,
-                               double A_attack, double A_sustain,
-                               double duty, _Bool noise, int waveform,
-                               int16_t **buffer, size_t *length)
-{
-    /* D = duration in sec
-       F = frequency in Hz
-       A = amplitude, from 0.0 to 1.0 */
-	double t, t_start, amplitude, frequency, period;
-    double duration;
-    size_t i;
-    int first;
-    int level_a, level_b;
-
-    *buffer = NULL;
-    *length = 0;
-
-    g_return_if_fail (F_initial >= 12.0 && F_initial < 22050);
-    g_return_if_fail (D_attack >= 0.0);
-    
-    duration = D_attack + D_decay + D_sustain + D_release;
-    *length = ceil(duration * (double) AUDIO_SAMPLE_RATE_IN_HZ);
-    *buffer = g_new(int16_t, *length);
-
-    t = 0.0;
-    t_start = 0.0;
-    i = 0;
-    period = 0.0;
-    first = TRUE;
-    while (i < *length)
-    {
-        if(first || t - t_start >= period)
-        {
-            if (first)
-                first = FALSE;
-            else
-                while (t - t_start >= period)
-                    t_start += period;
-
-            if (t < D_attack)
-            {
-                amplitude = (A_attack / D_attack) * t;
-                frequency = ((F_attack - F_initial) / D_attack) *  t + F_initial;
-            }
-            else if (t < D_attack + D_decay)
-            {
-                amplitude = ((A_sustain - A_attack) / D_decay) * (t - D_attack) + A_attack;
-                frequency = ((F_sustain - F_attack) / D_decay) * (t - D_attack) + F_attack;
-            }
-            else if (t < D_attack + D_decay + D_sustain)
-            {
-                amplitude = A_sustain;
-                frequency = F_sustain;
-            }
-            else if (t < D_attack + D_decay + D_sustain + D_release)
-            {
-                amplitude = (-A_sustain / D_release) * (t - D_attack - D_decay - D_sustain) + A_sustain;
-                frequency = ((F_release - F_sustain) / D_release) * (t - D_attack - D_decay - D_sustain) + F_sustain;
-            }
-            else
-            {
-                amplitude = 0;
-                frequency = F_release;
-            }
-            period = 1.0 / frequency;
-            if (noise)
-            {
-                if(rand_int_range (0, 2))
-                    level_a = 4095 * amplitude;
-                else
-                    level_a = -4095 * amplitude;
-                if(rand_int_range (0, 2))
-                    level_b = 4095 * amplitude;
-                else
-                    level_b = -4095 * amplitude;
-            }
-            else
-            {
-                level_a = 4095 * amplitude;
-                level_b = -4095 * amplitude;
-            }
-
-        }
-        if (t - t_start < period * duty)
-        {
-            if(waveform == 0)
-                (*buffer)[i] = level_a;
-            else if (waveform == 1)
-                (*buffer)[i] = level_a * sin(M_PI * (t - t_start) / (period * duty));
-        }
-        else if (t - t_start < period)
-        {
-            if(waveform == 0)
-                (*buffer)[i] = level_b;
-            else if (waveform == 1)
-                (*buffer)[i] = level_b * sin(M_PI * ((t - t_start) - period * duty) / (period * (1.0 - duty)));
-        }
-        i ++;
-        t += 1.0 / (double) AUDIO_SAMPLE_RATE_IN_HZ;
-    }
-#if 1
-    {
-        FILE *fp;
-        if(noise)
-            fp = fopen("noise.txt", "wt");
-        else
-            fp = fopen("wave.txt", "wt");
-        for(size_t i2 = 0; i2 < *length; i2++)
-            fprintf(fp, "%d %d\n", i2, (int)(*buffer)[i2]);
-        fclose(fp);
-    }
-#endif    
-}
-
-
-void tone(int channel, double start_time,
-          double D_attack, double D_decay, double D_sustain, double D_release,
-          double F_initial, double F_attack, double F_sustain, double F_release,
-          double A_attack, double A_sustain,
-          double duty, int noise, int waveform)
-{
-    int16_t *buffer;
-    size_t length;
-    double now = loop_time();
-    double time_since_last_update = now - audio_time;
-    double delta_t;
-    int delta_i, i2, i;
-
-    if (start_time == 0.0)
-    {
-        delta_t = 0.0;
-        g_debug("Generate %f Hz tone on channel %d to start in %f s (%f sec since las update)",
-                F_initial, channel, delta_t, time_since_last_update);
-    }
-    else
-    {
-        delta_t = start_time - audio_time;
-        g_debug("Generate %f Hz tone on channel %d to start in %f s (%f sec since las update)",
-                F_initial, channel, delta_t, time_since_last_update);
-    }
-        
-    generate_tone_data(D_attack, D_decay, D_sustain, D_release,
-                       F_initial, F_attack, F_sustain, F_release,
-                       A_attack, A_sustain,
-                       duty, noise, waveform,
-                       &buffer, &length);
-
-    delta_i = delta_t * AUDIO_SAMPLE_RATE_IN_HZ;
-    for(i = 0; i < length; i++)
-    {
-        i2 = i + delta_i;
-        if (i2 >= 0 && i2 < AUDIO_BUFFER_SIZE)
-            audio_buf[channel][i2] = buffer[i];
-    }
-    g_free(buffer);
-}
-
-
 
 /*
   Local Variables:
