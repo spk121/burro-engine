@@ -1,3 +1,25 @@
+#+TITLE: Project Burro Game Engine Implementation TODO
+
+
+I'm giving up on the C+GLib+Gtk version of the engine because it will never get finished.
+I'm moving to a more traditional C++, SDL2 engine, but I still doing soft rendering in Cairo.
+  
+* INI file parser
+  GNU Ragel can be used to write the parser.
+  
+* Console Menu
+  The console menu is a drop-down on-screen menu used by the debug menu and debug viewer.
+** Model: console text info
+** Model: bitmap font
+** View: console-to-texture renderer
+
+* Debug Menu and Viewer
+  The debug menu uses the console to display a list of variables and commands.  Each menu
+  entry either flips a boolean, allows one to modify an integer, allows one to modify a
+  fixed-point value, or runs a commane when the entry is selected.
+
+
+  
 
 * The Engine
 ** X layer - low-level paranoid C wrapper
