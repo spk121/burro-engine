@@ -6,20 +6,58 @@ I'm moving to a more traditional C++, SDL2 engine, but I still doing soft render
   
 * INI file parser
   GNU Ragel can be used to write the parser.
+** Model: hash table
+** Parser: INI file parser
+** Construct: User-space disk IO -> INI file parser to do local modifications
+** Construct: Art-pack disk IO -> INI file parser to do defaults
+** Debug Construct: stream IO -> INI file parser
   
 * Console Menu
   The console menu is a drop-down on-screen menu used by the debug menu and debug viewer.
 ** Model: console text info
 ** Model: bitmap font
+** Parser: Bitmap font parser (BDF?)
+** Debug Parser: Console text model info (ECMA-48?)
 ** View: console-to-texture renderer
+** Construct: Art-pack bitmap font -> Bitmap font parser for default font
+** Debug Construct: stream IO -> Bitmap font parser
+** Debug Construct: stream IO -> Console text parser
 
 * Debug Menu and Viewer
   The debug menu uses the console to display a list of variables and commands.  Each menu
-  entry either flips a boolean, allows one to modify an integer, allows one to modify a
-  fixed-point value, or runs a commane when the entry is selected.
+  entry does one of the following
+  - boolean display and toggling
+  - integer display and modification
+  - fixed-point display and modification
+  - run thunk command
+  - jump to other menu
+** Model: menu entry
+** Model: menu
+** Model: all menus
+** View: when not hidden, model-to-console render
+** Controller: receive keyboard commands to control menu
 
-
+* Artpack
+  An archive file where resources are extracted by a path-like string or a SID. ISO9660 or USTAR will be
+  used for this.
   
+* String table
+  A SID->string hash table. GNU GPerf could be used for this.
+  
+* Low-level
+** Renderer
+   Console, if active, will be painted to the top-layer.
+** Controller
+   Menu subsystem, if active, will intercept keyboard commands
+** Sound
+   Console, if active, may send a beep to the beep audio channel.
+
+----------------------------------------------
+
+OLD STUFF
+
+----------------------------------------------
+
 
 * The Engine
 ** X layer - low-level paranoid C wrapper
