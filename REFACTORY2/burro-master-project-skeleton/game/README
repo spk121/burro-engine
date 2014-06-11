@@ -1,0 +1,10 @@
+Burro-game is the game logic for the Project Burro game engine.  It is
+in charge of keeping track of game state.
+
+Once launched, it connects to the burro-gui subprogram and interacts
+with it over a pipe.
+
+It receives from burro-gui a set of messages mostly having to do with
+user interactions or timer states.  It sends to burro-gui messages
+largely having to do with loading art or music or moving sprites and
+backgrounds.  The specific messages are defined in libburro.

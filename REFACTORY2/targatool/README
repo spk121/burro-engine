@@ -1,0 +1,25 @@
+This program converts TGA files to different internal formats.
+
+SPECIFICATIONS
+
+The Targa specification is very flexible and can hold data from a
+infinite variety of data representations, but it was built to contain
+data gathered from a specific set of hardware cards.  So, in practice,
+it was meant to only be used on a constrained set of resolutions.
+
+g8: 256 colors of grey
+i8 with r8g8b8: 8-bit indices to a 24-bit color palette
+o1r5g5b5: high-color with 15-bit color per pixel plus one overlay bit
+r8g8b8: true-color with no alpha or transparency
+a8r8g8b8: 32-bit color + alpha
+
+TARGA 8: g8
+TARGA M8: g8, i8 w/ r8g8b8
+TARGA M16: o1r5g5b5
+TARGA M24: r8g8b8
+TARGA M32: a8r8g8b8
+
+(To be pedantic, the a8r8g8b8 of the TARGA M32 wasn't truly 8-bits of
+alpha as we consider it now.  It was 1 overlay bit plus 7-bits to
+describe the blending levels.  But the exact details of how that
+worked seemed to be lost to history.)

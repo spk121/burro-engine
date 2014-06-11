@@ -1,0 +1,11 @@
+m4_changecom([;])m4_dnl
+#!`'GUILE_EXE \
+-L`'PKGGUILEDIR -s \
+!#
+
+m4_changequote(`<<',`>>')
+
+(define *logging* (not (null? '(ENABLE_LOGGING))))
+(define *debug* (not (null? '(ENABLE_DEBUG))))
+(define *strict* (not (null? '(ENABLE_STRICT))))
+(define *pkglibdir* "PKGLIBDIR")
