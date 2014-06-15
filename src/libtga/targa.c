@@ -1,12 +1,14 @@
-// targa.c -- Functions related to the parsing of Targa files
+// tga.c -- Functions related to the parsing of Tga files
 
 #include <string.h>
-#include "targa.h"
-#include "common.h"
-#include "io.h"
+#include <stdlib.h>
+#include <stdbool.h>
+#include "libtga.h"
+#include "libtga-private.h"
+#include "color.h"
 
 static uint32_t
-get_u32(uint8_t *pos)
+get_u32(const uint8_t *pos)
 {
   uint32_t a, b, c, d;
   a = pos[0];
@@ -17,7 +19,7 @@ get_u32(uint8_t *pos)
 }
 
 static uint32_t
-get_u16(uint8_t *pos)
+get_u16(const uint8_t *pos)
 {
   uint16_t a, b;
   a = pos[0];
@@ -29,11 +31,12 @@ get_u16(uint8_t *pos)
 // DEST must be pre-allocated to be able to hold UNIT_COUNT
 // units of UNIT_SIZE.  Returns size of uncompressed area.
 static size_t
-sread_rle_array (uint8_t *dest, size_t unit_size, size_t unit_count,
-		 const uint8_t *src, size_t src_len, size_t *src_len_used)
+sread_rle_array (tga_ctx_t *ctx, uint8_t *dest, size_t unit_size,
+		 size_t unit_count, const uint8_t *src, size_t src_len,
+		 size_t *src_len_used)
 {
   size_t dest_len = unit_size * unit_count;
-  size_ i_dest = 0;
+  size_t i_dest = 0;
   size_t i;
   uint8_t packet_header;
   uint8_t packet_type;
@@ -43,13 +46,13 @@ sread_rle_array (uint8_t *dest, size_t unit_size, size_t unit_count,
   const size_t max_unit_size = 4;
 
   if (unit_size > max_unit_size) {
-    err ("Invalid unit size for RLE array: %d", unit_size);
+    err (ctx, "Invalid unit size for RLE array: %u", (unsigned int) unit_size);
     return 0;
   }
 
   while (i_dest < dest_len) {
     if (i_src >= src_len) {
-      err ("premature termination (RLE array)");
+      err (ctx, "premature termination (RLE array)");
       return 0;
     }
     packet_header = src[i_src++];
@@ -60,38 +63,38 @@ sread_rle_array (uint8_t *dest, size_t unit_size, size_t unit_count,
       // This packet represents repeated values
       uint8_t repeated_value[max_unit_size];
       for (i = 0; i < unit_size; i ++) {
-	if (i_src >= src_len) {
-	  err ("premature termination (RLE array)");
-	  return 0;
-	}
-	repeated_value[i] = src[i_src++];
+        if (i_src >= src_len) {
+          err (ctx, "premature termination (RLE array)");
+          return 0;
+        }
+        repeated_value[i] = src[i_src++];
       }
       while (packet_index < packet_count) {
-	for (i = 0; i < unit_size; i ++) {
-	  if (i_dest >= dest_len) {
-	    err ("destination buffer too small (RLE array)");
-	    return 0;
-	  }
-	  dest[i_dest++] = repeated_value[i];
-	}
-	packet_index ++;
+        for (i = 0; i < unit_size; i ++) {
+          if (i_dest >= dest_len) {
+            err (ctx, "destination buffer too small (RLE array)");
+            return 0;
+          }
+          dest[i_dest++] = repeated_value[i];
+        }
+        packet_index ++;
       }
     }
     else {
       // This packet contains just raw values
       while (packet_index < packet_count) {
-	for (i = 0; i < unit_size; i ++) {
-	  if (i_src >= src_len) {
-	    err ("premature termination (RLE array)");
-	    return 0;
-	  }
-	  if (i_dest >= dest_len) {
-	    err ("destination buffer too small (RLE array)");
-	    return 0;
-	  }
-	  dest[i_dest++] = src[i_src++];
-	}
-	packet_index ++;
+        for (i = 0; i < unit_size; i ++) {
+          if (i_src >= src_len) {
+            err (ctx, "premature termination (RLE array)");
+            return 0;
+          }
+          if (i_dest >= dest_len) {
+            err (ctx, "destination buffer too small (RLE array)");
+            return 0;
+          }
+          dest[i_dest++] = src[i_src++];
+        }
+        packet_index ++;
       }
     }
   }
@@ -99,23 +102,17 @@ sread_rle_array (uint8_t *dest, size_t unit_size, size_t unit_count,
   return i_dest;
 }
 
-
-/* This is a paranoid parser for Targa files. It should fail on most
- * errors. */
-targa_error_t
-targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
+/* This is a paranoid parser for Tga files. It should fail on most
+ * errors. It allocates a new image. */
+TGA_LOCAL tga_error_t
+unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
 {
   int i;
-  uint8_t *raw_footer;
-  targa_error_t error;
+  const uint8_t *raw_footer;
+  tga_error_t error;
   size_t id_size = 0;
   size_t color_map_size = 0;
   size_t image_unpacked_size = 0;
-
-  targa_image_t t = ctx->image;
-  t = calloc(1, sizeof(tga_image_t));
-  if (!t)
-    return TARGA_OUT_OF_MEMORY;
 
   t->version = 1;
   t->extended_info = 0;
@@ -126,24 +123,24 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
    */
 
   /* First, we see if it at least contains a header. */
-  if (len < TARGA_PACKED_HEADER_LEN) {
-    error = TARGA_HEADER_TOO_SHORT;
-    err ("the data ends prematurely (header)");
+  if (len < TGA_PACKED_HEADER_LEN) {
+    error = TGA_HEADER_TOO_SHORT;
+    err (t->ctx, "the data ends prematurely (header)");
     goto cleanup;
   }
 
-  // Then we check to see if this is a Targa file v2.0
-  if (len < TARGA_PACKED_HEADER_LEN + TARGA_PACKED_FOOTER_LEN) {
+  // Then we check to see if this is a Tga file v2.0
+  if (len < TGA_PACKED_HEADER_LEN + TGA_PACKED_FOOTER_LEN) {
     t->version = 1;
   }
   else {
     // A TGA reader should begin by determining whether the file is New
     // TGA by checking the 26-byte footer.  Scan bytes 8 to 23 of the
     // footer for the signature.
-    raw_footer = mem + len - TARGA_PACKED_FOOTER_LEN;
-    if (memcmp(raw_footer + TARGA_PACKED_FOOTER_STRING_START,
-	       "TRUEVISION-XFILE",
-	       TARGA_PACKED_FOOTER_STRING_LEN) == 0)
+    raw_footer = mem + len - TGA_PACKED_FOOTER_LEN;
+    if (memcmp(raw_footer + TGA_PACKED_FOOTER_STRING_START,
+               "TRUEVISION-XFILE",
+               TGA_PACKED_FOOTER_STRING_LEN) == 0)
       t->version = 2;
     else
       t->version = 1;
@@ -177,32 +174,33 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
 
   // Field 2 - Color Map Type
   t->header.color_map_type = mem[1];
-  if (!TARGA_COLOR_MAP_TYPE_VALID(t)) {
-    error = TARGA_COLOR_MAP_TYPE_OUT_OF_RANGE;
-    err ("unknown color map type: %u",
-	 (unsigned int) t->header.color_map_type);
+  if (!TGA_COLOR_MAP_TYPE_VALID(t)) {
+    error = TGA_COLOR_MAP_TYPE_OUT_OF_RANGE;
+    err (t->ctx, "unknown color map type: %u",
+         (unsigned int) t->header.color_map_type);
     goto cleanup;
   }
 
   // Field 3 - Image Type
-  t->header.image_type = (targa_image_type_t) mem[2];
-  if (!TARGA_IMAGE_TYPE_VALID(t)) {
-    error = TARGA_IMAGE_TYPE_OUT_OF_RANGE;
-    err ("invalid image type: %u", (unsigned int) t->header.image_type);
+  t->header.image_type = (tga_image_type_t) mem[2];
+  if (!TGA_IMAGE_TYPE_VALID(t)) {
+    error = TGA_IMAGE_TYPE_OUT_OF_RANGE;
+    err (t->ctx, "invalid image type: %u",
+         (unsigned int) t->header.image_type);
     goto cleanup;
   }
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_NO_COLOR_MAP
-      && TARGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
-    error = TARGA_MISSING_COLOR_MAP;
-    err ("image type %u requires a color map",
-	 (unsigned int) t->header.image_type);
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_NO_COLOR_MAP
+      && TGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
+    error = TGA_MISSING_COLOR_MAP;
+    err (t->ctx, "image type %u requires a color map",
+         (unsigned int) t->header.image_type);
     goto cleanup;
   }
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_COLOR_MAP
-      && !TARGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
-    error = TARGA_UNNECESSARY_COLOR_MAP;
-    err ("image type %u should not have a color map",
-	 (unsigned int) t->header.image_type);
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_COLOR_MAP
+      && !TGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
+    error = TGA_UNNECESSARY_COLOR_MAP;
+    err (t->ctx, "image type %u should not have a color map",
+         (unsigned int) t->header.image_type);
     goto cleanup;
   }
 
@@ -211,51 +209,51 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
   // Field 4.1 - First Entry Index
   t->header.color_map_first_entry_index = get_u16(mem + 3);
   if (t->header.color_map_first_entry_index != 0
-      && t->header.color_map_type == TARGA_COLOR_MAP_TYPE_NO_COLOR_MAP) {
-    error = TARGA_COLOR_MAP_FIRST_ENTRY_INDEX_INVALID;
-    err ("color map first entry index %u must be zero when there is no color map",
-	 (unsigned int) t->header.color_map_first_entry_index);
+      && t->header.color_map_type == TGA_COLOR_MAP_TYPE_NO_COLOR_MAP) {
+    error = TGA_COLOR_MAP_FIRST_ENTRY_INDEX_INVALID;
+    err (t->ctx, "color map first entry index %u must be zero when there is no color map",
+         (unsigned int) t->header.color_map_first_entry_index);
     goto cleanup;
   }
 
   // Field 4.2 - Color Map Length
   t->header.color_map_length = get_u16(mem + 5);
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_NO_COLOR_MAP
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_NO_COLOR_MAP
       && t->header.color_map_length > 0) {
-    error = TARGA_COLOR_MAP_LENGTH_INVALID;
-    err ("color map length %u must be zero when there is no color map",
-	 (unsigned int) t->header.color_map_length);
+    error = TGA_COLOR_MAP_LENGTH_INVALID;
+    err (t->ctx, "color map length %u must be zero when there is no color map",
+         (unsigned int) t->header.color_map_length);
     goto cleanup;
   }
 
   // Field 4.3 - Color Map Entry Size
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_COLOR_MAP
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_COLOR_MAP
       && t->header.color_map_length == 0) {
-    error = TARGA_COLOR_MAP_LENGTH_INVALID;
-    err ("color map length %u must be greater than zero when there is a color map",
-	 (unsigned int) t->header.color_map_length);
+    error = TGA_COLOR_MAP_LENGTH_INVALID;
+    err (t->ctx, "color map length %u must be greater than zero when there is a color map",
+         (unsigned int) t->header.color_map_length);
     goto cleanup;
   }
   if (t->header.color_map_first_entry_index > t->header.color_map_length) {
-    error = TARGA_COLOR_MAP_FIRST_ENTRY_INDEX_OUT_OF_RANGE;
-    err ("color map first entry index %u must be less than the color map length %u",
-	 (unsigned int) t->header.color_map_first_entry_index,
-	 (unsigned int) t->header.color_map_length);
+    error = TGA_COLOR_MAP_FIRST_ENTRY_INDEX_OUT_OF_RANGE;
+    err (t->ctx, "color map first entry index %u must be less than the color map length %u",
+         (unsigned int) t->header.color_map_first_entry_index,
+         (unsigned int) t->header.color_map_length);
     goto cleanup;
   }
   t->header.color_map_entry_size = mem[7];
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_NO_COLOR_MAP
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_NO_COLOR_MAP
       && t->header.color_map_entry_size != 0) {
-    error = TARGA_COLOR_MAP_ENTRY_SIZE_INVALID;
-    err ("color map width %u must be zero when there is no color map",
-	 (unsigned int) t->header.color_map_entry_size);
+    error = TGA_COLOR_MAP_ENTRY_SIZE_INVALID;
+    err (t->ctx, "color map width %u must be zero when there is no color map",
+         (unsigned int) t->header.color_map_entry_size);
     goto cleanup;
   }
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_COLOR_MAP
-      && !TARGA_COLOR_MAP_ENTRY_SIZE_VALID(t)) {
-    error = TARGA_COLOR_MAP_ENTRY_SIZE_OUT_OF_RANGE;
-    err ("color map width %u is not one of the commonly allowed values",
-	 (unsigned int) t->header.color_map_entry_size);
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_COLOR_MAP
+      && !TGA_COLOR_MAP_ENTRY_SIZE_VALID(t)) {
+    error = TGA_COLOR_MAP_ENTRY_SIZE_OUT_OF_RANGE;
+    err (t->ctx, "color map width %u is not one of the commonly allowed values",
+         (unsigned int) t->header.color_map_entry_size);
     goto cleanup;
   }
 
@@ -278,49 +276,52 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
   t->header.image_height = get_u16(mem + 14);
 
   // Field 5.5 - Pixel Depth
-  t->header.pixel_depth = get_u16(mem + 16);
-  if ((TARGA_IMAGE_TYPE_COLOR_MAPPED(t)
-       && (t->header.pixel_depth == TARGA_PIXEL_DEPTH_8_BITS
-	   || t->header.pixel_depth == TARGA_PIXEL_DEPTH_16_BITS))
-      || (TARGA_IMAGE_TYPE_TRUE_COLOR(t)
-	  && (t->header.pixel_depth == TARGA_PIXEL_DEPTH_15_BITS
-	      || t->header.pixel_depth == TARGA_PIXEL_DEPTH_16_BITS
-	      || t->header.pixel_depth == TARGA_PIXEL_DEPTH_24_BITS
-	      || t->header.pixel_depth == TARGA_PIXEL_DEPTH_32_BITS))
-      || (TARGA_IMAGE_TYPE_BLACK_AND_WHITE(t)
-	  && (t->header.pixel_depth == TARGA_PIXEL_DEPTH_8_BITS
-	      || t->header.pixel_depth == TARGA_PIXEL_DEPTH_16_BITS))) {
-    error = TARGA_PIXEL_DEPTH_OUT_OF_RANGE;
-    err ("pixel depth %u is not one of the commonly allowed values",
-	 (unsigned int) t->header.pixel_depth);
+  t->header.pixel_depth = mem[16];
+  if ((TGA_IMAGE_TYPE_COLOR_MAPPED(t)
+       && (t->header.pixel_depth == TGA_PIXEL_DEPTH_8_BITS
+           || t->header.pixel_depth == TGA_PIXEL_DEPTH_16_BITS))
+      || (TGA_IMAGE_TYPE_TRUE_COLOR(t)
+          && (t->header.pixel_depth == TGA_PIXEL_DEPTH_15_BITS
+              || t->header.pixel_depth == TGA_PIXEL_DEPTH_16_BITS
+              || t->header.pixel_depth == TGA_PIXEL_DEPTH_24_BITS
+              || t->header.pixel_depth == TGA_PIXEL_DEPTH_32_BITS))
+      || (TGA_IMAGE_TYPE_BLACK_AND_WHITE(t)
+          && (t->header.pixel_depth == TGA_PIXEL_DEPTH_8_BITS
+              || t->header.pixel_depth == TGA_PIXEL_DEPTH_16_BITS))) {
+    // Pixel depth is good
+  }
+  else {
+    error = TGA_PIXEL_DEPTH_OUT_OF_RANGE;
+    err (t->ctx, "pixel depth %u is not one of the commonly allowed values",
+         (unsigned int) t->header.pixel_depth);
     goto cleanup;
   }
 
   // 15bpp is a perfectly valid pixel depth, but, I don't want to
   // support it.
-  if (t->header.pixel_depth == TARGA_PIXEL_DEPTH_15_BITS)
-    t->header.pixel_depth = TARGA_PIXEL_DEPTH_16_BITS;
+  if (t->header.pixel_depth == TGA_PIXEL_DEPTH_15_BITS)
+    t->header.pixel_depth = TGA_PIXEL_DEPTH_16_BITS;
 
   // Field 5.6 - Image Descriptor
-  t->header.image_descriptor = mem[18];
+  t->header.image_descriptor = mem[17];
   if (t->header.image_descriptor & 0xC0) {
-    error = TARGA_IMAGE_DESCRIPTOR_OUT_OF_RANGE;
-    err ("image descriptor %u is out of range",
-	 (unsigned int) t->header.image_descriptor);
+    error = TGA_IMAGE_DESCRIPTOR_OUT_OF_RANGE;
+    err (t->ctx, "image descriptor %u is out of range",
+         (unsigned int) t->header.image_descriptor);
     goto cleanup;
   }
 
   // Field 6 - Image ID (Variable)
   id_size = t->header.id_string_length;
-  if ((t->version == 1 && len < TARGA_PACKED_HEADER_LEN + id_size)
-      || (t->version == 2 && len < (TARGA_PACKED_HEADER_LEN
-				    + TARGA_PACKED_FOOTER_LEN + id_size))) {
-    error = TARGA_ID_STRING_TOO_SHORT;
-    err ("the file ends prematurely (ID string)");
+  if ((t->version == 1 && len < TGA_PACKED_HEADER_LEN + id_size)
+      || (t->version == 2 && len < (TGA_PACKED_HEADER_LEN
+                                    + TGA_PACKED_FOOTER_LEN + id_size))) {
+    error = TGA_ID_STRING_TOO_SHORT;
+    err (t->ctx, "the file ends prematurely (ID string)");
     goto cleanup;
   }
 
-  uint8_t *pos = mem + 19;
+  uint8_t *pos = (uint8_t *) mem + 18;
   if (id_size == 0)
     t->data.id_string = NULL;
   else {
@@ -331,20 +332,20 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
   }
 
   // Field 7 - Color Map Data (variable)
-  if (t->header.color_map_type == TARGA_COLOR_MAP_TYPE_COLOR_MAP)
+  if (t->header.color_map_type == TGA_COLOR_MAP_TYPE_COLOR_MAP)
     color_map_size = ((size_t) t->header.color_map_length
-		      * (size_t) BIT_TO_BYTE(t->header.color_map_entry_size));
+                      * (size_t) BIT_TO_BYTE(t->header.color_map_entry_size));
   else
     color_map_size = 0;
 
   if (((t->version == 1)
-       && (len < TARGA_PACKED_HEADER_LEN + id_size + color_map_size))
+       && (len < TGA_PACKED_HEADER_LEN + id_size + color_map_size))
       ||
       ((t->version == 2)
-       && (len < (TARGA_PACKED_HEADER_LEN + id_size + color_map_size
-		  + TARGA_PACKED_FOOTER_LEN)))) {
-    error = TARGA_COLOR_MAP_TOO_SHORT;
-    err ("the file ends prematurely (color map)");
+       && (len < (TGA_PACKED_HEADER_LEN + id_size + color_map_size
+                  + TGA_PACKED_FOOTER_LEN)))) {
+    error = TGA_COLOR_MAP_TOO_SHORT;
+    err (t->ctx, "the file ends prematurely (color map)");
     goto cleanup;
   }
 
@@ -357,65 +358,70 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     t->data.color_map_data = NULL;
 
   // Field 8 - Image Data
-  if (t->header.image_type == TARGA_IMAGE_TYPE_NO_IMAGE_DATA) {
+  if (t->header.image_type == TGA_IMAGE_TYPE_NO_IMAGE_DATA) {
     image_unpacked_size = 0;
     t->data.image_data = NULL;
   }
   else {
-    image_unpacked_size = (TARGA_IMAGE_SIZE(t)
-			   * BIT_TO_BYTE (t->header.pixel_depth));
+    image_unpacked_size = (TGA_IMAGE_SIZE(t)
+                           * BIT_TO_BYTE (t->header.pixel_depth));
     t->data.image_data = calloc(image_unpacked_size, sizeof(uint8_t));
 
     // How to read the unpack the data depends on the format
-    if (TARGA_IMAGE_TYPE_UNCOMPRESSED(t)) {
+    if (TGA_IMAGE_TYPE_UNCOMPRESSED(t)) {
       // For uncompressed data, we can sanity check the file size
       // FIXME: size check wrong for version 2
-      if (len < (TARGA_PACKED_HEADER_LEN + id_size + color_map_size
-		 + image_unpacked_size)) {
-	error = TARGA_IMAGE_DATA_TOO_SHORT;
-	err ("the file ends prematurely (image data)");
+      if (len < (TGA_PACKED_HEADER_LEN + id_size + color_map_size
+                 + image_unpacked_size)) {
+        error = TGA_IMAGE_DATA_TOO_SHORT;
+        err (t->ctx, "the file ends prematurely (image data)");
       }
       memcpy(t->data.image_data, pos, image_unpacked_size);
       pos += image_unpacked_size;
     }
-    else if (TARGA_IMAGE_TYPE_RUN_LENGTH_ENCODED(t)) {
+    else if (TGA_IMAGE_TYPE_RUN_LENGTH_ENCODED(t)) {
       int j;
       size_t compressed_area_len;
+      uint8_t *start_pos = pos;
       compressed_area_len = (len -
-			     TARGA_PACKED_HEADER_LEN
-			     - id_size
-			     - color_map_size);
-      if (t->header.version == 2)
-	compressed_area_len -= TARGA_PACKED_FOOTER_LEN;
+                             TGA_PACKED_HEADER_LEN
+                             - id_size
+                             - color_map_size);
+      if (t->version == 2)
+        compressed_area_len -= TGA_PACKED_FOOTER_LEN;
 
       // For RLE data, we can't sanity check the file size first.
       for (j = 0; j < t->header.image_height; j ++) {
-	size_t count, compressed_count, row_size;
-	uint8_t *row_pos;
+        size_t count, compressed_count, row_size;
+        uint8_t *row_pos;
         row_size = t->header.image_width * BIT_TO_BYTE (t->header.pixel_depth);
-	row_pos = t->data.image_data + j * row_size;
-	count = sread_rle_array (row_pos,
-				 BIT_TO_BYTE (t->header.pixel_depth),
-				 t->header.image_width,
-				 pos,
-				 compressed_area_len,
-				 &compressed_count);
-	if (count == 0) {
-	  error = TARGA_IMAGE_DATA_TOO_SHORT;
-	  err ("the file ends prematurely (RLE image data)");
-	  goto cleanup;
-	}
+        row_pos = t->data.image_data + j * row_size;
+        count = sread_rle_array (t->ctx, row_pos,
+                                 BIT_TO_BYTE (t->header.pixel_depth),
+                                 t->header.image_width,
+                                 pos,
+                                 compressed_area_len,
+                                 &compressed_count);
+        if (count == 0) {
+          error = TGA_IMAGE_DATA_TOO_SHORT;
+          err (t->ctx, "the file ends prematurely (RLE image data)");
+          goto cleanup;
+        }
+        dbg(t->ctx, "j %u row_size %zu row_pos %ld, %ld count %zu ccount %zu\n",
+	       j, row_size, row_pos - t->data.image_data,
+	       pos - start_pos,
+	       count, compressed_count);
 	image_unpacked_size += count;
 	pos += compressed_count;
 	compressed_area_len -= compressed_count;
       }
       /* Since we've uncompressed the data... */
-      if (t->header.image_type == TARGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_COLOR_MAPPED)
-	t->header.image_type = TARGA_IMAGE_TYPE_UNCOMPRESSED_COLOR_MAPPED;
-      else if (t->header.image_type == TARGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_TRUE_COLOR)
-	t->header.image_type = TARGA_IMAGE_TYPE_UNCOMPRESSED_TRUE_COLOR;
-      else if (t->header.image_type == TARGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_BLACK_AND_WHITE)
-	t->header.image_type = TARGA_IMAGE_TYPE_UNCOMPRESSED_BLACK_AND_WHITE;
+      if (t->header.image_type == TGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_COLOR_MAPPED)
+	t->header.image_type = TGA_IMAGE_TYPE_UNCOMPRESSED_COLOR_MAPPED;
+      else if (t->header.image_type == TGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_TRUE_COLOR)
+	t->header.image_type = TGA_IMAGE_TYPE_UNCOMPRESSED_TRUE_COLOR;
+      else if (t->header.image_type == TGA_IMAGE_TYPE_RUN_LENGTH_ENCODED_BLACK_AND_WHITE)
+	t->header.image_type = TGA_IMAGE_TYPE_UNCOMPRESSED_BLACK_AND_WHITE;
     }
   }
 
@@ -423,42 +429,42 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
   // This is vendor specific, so we ignore it
   if (t->footer.extension_offset) {
     if (len < (t->footer.extension_offset
-	       + TARGA_EXTENSION_AREA_LEN
-	       + TARGA_PACKED_FOOTER_LEN)) {
-      error = TARGA_EXTENSION_AREA_TOO_SHORT;
-      err ("the file ends prematurely (extension area)");
+	       + TGA_EXTENSION_AREA_LEN
+	       + TGA_PACKED_FOOTER_LEN)) {
+      error = TGA_EXTENSION_AREA_TOO_SHORT;
+      err (t->ctx, "the file ends prematurely (extension area)");
       goto cleanup;
     }
-    pos = t->footer.extension_offset;
+    pos = (uint8_t *) mem + t->footer.extension_offset;
 
     // Field 10 - Extension Size (2 Bytes)
     t->extension.extension_size = get_u16(pos);
     pos += 2;
-    if (t->extension.extension_size != TARGA_EXTENSION_SIZE) {
-      error = TARGA_EXTENSION_SIZE_OUT_OF_RANGE;
-      err ("extension size %u is out of range (must equal %u)",
+    if (t->extension.extension_size != TGA_EXTENSION_SIZE) {
+      error = TGA_EXTENSION_SIZE_OUT_OF_RANGE;
+      err (t->ctx, "extension size %u is out of range (must equal %u)",
 	   (unsigned int) t->extension.extension_size,
-	   (unsigned int) TARGA_EXTENSION_SIZE);
+	   (unsigned int) TGA_EXTENSION_SIZE);
       goto cleanup;
     }
 
     // Field 11 - Author Name (41 Bytes)
-    memcpy(t->extension.author_name, pos, TARGA_AUTHOR_NAME_LEN);
-    pos += TARGA_AUTHOR_NAME_LEN;
-    if (t->extension.author_name[TARGA_AUTHOR_NAME_LEN-1] != '\0') {
-      error = TARGA_AUTHOR_NAME_NOT_NULL_TERMINATED;
-      err ("the author name is not null terminated");
+    memcpy(t->extension.author_name, pos, TGA_AUTHOR_NAME_LEN);
+    pos += TGA_AUTHOR_NAME_LEN;
+    if (t->extension.author_name[TGA_AUTHOR_NAME_LEN-1] != '\0') {
+      error = TGA_AUTHOR_NAME_NOT_NULL_TERMINATED;
+      err (t->ctx, "the author name is not null terminated");
       goto cleanup;
     }
 
     // Field 12 - Author Comments (324 Bytes)
-    for (i = 0; i < TARGA_AUTHOR_COMMENT_LINES_NUM; i ++) {
+    for (i = 0; i < TGA_AUTHOR_COMMENT_LINES_NUM; i ++) {
       memcpy(t->extension.author_comment[i], pos,
-	     TARGA_AUTHOR_COMMENT_LINE_LEN);
-      pos += TARGA_AUTHOR_COMMENT_LINE_LEN;
-      if (t->extension.author_comment[i][TARGA_AUTHOR_COMMENT_LINE_LEN-1] != '\0') {
-	error = TARGA_AUTHOR_COMMENT_NOT_NULL_TERMINATED;
-	err ("author comment line %u is not null terminated",
+	     TGA_AUTHOR_COMMENT_LINE_LEN);
+      pos += TGA_AUTHOR_COMMENT_LINE_LEN;
+      if (t->extension.author_comment[i][TGA_AUTHOR_COMMENT_LINE_LEN-1] != '\0') {
+	error = TGA_AUTHOR_COMMENT_NOT_NULL_TERMINATED;
+	err (t->ctx, "author comment line %u is not null terminated",
 	     (unsigned int) i);
 	goto cleanup;
       }
@@ -468,13 +474,13 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     t->extension.month = get_u16(pos);
     pos += 2;
     if (t->extension.month < 1 || t->extension.month > 12) {
-      error = TARGA_MONTH_OUT_OF_RANGE;
+      error = TGA_MONTH_OUT_OF_RANGE;
       goto cleanup;
     }
     t->extension.day = get_u16(pos);
     pos += 2;
     if (t->extension.day < 1 || t->extension.day > 31) {
-      error = TARGA_DAY_OUT_OF_RANGE;
+      error = TGA_DAY_OUT_OF_RANGE;
       goto cleanup;
     }
     t->extension.year = get_u16(pos);
@@ -482,27 +488,27 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     t->extension.hour = get_u16(pos);
     pos += 2;
     if (t->extension.hour > 23) {
-      error = TARGA_HOUR_OUT_OF_RANGE;
+      error = TGA_HOUR_OUT_OF_RANGE;
       goto cleanup;
     }
     t->extension.minute = get_u16(pos);
     pos += 2;
     if (t->extension.minute > 59) {
-      error = TARGA_MINUTE_OUT_OF_RANGE;
+      error = TGA_MINUTE_OUT_OF_RANGE;
       goto cleanup;
     }
     t->extension.second = get_u16(pos);
     pos += 2;
     if (t->extension.second > 59) {
-      error = TARGA_SECOND_OUT_OF_RANGE;
+      error = TGA_SECOND_OUT_OF_RANGE;
       goto cleanup;
     }
 
     // Field 14 - Job Name/ID (41 Bytes)
-    memcpy(t->extension.job_id, pos, TARGA_JOB_ID_LEN);
-    pos += TARGA_JOB_ID_LEN;
-    if (t->extension.job_id[TARGA_JOB_ID_LEN-1] != '\0') {
-      error = TARGA_JOB_ID_NOT_NULL_TERMINATED;
+    memcpy(t->extension.job_id, pos, TGA_JOB_ID_LEN);
+    pos += TGA_JOB_ID_LEN;
+    if (t->extension.job_id[TGA_JOB_ID_LEN-1] != '\0') {
+      error = TGA_JOB_ID_NOT_NULL_TERMINATED;
       goto cleanup;
     }
 
@@ -512,21 +518,21 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     t->extension.job_minute = get_u16(pos);
     pos += 2;
     if (t->extension.job_minute > 59) {
-      error = TARGA_JOB_MINUTE_OUT_OF_RANGE;
+      error = TGA_JOB_MINUTE_OUT_OF_RANGE;
       goto cleanup;
     }
     t->extension.job_second = get_u16(pos);
     pos += 2;
     if (t->extension.job_second > 59) {
-      error = TARGA_JOB_SECOND_OUT_OF_RANGE;
+      error = TGA_JOB_SECOND_OUT_OF_RANGE;
       goto cleanup;
     }
 
     // Field 16 - Software ID (41 Bytes)
-    memcpy(t->extension.software_id, pos, TARGA_SOFTWARE_ID_LEN);
-    pos += TARGA_SOFTWARE_ID_LEN;
-    if (t->extension.software_id[TARGA_SOFTWARE_ID_LEN-1] != '\0') {
-      error = TARGA_SOFTWARE_ID_NOT_NULL_TERMINATED;
+    memcpy(t->extension.software_id, pos, TGA_SOFTWARE_ID_LEN);
+    pos += TGA_SOFTWARE_ID_LEN;
+    if (t->extension.software_id[TGA_SOFTWARE_ID_LEN-1] != '\0') {
+      error = TGA_SOFTWARE_ID_NOT_NULL_TERMINATED;
       goto cleanup;
     }
 
@@ -556,7 +562,7 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
       double gamma_correction = ((double) t->extension.gamma_correction_factor_numerator
 				 / (double) t->extension.gamma_correction_factor_denominator);
       if (gamma_correction > 10.0) {
-	error = TARGA_GAMMA_CORRECTION_OUT_OF_RANGE;
+	error = TGA_GAMMA_CORRECTION_OUT_OF_RANGE;
 	goto cleanup;
       }
     }
@@ -576,16 +582,16 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     // Field 24 - Attributes Type (1 Byte)
     t->extension.alpha_attribute = *pos;
     pos ++;
-    if (!TARGA_ALPHA_ATTRIBUTES_VALID(t)) {
-      error = TARGA_ALPHA_ATTRIBUTES_OUT_OF_RANGE;
-      err ("alpha attributes %u out of range",
+    if (!TGA_ALPHA_ATTRIBUTES_VALID(t)) {
+      error = TGA_ALPHA_ATTRIBUTES_OUT_OF_RANGE;
+      err (t->ctx, "alpha attributes %u out of range",
 	   (unsigned int) t->extension.alpha_attribute);
       goto cleanup;
     }
-    if ((t->extension.alpha_attribute == TARGA_ALPHA_ATTRIBUTES_NO_ALPHA)
+    if ((t->extension.alpha_attribute == TGA_ALPHA_ATTRIBUTES_NO_ALPHA)
 	&& ((t->header.image_descriptor & 0x0F) != 0)) {
-      error = TARGA_ALPHA_ATTRIBUTES_CONFLICT;
-      err ("header has no alpha attribute set but has %u alpha channel bit(s) set",
+      error = TGA_ALPHA_ATTRIBUTES_CONFLICT;
+      err (t->ctx, "header has no alpha attribute set but has %u alpha channel bit(s) set",
 	   (unsigned int)(t->header.image_descriptor & 0x0F));
     }
 
@@ -602,7 +608,7 @@ targa_parse_stream (uint8_t *mem, size_t len, tga_image_ctx_t *ctx)
     // FIXME: read the color correction table
   }
 
-  return TARGA_OK;
+  return TGA_OK;
 
 cleanup:
   if (t->data.id_string)
@@ -615,159 +621,126 @@ cleanup:
   return error;
 }
 
-bool tga_has_image (const targa_image_t *t)
+void
+tga_image_free (const tga_image_t *t)
 {
-	if (t->header.image_type != TARGA_IMAGE_TYPE_NO_IMAGE_DATA)
+  if (t->data.id_string)
+    free (t->data.id_string);
+  if (t->data.color_map_data)
+    free (t->data.color_map_data);
+  if (t->data.image_data)
+    free (t->data.image_data);
+}
+
+bool tga_has_image (const tga_image_t *t)
+{
+	if (t->header.image_type != TGA_IMAGE_TYPE_NO_IMAGE_DATA)
 		return 1;
 	return 0;
 }
 
-gboolean targa_has_palette (const targa_image_t *t)
+bool
+tga_has_palette (const tga_image_t *t)
 {
-	int test1, test2, test3;
+  int test1, test2, test3;
 
-	/* Some applications were known to define color maps for true
-	 * color images so they could use the color map area for other
-	 * things.  This is why the image_type is the more important
-	 * indicator of whether something has a color map. */
-	test1 = TARGA_IMAGE_TYPE_COLOR_MAPPED(t);
-	test2 = t->header.color_map_type == TARGA_COLOR_MAP_TYPE_COLOR_MAP;
-	test3 = t->header.color_map_length > 0;
-	if (test1 && test2 && test3)
-		return 1;
-	return 0;
+  /* Some applications were known to define color maps for true color
+   * images so they could use the color map area for other things.
+   * This is why the image_type is the more important indicator of
+   * whether something has a color map. */
+  test1 = TGA_IMAGE_TYPE_COLOR_MAPPED(t);
+  test2 = t->header.color_map_type == TGA_COLOR_MAP_TYPE_COLOR_MAP;
+  test3 = t->header.color_map_length > 0;
+  if (test1 && test2 && test3)
+    return 1;
+  return 0;
 }
 
-void targa_get_image_dimensions (const targa_image_t *t, guint *width, guint *height)
+void tga_get_image_dimensions (const tga_image_t *t,
+				 unsigned int *width, unsigned int *height)
 {
-	if (targa_has_image (t))
-	{
-		*width = t->header.image_width;
-		*height = t->header.image_height;
-	}
-	else
-	{
-		*width = 0;
-		*height = 0;
-		g_warning ("asked for image dimensions for a non-image Targa file");
-	}
+  if (tga_has_image (t)) {
+    *width = t->header.image_width;
+    *height = t->header.image_height;
+  }
+  else {
+    *width = 0;
+    *height = 0;
+  }
 }
 
-void targa_get_image_orientation (const targa_image_t *t, targa_hflip_t *hflip, targa_vflip_t *vflip)
+void tga_get_image_orientation (const tga_image_t *t, tga_hflip_t *hflip, tga_vflip_t *vflip)
 {
-	if (targa_has_image (t))
-	{
-		*hflip = t->header.image_descriptor & 0b00010000 ? 1 : 0;
-		*vflip = t->header.image_descriptor & 0b00100000 ? 1 : 0;
-	}
-	else
-	{
-		*hflip = 0;
-		*vflip = 0;
-		g_warning ("asked for image orientation for a non-image Targa");
-	}
+  if (tga_has_image (t)) {
+    *hflip = t->header.image_descriptor & 0b00010000 ? 1 : 0;
+    *vflip = t->header.image_descriptor & 0b00100000 ? 1 : 0;
+  }
+  else {
+    *hflip = 0;
+    *vflip = 0;
+  }
 }
 
-color_format_t targa_get_image_color_format (const targa_image_t *t)
+TGA_LOCAL color_format_t
+tga_get_image_color_format (const tga_image_t *t)
 {
-	color_format_t c;
-	guint8 bpp = t->header.pixel_depth;
+  color_format_t c;
+  uint8_t bpp = t->header.pixel_depth;
 
-	if (TARGA_IMAGE_TYPE_BLACK_AND_WHITE(t))
-	{
-		if (bpp == 8)
-			c = COLOR_g8;
-		else if (bpp == 16)
-			c = COLOR_g16;
-		else
-			c = COLOR_x;
-	}
-	else if (TARGA_IMAGE_TYPE_COLOR_MAPPED(t))
-	{
-		if (bpp == 8)
-			c = COLOR_i8;
-		else if (bpp == 16)
-			c = COLOR_i16;
-		else
-			c = COLOR_x;
-	}
-	else if (TARGA_IMAGE_TYPE_TRUE_COLOR(t))
-	{
-		guint attribute = t->header.image_descriptor & 0x0f;
+  if (TGA_IMAGE_TYPE_BLACK_AND_WHITE(t)) {
+    if (bpp == 8)
+      c = COLOR_g8;
+    else if (bpp == 16)
+      c = COLOR_g16;
+    else
+      c = COLOR_x;
+  }
+  else if (TGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
+    if (bpp == 8)
+      c = COLOR_i8;
+    else if (bpp == 16)
+      c = COLOR_i16;
+    else
+      c = COLOR_x;
+  }
+  else if (TGA_IMAGE_TYPE_TRUE_COLOR(t)) {
+    unsigned int attribute = t->header.image_descriptor & 0x0f;
 
-		switch (bpp)
-		{
-		case 16:
-			if (attribute)
-				c = COLOR_o1r5g5b5;
-			else
-				c = COLOR_x1r5g5b5;
-			break;
-		case 24:
-			c = COLOR_r8g8b8;
-			break;
-		case 32:
-			if (attribute == 8)
-				c = COLOR_a8r8g8b8;
-			else
-				c = COLOR_x8r8g8b8;
-			break;
-		default:
-			c = COLOR_x;
-		}
+    switch (bpp) {
+    case 16:
+      if (attribute)
+	c = COLOR_o1r5g5b5;
+      else
+	c = COLOR_x1r5g5b5;
+      break;
+    case 24:
+      c = COLOR_r8g8b8;
+      break;
+    case 32:
+      if (attribute == 8)
+	c = COLOR_a8r8g8b8;
+      else
+	c = COLOR_x8r8g8b8;
+      break;
+    default:
+      c = COLOR_x;
+    }
+  }
+  else
+    c = COLOR_x;
 
-	}
-	else
-		c = COLOR_x;
-
-	return c;
-}
-
-void targa_set_image_color_format (targa_image_t *t,
-								   color_format_t c)
-{
-	if (TARGA_IMAGE_TYPE_TRUE_COLOR(t))
-	{
-		switch (c)
-		{
-		case COLOR_x1r5g5b5:
-			t->header.pixel_depth = 16;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_o1r5g5b5:
-			t->header.pixel_depth = 16;
-			t->header.image_descriptor = (t->header.image_descriptor & 0xf0) | 0x01;
-			break;
-		case COLOR_r8g8b8:
-			t->header.pixel_depth = 24;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_x8r8g8b8:
-			t->header.pixel_depth = 32;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_a8r8g8b8:
-			t->header.pixel_depth = 32;
-			t->header.image_descriptor = (t->header.image_descriptor & 0xf0) | 0x08;
-			break;
-		default:
-			g_warning ("tried to set image to unsupported color type");
-		}
-	}
-	else
-		g_warning ("setting the color type of non-true-color images is not supported");
-
+  return c;
 }
 
 
-color_format_t targa_get_palette_color_format (const targa_image_t *t)
+color_format_t
+tga_get_palette_color_format (const tga_image_t *t)
 {
-	color_format_t c;
+  color_format_t c;
 
-	if (TARGA_IMAGE_TYPE_COLOR_MAPPED(t))
-	{
-		guint8 bpp = t->header.color_map_entry_size;
-		guint attribute = t->header.image_descriptor & 0x0f;
+  if (TGA_IMAGE_TYPE_COLOR_MAPPED(t)) {
+    uint8_t bpp = t->header.color_map_entry_size;
+		unsigned int attribute = t->header.image_descriptor & 0x0f;
 
 		switch (bpp)
 		{
@@ -796,89 +769,55 @@ color_format_t targa_get_palette_color_format (const targa_image_t *t)
 	return c;
 }
 
-void targa_set_palette_color_format (targa_image_t *t,
-									 color_format_t c)
-{
-	if (TARGA_IMAGE_TYPE_COLOR_MAPPED(t))
-	{
-		switch (c)
-		{
-		case COLOR_x1r5g5b5:
-			t->header.color_map_entry_size = 16;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_o1r5g5b5:
-			t->header.color_map_entry_size = 16;
-			t->header.image_descriptor = (t->header.image_descriptor & 0xf0) | 0x01;
-			break;
-		case COLOR_r8g8b8:
-			t->header.color_map_entry_size = 24;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_x8r8g8b8:
-			t->header.color_map_entry_size = 32;
-			t->header.image_descriptor &= 0xf0;
-			break;
-		case COLOR_a8r8g8b8:
-			t->header.color_map_entry_size = 32;
-			t->header.image_descriptor = (t->header.image_descriptor & 0xf0) | 0x08;
-			break;
-		default:
-			g_warning ("tried to set palette to unsupported color type");
-		}
-	}
-	else
-		g_warning ("tried to set palette color type of non-color-mapped image");
 
-}
-
-
-guint targa_get_color_map_size (const targa_image_t *t)
+unsigned int
+tga_get_color_map_size (const tga_image_t *t)
 {
 	return t->header.color_map_length;
 }
 
-guint targa_get_color_map_first_index (const targa_image_t *t)
+unsigned int
+tga_get_color_map_first_index (const tga_image_t *t)
 {
 	return t->header.color_map_first_entry_index;
 }
 
-
-targa_error_t targa_write (GOutputStream *ostream, targa_image_t *t)
+#if 0
+tga_error_t tga_write (GOutputStream *ostream, tga_image_t *t)
 {
 	t->header.y_origin = 0;
 	t->header.image_descriptor &= 0x0f;
 
-	swrite_guint8 (t->header.id_string_length, ostream);
-	swrite_guint8 (t->header.color_map_type, ostream);
-	swrite_guint8 (t->header.image_type, ostream);
+	swrite_uint8_t (t->header.id_string_length, ostream);
+	swrite_uint8_t (t->header.color_map_type, ostream);
+	swrite_uint8_t (t->header.image_type, ostream);
 	swrite_guint16_LE (t->header.color_map_first_entry_index, ostream);
 	swrite_guint16_LE (t->header.color_map_length, ostream);
-	swrite_guint8 (t->header.color_map_entry_size, ostream);
+	swrite_uint8_t (t->header.color_map_entry_size, ostream);
 	swrite_guint16_LE (t->header.x_origin, ostream);
 	swrite_guint16_LE (t->header.y_origin, ostream);
 	swrite_guint16_LE (t->header.image_width, ostream);
 	swrite_guint16_LE (t->header.image_height, ostream);
-	swrite_guint8 (t->header.pixel_depth, ostream);
-	swrite_guint8 (t->header.image_descriptor, ostream);
+	swrite_uint8_t (t->header.pixel_depth, ostream);
+	swrite_uint8_t (t->header.image_descriptor, ostream);
 	if (t->header.id_string_length)
 		swrite_gchar_array (t->data.id_string, t->header.id_string_length, ostream);
 	if (t->header.color_map_length)
-		swrite_guint8_array (t->data.color_map_data,
+		swrite_uint8_t_array (t->data.color_map_data,
 							 (int) t->header.color_map_length * BIT_TO_BYTE(t->header.color_map_entry_size),
 							 ostream);
 	if (t->header.image_width > 0 && t->header.image_height > 0)
-		swrite_guint8_array (t->data.image_data,
-							 TARGA_IMAGE_SIZE(t) * BIT_TO_BYTE(t->header.pixel_depth),
+		swrite_uint8_t_array (t->data.image_data,
+							 TGA_IMAGE_SIZE(t) * BIT_TO_BYTE(t->header.pixel_depth),
 							 ostream);
-	return TARGA_OK;
+	return TGA_OK;
 }
 
-targa_error_t map_parse_stream (GInputStream *istream, targa_image_t *t)
+tga_error_t map_parse_stream (GInputStream *istream, tga_image_t *t)
 {
 	gchar *text;
 	guint filesize, bytes_read;
-	targa_error_t error;
+	tga_error_t error;
 	size_t image_unpacked_size = 0;
 	GScanner *scanner;
 
@@ -886,7 +825,7 @@ targa_error_t map_parse_stream (GInputStream *istream, targa_image_t *t)
 	t->extended_info = 0;
 
 	/* The 1st line contains x dimension and y dimension */
-gboolean            g_input_stream_read_all             (GInputStream *stream,
+bool            g_input_stream_read_all             (GInputStream *stream,
                                                          void *buffer,
                                                          gsize count,
                                                          gsize *bytes_read,
@@ -895,7 +834,7 @@ gboolean            g_input_stream_read_all             (GInputStream *stream,
 
 	if (!g_seekable_seek (G_SEEKABLE(istream), 0, G_SEEK_END, NULL, NULL))
 	{
-		error = TARGA_READ_ERROR;
+		error = TGA_READ_ERROR;
 		g_printerr ("read error");
 		goto cleanup;
 	}
@@ -920,9 +859,9 @@ gboolean            g_input_stream_read_all             (GInputStream *stream,
 	 */
 
 	/* First, we see if it at least contains a header. */
-	if (filesize < TARGA_PACKED_HEADER_LEN)
+	if (filesize < TGA_PACKED_HEADER_LEN)
 	{
-		error = TARGA_HEADER_TOO_SHORT;
+		error = TGA_HEADER_TOO_SHORT;
 		g_printerr ("the file ends prematurely (header)");
 		goto cleanup;
 	}
@@ -948,10 +887,10 @@ gboolean            g_input_stream_read_all             (GInputStream *stream,
 	t->header.id_string_length = 0;
 
 	// Field 2 - Color Map Type
-	t->header.color_map_type = TARGA_COLOR_MAP_TYPE_NO_COLOR_MAP;
+	t->header.color_map_type = TGA_COLOR_MAP_TYPE_NO_COLOR_MAP;
 
 	// Field 3 - Image Type
-	t->header.image_type = TARGA_IMAGE_TYPE_UNCOMPRESSED_BLACK_AND_WHITE;
+	t->header.image_type = TGA_IMAGE_TYPE_UNCOMPRESSED_BLACK_AND_WHITE;
 
 	// Field 4 - Color Map Specification
 
@@ -989,18 +928,18 @@ gboolean            g_input_stream_read_all             (GInputStream *stream,
 	t->data.id_string = (char *) 0;
 
 	// Field 7 - Color Map Data (variable)
-	t->data.color_map_data = (guint8 *) 0;
+	t->data.color_map_data = (uint8_t *) 0;
 
 	// Field 8 - Image Data
-	image_unpacked_size = TARGA_IMAGE_SIZE(t) * BIT_TO_BYTE (t->header.pixel_depth);
-	t->data.image_data = g_new0 (guint8, image_unpacked_size);
-	for (int i = 0; i < TARGA_IMAGE_SIZE (t); i ++)
+	image_unpacked_size = TGA_IMAGE_SIZE(t) * BIT_TO_BYTE (t->header.pixel_depth);
+	t->data.image_data = g_new0 (uint8_t, image_unpacked_size);
+	for (int i = 0; i < TGA_IMAGE_SIZE (t); i ++)
 	  {
 	    g_scanner_get_next_token (scanner);
 	    ((guint16 *) (t->data.image_data))[i] = g_scanner_cur_value (scanner).v_int;
 	  }
 
-	return TARGA_OK;
+	return TGA_OK;
 
 cleanup:
 	if (t->data.id_string)
@@ -1012,3 +951,4 @@ cleanup:
 
 	return error;
 }
+#endif

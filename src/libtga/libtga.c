@@ -1,4 +1,4 @@
-/* libtga.c - library boilerplate for targa parser
+/* libtga.c - library boilerplate for tga parser
 
   Copyright (C) 2014 Michael L. Gran <spk121@yahoo.com>
 
@@ -63,7 +63,6 @@ tga_log(struct tga_ctx *ctx,
   ctx->log_fn(ctx, priority, file, line, fn, format, args);
   va_end(args);
 }
-
 
 static void
 log_stderr(struct tga_ctx *ctx,
@@ -136,21 +135,21 @@ log_priority(const char *priority)
  * Returns: a new tga library context
  **/
 TGA_EXPORT int
-tga_new(struct tga_ctx **ctx)
+tga_new(tga_ctx_t **ctx)
 {
   const char *env;
   struct tga_ctx *c;
 
   c = calloc(1, sizeof(struct tga_ctx));
   if (!c)
-    return TARGA_OUT_OF_MEMORY;
+    return -TGA_OUT_OF_MEMORY;
 
   c->refcount = 1;
   c->log_fn = log_stderr;
   c->log_priority = LOG_ERR;
 
   /* environment overwrites config */
-  env = secure_getenv("BURRO_TGA_LOG");
+  env = secure_getenv("BURRO_LIBTGA_LOG");
   if (env != NULL)
     tga_set_log_priority(c, log_priority(env));
 
@@ -168,8 +167,8 @@ tga_new(struct tga_ctx **ctx)
  *
  * Returns: the passed tga library context
  **/
-TGA_EXPORT struct
-tga_ctx *tga_ref(struct tga_ctx *ctx)
+TGA_EXPORT tga_ctx_t*
+tga_ref(tga_ctx_t *ctx)
 {
   if (ctx == NULL)
     return NULL;
@@ -184,8 +183,8 @@ tga_ctx *tga_ref(struct tga_ctx *ctx)
  * Drop a reference of the tga library context.
  *
  **/
-TGA_EXPORT struct
-tga_ctx *tga_unref(struct tga_ctx *ctx)
+TGA_EXPORT tga_ctx_t*
+tga_unref(tga_ctx_t *ctx)
 {
   if (ctx == NULL)
     return NULL;
@@ -207,12 +206,12 @@ tga_ctx *tga_unref(struct tga_ctx *ctx)
  * into the user's logging functionality.
  *
  **/
-TGA_EXPORT
-void tga_set_log_fn(struct tga_ctx *ctx,
-                    void (*log_fn)(struct tga_ctx *ctx,
-                                   int priority, const char *file,
-                                   int line, const char *fn,
-                                   const char *format, va_list args))
+TGA_EXPORT void
+tga_set_log_fn(tga_ctx_t *ctx,
+	       void (*log_fn)(struct tga_ctx *ctx,
+			      int priority, const char *file,
+			      int line, const char *fn,
+			      const char *format, va_list args))
 {
   ctx->log_fn = log_fn;
   info(ctx, "custom logging function %p registered\n", log_fn);
@@ -224,8 +223,8 @@ void tga_set_log_fn(struct tga_ctx *ctx,
  *
  * Returns: the current logging priority
  **/
-TGA_EXPORT
-int tga_get_log_priority(struct tga_ctx *ctx)
+TGA_EXPORT int
+tga_get_log_priority(struct tga_ctx *ctx)
 {
   return ctx->log_priority;
 }
@@ -238,8 +237,8 @@ int tga_get_log_priority(struct tga_ctx *ctx)
  * Set the current logging priority. The value controls which messages
  * are logged.
  **/
-TGA_EXPORT
-void tga_set_log_priority(struct tga_ctx *ctx, int priority)
+TGA_EXPORT void
+tga_set_log_priority(struct tga_ctx *ctx, int priority)
 {
   ctx->log_priority = priority;
 }
@@ -251,8 +250,8 @@ const char *tga_list_entry_get_name(struct tga_list_entry *list_entry);
 const char *tga_list_entry_get_value(struct tga_list_entry *list_entry);
 #endif
 
-TGA_EXPORT tga_image_ctx_t *
-tga_image_ref(tga_image_ctx_t *x)
+TGA_EXPORT tga_image_t *
+tga_image_ref(tga_image_t *x)
 {
   if (!x)
     return NULL;
@@ -260,8 +259,8 @@ tga_image_ref(tga_image_ctx_t *x)
   return x;
 }
 
-TGA_EXPORT tga_image_ctx_t *
-tga_image_unref(tga_image_ctx_t *x)
+TGA_EXPORT tga_image_t *
+tga_image_unref(tga_image_t *x)
 {
   if (x == NULL)
     return NULL;
@@ -269,42 +268,44 @@ tga_image_unref(tga_image_ctx_t *x)
   if (x->refcount > 0)
     return NULL;
   dbg(x->ctx, "context %p released\n", x);
-  tga_image_free(x->image);
+  tga_image_free(x);
   free(x);
   return NULL;
 }
 
 TGA_EXPORT struct tga_ctx *
-tga_image_get_ctx(tga_image_ctx_t *x)
+tga_image_get_ctx(tga_image_t *x)
 {
   return x->ctx;
 }
 
 TGA_EXPORT int
 tga_image_new_from_memory(struct tga_ctx *ctx, const uint8_t *mem, size_t len,
-                          tga_image_ctx_t **x)
+                          tga_image_t **x)
 {
-  tga_image_ctx_t *t;
-  targa_error_t ret;
+  tga_image_t *t;
+  tga_error_t ret;
 
-  t = calloc(1, sizeof(tga_image_ctx_t));
+  t = calloc(1, sizeof(tga_image_t));
   if (!t)
-    return TARGA_OUT_OF_MEMORY;
-  ret = tga_parse_memory(mem, len, t);
-  if (ret != TARGA_OK)
-    {
-      free (t);
-      return ret;
-    }
+    return -TGA_OUT_OF_MEMORY;
+
   t->refcount = 1;
   t->ctx = ctx;
+
+  ret = unpack_memory(mem, len, t);
+  if (ret != TGA_OK)
+    {
+      free (t);
+      return -ret;
+    }
   *x = t;
   return 0;
 }
 
 #if 0
 TGA_EXPORT struct tga_list_entry *
-tga_image_get_some_list_entry(tga_image_ctx_t *x)
+tga_image_get_some_list_entry(tga_image_t *x)
 {
   return NULL;
 }

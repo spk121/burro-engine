@@ -5,27 +5,35 @@ AC_INIT([Project Burro],
         [project-burro],
         [http://lonelycactus.com/project/burro])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_HEADERS([config.h])
-AC_CONFIG_SRCDIR([config.h.in])
-AM_INIT_AUTOMAKE([check-news foreign 1.11 -Wall -Wno-portability silent-rules tar-pax no-dist-gzip dist-xz subdir-objects])
+AC_CONFIG_SRCDIR([src/main.c])
+AM_INIT_AUTOMAKE([
+        check-news
+        foreign
+        1.11
+        -Wall
+        -Wno-portability
+        silent-rules
+        tar-pax
+        no-dist-gzip
+        dist-xz
+        subdir-objects
+])
 AC_PROG_CC_STDC
 AC_USE_SYSTEM_EXTENSIONS
 AC_SYS_LARGEFILE
 AC_CONFIG_MACRO_DIR([m4])
 AM_SILENT_RULES([yes])
 # AC_PREFIX_DEFAULT([/usr/local])
-LT_INIT([disable-static pic-only])
+LT_INIT([
+        disable-static
+        pic-only
+])
 
 AC_PROG_SED
 AC_PROG_MKDIR_P
+
 AC_CHECK_LIB([m],[cos])
-PKG_CHECK_MODULES([DEPS], [glib-2.0 gio-2.0 gtk+-3.0 cairo libpulse])
-PKG_CHECK_MODULES([GUILE], [guile-2.0],,
-  [PKG_CHECK_MODULES([GUILE], [guile-1.8])])
-GUILEVER=`guile -c "(display (string-append (major-version) \".\" (minor-version)))"`
-AC_SUBST([GUILEVER])
-AC_MSG_NOTICE([Using guile version ${GUILEVER}])
-AC_PATH_PROG([GUILE_EXE],[guile])
+PKG_CHECK_MODULES([DEPS], [sdl2 cairo])
 
 AC_ARG_ENABLE([logging],
         AS_HELP_STRING([--disable-logging], [disable system logging @<:@default=enabled@:>@]),
@@ -41,33 +49,35 @@ AS_IF([test "x$enable_debug" = "xyes"], [
         AC_DEFINE(ENABLE_DEBUG, [1], [Debug messages.])
 ])
 
-AC_ARG_ENABLE([strict],
-        AS_HELP_STRING([--enable-strict], [abort on all runtime errors @<:@default=disabled@:>@]),
-        [], [enable_strict=no])
-AS_IF([test "x$enable_strict" = "xyes"], [
-        AC_DEFINE(ENABLE_STRICT, [1], [Debug messages.])
+AC_CHECK_FUNCS([ \
+        __secure_getenv \
+        secure_getenv\
 ])
 
-my_CFLAGS="-Wall \
--Wmissing-declarations -Wmissing-prototypes \
--Wnested-externs -Wpointer-arith \
--Wpointer-arith -Wsign-compare -Wchar-subscripts \
--Wstrict-prototypes -Wshadow \
--Wformat-security -Wtype-limits"
+my_CFLAGS="\
+-Wall \
+-Wchar-subscripts \
+-Wformat-security \
+-Wmissing-declarations \
+-Wmissing-prototypes \
+-Wnested-externs \
+-Wpointer-arith \
+-Wshadow \
+-Wsign-compare \
+-Wstrict-prototypes \
+-Wtype-limits \
+"
 AC_SUBST([my_CFLAGS])
+
+AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_FILES([
         Makefile
-	tools/Makefile
-	tools/midi/Makefile
-	src/Makefile
 ])
-AC_OUTPUT
 
+AC_OUTPUT
 AC_MSG_RESULT([
         $PACKAGE $VERSION
         =====
-
-	srcdir:                 ${srcdir}
 
         prefix:                 ${prefix}
         sysconfdir:             ${sysconfdir}
@@ -83,8 +93,4 @@ AC_MSG_RESULT([
 
         logging:                ${enable_logging}
         debug:                  ${enable_debug}
-        strict:                 ${enable_strict}
-
-        guile:                  ${GUILE_EXE}
 ])
-

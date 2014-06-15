@@ -1,3 +1,5 @@
+#ifndef LIBTGA_COLOR_H
+#define LIBTGA_COLOR_H
 #pragma once
 
 #define BIT_TO_BYTE(bits) (((size_t) bits + 7) >> 3)
@@ -67,20 +69,20 @@
 #define PACK32(a,c1,c2,c3) ((c3) | ((c2) << 8) | ((c1) << 16) | ((a) << 24))
 #define PTR_PACK16(p,o,c1,c2,c3)                                \
   do {                                                          \
-    guint8 *__tmp = (p);                                        \
+    uint8_t *__tmp = (p);                                        \
     __tmp[0] = ((c3) | (c2) << 5);                              \
     __tmp[1] = (((c2) >> 3) | ((c1) << 2) | ((o) << 7));        \
   } while (0)
 #define PTR_PACK24(p,c1,c2,c3)                  \
   do {                                          \
-    guint8 *__tmp = (p);                        \
+    uint8_t *__tmp = (p);                        \
     __tmp[0] = (c3);                            \
     __tmp[1] = (c2);                            \
     __tmp[2] = (c1);                            \
   } while (0)
 #define PTR_PACK32(p,a,c1,c2,c3)                \
   do {                                          \
-    guint8 *__tmp = (p);                        \
+    uint8_t *__tmp = (p);                        \
     __tmp[0] = (c3);                            \
     __tmp[1] = (c2);                            \
     __tmp[2] = (c1);                            \
@@ -88,80 +90,85 @@
   } while (0)
 #define PTR_SWAPPACK32(p,a,c1,c2,c3)            \
   do {                                          \
-    guint8 *__tmp = (p);                        \
+    uint8_t *__tmp = (p);                        \
     __tmp[0] = (a);                             \
     __tmp[1] = (c1);                            \
     __tmp[2] = (c2);                            \
     __tmp[3] = (c3);                            \
   } while (0)
-#define PTR_UNPACK16(p,o,c1,c2,c3)              \
-  do {                                          \
-    guint16 __tmp = *((guint16 *)(p));          \
-    (c3) = __tmp & 0b0000000000011111;          \
-    (c2) = (__tmp & 0b0000001111100000) >> 5;   \
-    (c1) = (__tmp & 0b0111110000000000) >> 10;  \
-    (o) = __tmp >> 15;                          \
+#define PTR_UNPACK16(p,o,c1,c2,c3)                \
+  do {                                            \
+    uint16_t __tmp = *((uint16_t *)(p));          \
+    (c3) = __tmp & 0b0000000000011111;            \
+    (c2) = (__tmp & 0b0000001111100000) >> 5;     \
+    (c1) = (__tmp & 0b0111110000000000) >> 10;    \
+    (o) = __tmp >> 15;                            \
   } while (0)
-#define PTR_UNPACK24(p,c1,c2,c3)                \
-  do {                                          \
-    guint8 *__tmp = (p);                        \
-    (c3) = __tmp[0];                            \
-    (c2) = __tmp[1];                            \
-    (c1) = __tmp[2];                            \
+#define PTR_UNPACK24(p,c1,c2,c3)                 \
+  do {                                           \
+    uint8_t *__tmp = (p);                        \
+    (c3) = __tmp[0];                             \
+    (c2) = __tmp[1];                             \
+    (c1) = __tmp[2];                             \
   } while (0)
-#define PTR_UNPACK32(p,a,c1,c2,c3)              \
-  do {                                          \
-    guint8 *__tmp = (p);                        \
-    (c3) = __tmp[0];                            \
-    (c2) = __tmp[1];                            \
-    (c1) = __tmp[2];                            \
-    (a) = __tmp[3];                             \
+#define PTR_UNPACK32(p,a,c1,c2,c3)               \
+  do {                                           \
+    uint8_t *__tmp = (p);                        \
+    (c3) = __tmp[0];                             \
+    (c2) = __tmp[1];                             \
+    (c1) = __tmp[2];                             \
+    (a) = __tmp[3];                              \
   } while (0)
 
 
-typedef enum color_format_tag
-  {
-    /* invalid */
-    COLOR_x = COLOR_FORMAT(0, COLOR_TYPE_INVALID, 0, 0, 0),
+typedef enum color_format_tag {
+  /* invalid */
+  COLOR_x = COLOR_FORMAT(0, COLOR_TYPE_INVALID, 0, 0, 0),
 
-    /* Colors used with Cairo */
-    COLOR_a8r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_ARGB, 8, 0, 8),
+  /* Colors used with Cairo */
+  COLOR_a8r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_ARGB, 8, 0, 8),
 
-    /* Colors used by the FauxDS engine for in-memory storage */
-    COLOR_i8 = COLOR_FORMAT(8, COLOR_TYPE_INDEX, 0, 0, 0),
-    COLOR_a1r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_ARGB, 1, 0, 5),
+  /* Colors used by the FauxDS engine for in-memory storage */
+  COLOR_i8 = COLOR_FORMAT(8, COLOR_TYPE_INDEX, 0, 0, 0),
+  COLOR_a1r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_ARGB, 1, 0, 5),
 
-    /* Colors stored in Targa files that we may load */
-    /* Targa 8-bit */
-    // COLOR_i8;
-    COLOR_g8 = COLOR_FORMAT(8, COLOR_TYPE_GRAY, 0, 0, 0),
-    /* Targa 16-bit */
-    COLOR_i16 = COLOR_FORMAT(16, COLOR_TYPE_INDEX, 0, 0, 0),
-    COLOR_g16 = COLOR_FORMAT(16, COLOR_TYPE_GRAY, 0, 0, 0),
-    COLOR_x1r5g5b5 = COLOR_FORMAT(16, COLOR_TYPE_RGB, 0, 0, 5),
-    COLOR_o1r5g5b5 = COLOR_FORMAT(16, COLOR_TYPE_ORGB, 0, 1, 5),
-    COLOR_o1b5g5r5 = COLOR_FORMAT(16, COLOR_TYPE_OBGR, 0, 1, 5),
+  /* Colors stored in Targa files that we may load */
+  /* Targa 8-bit */
+  // COLOR_i8;
+  COLOR_g8 = COLOR_FORMAT(8, COLOR_TYPE_GRAY, 0, 0, 0),
+  /* Targa 16-bit */
+  COLOR_i16 = COLOR_FORMAT(16, COLOR_TYPE_INDEX, 0, 0, 0),
+  COLOR_g16 = COLOR_FORMAT(16, COLOR_TYPE_GRAY, 0, 0, 0),
+  COLOR_x1r5g5b5 = COLOR_FORMAT(16, COLOR_TYPE_RGB, 0, 0, 5),
+  COLOR_o1r5g5b5 = COLOR_FORMAT(16, COLOR_TYPE_ORGB, 0, 1, 5),
+  COLOR_o1b5g5r5 = COLOR_FORMAT(16, COLOR_TYPE_OBGR, 0, 1, 5),
 
-    /* Targa's 24 bit */
-    COLOR_b8g8r8 = COLOR_FORMAT(24, COLOR_TYPE_BGR, 0, 0, 8),
-    COLOR_r8g8b8 = COLOR_FORMAT(24, COLOR_TYPE_RGB, 0, 0, 8),
+  /* Targa's 24 bit */
+  COLOR_b8g8r8 = COLOR_FORMAT(24, COLOR_TYPE_BGR, 0, 0, 8),
+  COLOR_r8g8b8 = COLOR_FORMAT(24, COLOR_TYPE_RGB, 0, 0, 8),
 
-    /* Targa's 32 bit */
-    COLOR_x8b8g8r8 = COLOR_FORMAT(32, COLOR_TYPE_BGR, 0, 0, 8),
-    COLOR_x8r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_RGB, 0, 0, 8),
-    COLOR_a8b8g8r8 = COLOR_FORMAT(32, COLOR_TYPE_ABGR, 8, 0, 8),
+  /* Targa's 32 bit */
+  COLOR_x8b8g8r8 = COLOR_FORMAT(32, COLOR_TYPE_BGR, 0, 0, 8),
+  COLOR_x8r8g8b8 = COLOR_FORMAT(32, COLOR_TYPE_RGB, 0, 0, 8),
+  COLOR_a8b8g8r8 = COLOR_FORMAT(32, COLOR_TYPE_ABGR, 8, 0, 8),
 
-  } color_format_t;
+} color_format_t;
 
 #define KEY_COLOR_16BIT PACK16(0,31,0,31)
 #define KEY_COLOR_24BIT PACK24(255,0,255)
-#define KEY_COLOR_32BIT PACK32(0
+#define KEY_COLOR_32BIT PACK32(0,255,0,255)
 
-guint32 convert_color (guint32 c, color_format_t input, color_format_t output);
-void convert_color_array (guint8 *out_arr,
-                          guint8 *in_arr,
-                          guint32 count,
-                          color_format_t in_cf,
-                          color_format_t out_cf);
-void colorval_to_rgba (guint8 *c, color_format_t cf, guint *r, guint *g, guint *b, guint *a);
-void rgba_to_colorval (guint8 *c, color_format_t cf, guint r, guint g, guint b, guint a);
+uint32_t
+  convert_color (uint32_t c, color_format_t input, color_format_t output);
+void
+  convert_color_array (uint8_t *out_arr, uint8_t *in_arr, uint32_t count,
+                       color_format_t in_cf, color_format_t out_cf);
+void
+  colorval_to_rgba (uint8_t *c, color_format_t cf,
+                    unsigned int *r, unsigned int *g, unsigned int *b,
+                    unsigned int *a);
+void
+  rgba_to_colorval (uint8_t *c, color_format_t cf, unsigned int r,
+                    unsigned int g, unsigned int b, unsigned int a);
+
+#endif
