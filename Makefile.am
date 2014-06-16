@@ -29,6 +29,7 @@ SED_PROCESS = \
 
 TESTS =
 check_PROGRAMS =
+lib_LTLIBRARIES =
 
 ################################################################
 # LIBTGA
@@ -37,7 +38,7 @@ LIBTGA_CURRENT=1
 LIBTGA_REVISION=0
 LIBTGA_AGE=1
 
-lib_LTLIBRARIES = src/libtga/libtga.la
+lib_LTLIBRARIES += src/libtga/libtga.la
 
 src_libtga_libtga_la_SOURCES =\
 	src/libtga/libtga-private.h \
@@ -59,3 +60,33 @@ TESTS += src/libtga/test-libtga
 check_PROGRAMS += src/libtga/test-libtga
 src_libtga_test_libtga_SOURCES = src/libtga/test-libtga.c
 src_libtga_test_libtga_LDADD = src/libtga/libtga.la
+
+################################################################
+# LIBDS
+
+LIBDS_CURRENT=1
+LIBDS_REVISION=0
+LIBDS_AGE=1
+
+lib_LTLIBRARIES += src/libds/libds.la
+
+src_libds_libds_la_SOURCES =\
+	src/libds/libds-private.h \
+	src/libds/libds.c \
+	src/libds/xcairo.c
+
+# EXTRA_DIST += src/libds/libds.sym
+
+src_libds_libds_la_CFLAGS = $(CAIRO_CFLAGS)
+src_libds_libds_la_LDFLAGS = $(AM_LDFLAGS) $(CAIRO_LIBS) \
+	-version-info $(LIBDS_CURRENT):$(LIBDS_REVISION):$(LIBDS_AGE)
+
+#	-Wl,--version-script=$(top_srcdir)/src/libds/libds.sym
+
+# src_libds_libds_la_DEPENDENCIES = ${top_srcdir}/src/libds/libds.sym
+
+TESTS += src/libds/test-libds
+
+check_PROGRAMS += src/libds/test-libds
+src_libds_test_libds_SOURCES = src/libds/test-libds.c
+src_libds_test_libds_LDADD = src/libds/libds.la

@@ -33,7 +33,8 @@ AC_PROG_SED
 AC_PROG_MKDIR_P
 
 AC_CHECK_LIB([m],[cos])
-PKG_CHECK_MODULES([DEPS], [sdl2 cairo])
+PKG_CHECK_MODULES([CAIRO], [cairo])
+PKG_CHECK_MODULES([SDL], [sdl2])
 
 AC_ARG_ENABLE([logging],
         AS_HELP_STRING([--disable-logging], [disable system logging @<:@default=enabled@:>@]),
@@ -88,8 +89,11 @@ AC_MSG_RESULT([
         cflags:                 ${CFLAGS}
         ldflags:                ${LDFLAGS}
 
-        deps_cflags:            ${DEPS_CFLAGS}
-        deps_libs:              ${DEPS_LIBS}
+        sdl_cflags:             ${SDL_CFLAGS}
+        sdl_libs:               ${SDL_LIBS}
+
+        cairo_cflags:           ${CAIRO_CFLAGS}
+        cairo_libs:             ${CAIRO_LIBS}
 
         logging:                ${enable_logging}
         debug:                  ${enable_debug}
