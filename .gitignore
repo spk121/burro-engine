@@ -15,14 +15,32 @@
 *.la
 *.a
 
+# Automake products
 .deps/
 .libs/
 Makefile
 Makefile.in
-/aclocal.m4
-/autom4te.cache
-/build-aux
-/config.*
-/configure
-/libtool
-/stamp-h1
+aclocal.m4
+autom4te.cache
+build-aux
+compile
+config.*
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+mingw32-config.cache
+missing
+mkinstalldirs
+stamp-h
+stamp-h.in
+stamp-h1
+
+# Archives
+*.tar
+*.tar.gz
+*.tar.bz2
+*.zip
+*.tar.xz
+*.tar.lz
