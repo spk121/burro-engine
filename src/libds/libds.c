@@ -23,6 +23,8 @@
 #include <stddef.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
@@ -284,18 +286,18 @@ ds_set_log_priority(struct ds_ctx *ctx, int priority)
 }
 
 DS_EXPORT void
-ds_set_backdrop_color(struct ds_ctx *ctx, uint32_t bd)
+ds_set_backdrop(struct ds_ctx *ctx, uint32_t bd)
 {
   ctx->backdrop = bd;
 }
 
 DS_EXPORT uint32_t
-ds_get_backdrop_color(struct ds_ctx *ctx)
+ds_get_backdrop(struct ds_ctx *ctx)
 {
   return ctx->backdrop;
 }
 
-DS_EXPORT int
+DS_EXPORT ds_error_t
 ds_render(ds_ctx_t *ctx, uint32_t **data, int *width, int *height, int *stride)
 {
   uint8_t r8, g8, b8;

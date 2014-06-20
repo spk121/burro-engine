@@ -1,4 +1,4 @@
-/*
+s/*
   libds - something with ds
 
   Copyright (C) 2011 Someone <someone@example.com>
@@ -96,7 +96,7 @@ void ds_set_userdata(struct ds_ctx *ctx, void *userdata);
 
   void ds_set_backdrop(ds_ctx_t *ctx, uint32_t color);
   uint32_t ds_get_backdrop(ds_ctx_t *ctx);
-  DS_EXPORT int
+  DS_EXPORT ds_error_t
   ds_render(ds_ctx_t *ctx, uint32_t **data, int *width, int *height,
 	    int *stride);
 
@@ -125,6 +125,12 @@ struct ds_thing *ds_thing_unref(struct ds_thing *thing);
 struct ds_ctx *ds_thing_get_ctx(struct ds_thing *thing);
 int ds_thing_new_from_string(struct ds_ctx *ctx, const char *string, struct ds_thing **thing);
 struct ds_list_entry *ds_thing_get_some_list_entry(struct ds_thing *thing);
+
+#define DS_PACK_RGB24(r,g,b)			\
+  ((((uint32_t)(0xff)) << 24)			\
+   | (((uint32_t)(r)) << 16)			\
+   | (((uint32_t)(g)) << 8)			\
+   | ((uint32_t)(b)))
 
 #ifdef __cplusplus
 } /* extern "C" */

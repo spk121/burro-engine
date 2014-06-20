@@ -57,12 +57,11 @@ ds_log_null(struct ds_ctx *ctx, const char *format, ...) {}
 #  endif
 #endif
 
-// #define DS_EXPORT __attribute__ ((visibility("default")))
-
-void ds_log(struct ds_ctx *ctx,
-           int priority, const char *file, int line, const char *fn,
-           const char *format, ...)
-           __attribute__((format(printf, 6, 7)));
+DS_LOCAL void
+ds_log(struct ds_ctx *ctx,
+       int priority, const char *file, int line, const char *fn,
+       const char *format, ...)
+  __attribute__((format(printf, 6, 7)));
 
 #define COLOR_BLACK (0xFF000000)
 
@@ -88,10 +87,9 @@ DS_LOCAL int
 xcairo_image_surface_get_argb32_data (ds_ctx_t *ctx, cairo_surface_t *surface,
 				      uint32_t **data);
 
-
 #define PTR_UNPACK24(p,c1,c2,c3)                 \
   do {                                           \
-    uint8_t *__tmp = (p);                        \
+    uint8_t *__tmp = ((uint8_t *)(p));		 \
     (c3) = __tmp[0];                             \
     (c2) = __tmp[1];                             \
     (c1) = __tmp[2];                             \

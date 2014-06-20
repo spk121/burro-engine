@@ -42,13 +42,23 @@ int main(int argc, char *argv[])
   if (err < 0)
     exit(EXIT_FAILURE);
 
+  ds_set_backdrop(ctx, DS_PACK_RGB24(255,255,255));
+
+  uint32_t *data;
+  int width, height, stride;
+
+  err = ds_render(ctx, &data, &width, &height, &stride);
+  if (err < 0)
+    exit (EXIT_FAILURE);
+
 #if 0
   printf("version %s\n", VERSION);
 
   err = ds_thing_new_from_string(ctx, "foo", &thing);
   if (err >= 0)
-    ds_thing_unref(thing);
+    ds_thing_unref(thing2);
 #endif
+
   ds_unref(ctx);
   return EXIT_SUCCESS;
 }
