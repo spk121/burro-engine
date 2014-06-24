@@ -1,4 +1,4 @@
-s/*
+/*
   libds - something with ds
 
   Copyright (C) 2011 Someone <someone@example.com>
@@ -18,9 +18,10 @@ s/*
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#ifndef _LIBDS_H_
-#define _LIBDS_H_
+#ifndef LIBDS_H
+#define LIBDS_H
 
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -55,7 +56,7 @@ extern "C" {
   #endif
 #endif
 
-typedef enum ds_error_tag {
+  typedef enum ds_error_tag {
     DS_OK = 0,
     DS_ERROR_SURFACE_CREATION_FAILURE = -1,
     DS_ERROR_CONTEXT_CREATION_FAILURE = -2,
@@ -67,6 +68,8 @@ typedef enum ds_error_tag {
     DS_ERROR_CONTEXT_INVALID = -8,
     DS_ERROR_ANTIALIAS_OUT_OF_RANGE = -9,
     DS_ERROR_ANTIALIAS_FAILURE = -10,
+    DS_ERROR_OUT_OF_RANGE = -11,
+    DS_ERROR_NOT_FOUND = -12,
   } ds_error_t;
 
   /*

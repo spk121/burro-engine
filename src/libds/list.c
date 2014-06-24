@@ -1,6 +1,6 @@
-
-#include "libds.h"
-#include "libds-private.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 // This file can be processed using m4 to set the value type
 // for this linked list.
@@ -9,17 +9,20 @@
 // it will create a list that operates on "ds_bg_t" objects
 
 // M4 commands
+// changecom(`REM')
 // define(`TYPE', XTYPE)
 // define(`concat3',`$1$2$3')
+// define(`HAS_LIST_INCLUDE',`1')
+// define(`LIST_INCLUDE', concat3(`"list_',TYPE,`.h"'))
 // define(`ds_list_t', concat3(`ds_',TYPE,`_list_t'))
 // define(`ds_node_t', concat3(`ds_',TYPE,`_node_t'))
-// define(`ds_obj_t', concat3(`ds_',TYPE,`_t'))
+// define(`ds_VALUE_t', concat3(`ds_',TYPE,`_t'))
 
 // define(`ds_list_create_empty', concat3(`ds_',TYPE,`_list_create_empty'))
 // define(`ds_list_create_from', concat3(`ds_',TYPE,`_list_create_from'))
 // define(`ds_list_size', concat3(`ds_',TYPE,`_list_size'))
 // define(`ds_list_node_value', concat3(`ds_',TYPE,`_list_node_value'))
-// define(`ds_list_node_set_value', concat(`ds_',TYPE,`_list_node_set_value'))
+// define(`ds_list_node_set_value', concat3(`ds_',TYPE,`_list_node_set_value'))
 // define(`ds_list_next_node', concat3(`ds_',TYPE,`_list_next_node'))
 // define(`ds_list_prev_node', concat3(`ds_',TYPE,`_list_prev_node'))
 // define(`ds_list_get_at', concat3(`ds_',TYPE,`_list_get_at'))
@@ -31,10 +34,24 @@
 // define(`ds_list_add_before', concat3(`ds_',TYPE,`_list_add_before'))
 // define(`ds_list_add_after', concat3(`ds_',TYPE,`_list_add_after'))
 // define(`ds_list_add_at', concat3(`ds_',TYPE,`_list_add_at'))
-// define(`ds_list_remove_node', concate3(`ds_',TYPE,`_list_remove_node'))
-// define(`ds_list_remove_at', concate3(`ds_',TYPE,`_list_remove_at'))
+// define(`ds_list_remove_node', concat3(`ds_',TYPE,`_list_remove_node'))
+// define(`ds_list_remove_at', concat3(`ds_',TYPE,`_list_remove_at'))
 // define(`ds_list_remove', concat3(`ds_',TYPE,`_list_remove'))
 // define(`ds_list_free', concat3(`ds_',TYPE,`_list_free'))
+
+#include "libds.h"
+#include "libds-private.h"
+#if HAS_LIST_INCLUDE
+#include LIST_INCLUDE
+#else
+#include "list.h"
+#endif
+#ifdef DS_VALUE_T_IS_VOID
+static void ds_obj_free (ds_VALUE_t *obj)
+{
+ free (obj);
+}
+#endif
 
 DS_LOCAL ds_error_t
 ds_list_create_empty (ds_ctx_t *ctx, ds_list_t **L)
@@ -53,7 +70,7 @@ ds_list_create_empty (ds_ctx_t *ctx, ds_list_t **L)
 }
 
 DS_LOCAL ds_error_t
-ds_list_create_from (ds_ctx_t *ctx, size_t count, const ds_obj_t **objects,
+ds_list_create_from (ds_ctx_t *ctx, size_t count, const ds_VALUE_t **objects,
 		     ds_list_t **L)
 {
   ds_list_t *list = (ds_list_t *) calloc (1, sizeof(ds_list_t));
@@ -91,7 +108,7 @@ ds_list_create_from (ds_ctx_t *ctx, size_t count, const ds_obj_t **objects,
     }
   }
   free (list);
-  return DS_OUT_OF_MEMORY;
+  return DS_ERROR_OUT_OF_MEMORY;
 }
 
 DS_LOCAL size_t
@@ -100,7 +117,7 @@ ds_list_size (ds_ctx_t *ctx, ds_list_t *list)
   return list->count;
 }
 
-DS_LOCAL ds_obj_t *
+DS_LOCAL ds_VALUE_t *
 ds_list_node_value (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node)
 {
   return node->value;
@@ -108,7 +125,7 @@ ds_list_node_value (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node)
 
 DS_LOCAL void
 ds_list_node_set_value (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node,
-			const ds_obj_t *obj)
+			const ds_VALUE_t *obj)
 {
   node->value = obj;
 }
@@ -131,7 +148,7 @@ ds_list_prev_node (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node)
 
 DS_LOCAL ds_error_t
 ds_list_get_at (ds_ctx_t *ctx, ds_list_t *list, size_t position,
-		ds_obj_t **obj)
+		ds_VALUE_t **obj)
 {
   size_t count = list->count;
   ds_node_t *node = NULL;
@@ -159,7 +176,7 @@ ds_list_get_at (ds_ctx_t *ctx, ds_list_t *list, size_t position,
 
 DS_LOCAL ds_error_t
 ds_list_set_at (ds_ctx_t *ctx, ds_list_t *list, size_t position,
-		const ds_obj_t *obj)
+		const ds_VALUE_t *obj)
 {
   size_t count = list->count;
   ds_node_t *node = NULL;
@@ -186,7 +203,7 @@ ds_list_set_at (ds_ctx_t *ctx, ds_list_t *list, size_t position,
 
 DS_LOCAL ds_error_t
 ds_list_search_from_to (ds_ctx_t *ctx, ds_list_t *list, size_t start_index,
-			size_t end_index, ds_obj_t *obj, ds_node_t **N)
+			size_t end_index, ds_VALUE_t *obj, ds_node_t **N)
 {
   size_t count = list->count;
   *N = NULL;
@@ -196,7 +213,7 @@ ds_list_search_from_to (ds_ctx_t *ctx, ds_list_t *list, size_t start_index,
     return DS_ERROR_OUT_OF_RANGE;
   }
   if (end_index > count) {
-    err (ctx, "out of range: %zu", end_index):
+    err (ctx, "out of range: %zu", end_index);
     return DS_ERROR_OUT_OF_RANGE;
   }
 
@@ -217,7 +234,7 @@ ds_list_search_from_to (ds_ctx_t *ctx, ds_list_t *list, size_t start_index,
 
 DS_LOCAL ds_error_t
 ds_list_indexof_from_to (ds_ctx_t *ctx, ds_list_t *list, size_t start_index,
-			 size_t end_index, ds_obj_t *obj, size_t *I)
+			 size_t end_index, ds_VALUE_t *obj, size_t *I)
 {
   size_t count = list->count;
   *I = 0;
@@ -247,7 +264,7 @@ ds_list_indexof_from_to (ds_ctx_t *ctx, ds_list_t *list, size_t start_index,
 }
 
 DS_LOCAL ds_error_t
-ds_list_add_first (ds_ctx_t *ctx, ds_list_t *list, ds_obj_t *obj,
+ds_list_add_first (ds_ctx_t *ctx, ds_list_t *list, ds_VALUE_t *obj,
 		   ds_node_t **N)
 {
   ds_node_t *node = (ds_node_t *) calloc (1, sizeof(ds_node_t));
@@ -269,7 +286,7 @@ ds_list_add_first (ds_ctx_t *ctx, ds_list_t *list, ds_obj_t *obj,
 }
 
 DS_LOCAL ds_error_t
-ds_list_add_last (ds_ctx_t *ctx, ds_list_t *list, ds_obj_t *obj,
+ds_list_add_last (ds_ctx_t *ctx, ds_list_t *list, ds_VALUE_t *obj,
 		  ds_node_t **N)
 {
   ds_node_t *node = (ds_node_t *) calloc (1, sizeof (ds_node_t));
@@ -294,7 +311,7 @@ ds_list_add_last (ds_ctx_t *ctx, ds_list_t *list, ds_obj_t *obj,
 
 DS_LOCAL ds_error_t
 ds_list_add_before (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node,
-		    ds_obj_t *obj, ds_node_t **N)
+		    ds_VALUE_t *obj, ds_node_t **N)
 {
   ds_node_t *node2 = (ds_node_t *) calloc (1, sizeof(ds_node_t));
   *N = NULL;
@@ -315,7 +332,7 @@ ds_list_add_before (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node,
 
 DS_LOCAL ds_error_t
 ds_list_add_after (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node,
-		   ds_obj_t *obj, ds_node_t **N)
+		   ds_VALUE_t *obj, ds_node_t **N)
 {
   ds_node_t *node2 = (ds_node_t *) calloc (1, sizeof(ds_node_t));
   *N = NULL;
@@ -335,7 +352,7 @@ ds_list_add_after (ds_ctx_t *ctx, ds_list_t *list, ds_node_t *node,
 }
 
 DS_LOCAL ds_error_t
-ds_list_add_at (ds_ctx_t *ctx, ds_list_t *list, size_t position, ds_obj_t *obj,
+ds_list_add_at (ds_ctx_t *ctx, ds_list_t *list, size_t position, ds_VALUE_t *obj,
 		ds_node_t **N)
 {
   size_t count = list->count;
@@ -403,14 +420,14 @@ ds_list_remove_at (ds_ctx_t *ctx, ds_list_t *list, size_t position)
   ds_node_t *removed_node;
 
   if (position >= count) {
-    err (ctx, "out of range: %zu", position):
+    err (ctx, "out of range: %zu", position);
     return DS_ERROR_OUT_OF_RANGE;
   }
 
   if (position <= ((count - 1) / 2)) {
     ds_node_t *node;
     ds_node_t *after_removed;
-    node = &list->root;
+    node = &(list->root);
     for (; position > 0; position --)
       node = node->next;
     removed_node = node->next;
@@ -423,7 +440,7 @@ ds_list_remove_at (ds_ctx_t *ctx, ds_list_t *list, size_t position)
     ds_node_t *before_removed;
 
     position = count - 1 - position;
-    node &list->root;
+    node = &list->root;
     for (; position > 0; position --)
       node = node->prev;
     removed_node = node->prev;
@@ -438,12 +455,12 @@ ds_list_remove_at (ds_ctx_t *ctx, ds_list_t *list, size_t position)
 }
 
 DS_LOCAL ds_error_t
-ds_list_remove (ds_ctx_t *ctx, ds_list_t *list, ds_obj_t *obj, bool *B)
+ds_list_remove (ds_ctx_t *ctx, ds_list_t *list, ds_VALUE_t *obj, bool *B)
 {
   ds_node_t *node;
   ds_error_t ret;
 
-  ret = ds_list_search_from_to (ctx, list, 0, list->count, elt, &node);
+  ret = ds_list_search_from_to (ctx, list, 0, list->count, obj, &node);
   if (ret != DS_OK) {
     dbg (ctx, "did not find object %p in list %p", obj, list);
     *B = false;

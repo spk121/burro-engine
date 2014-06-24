@@ -243,6 +243,6 @@ bool
   tga_has_palette (const tga_image_t *t);
 void
   tga_get_image_dimensions (const tga_image_t *t,
-			      unsigned int *width, unsigned int *height);
+                              unsigned int *width, unsigned int *height);
 
 #endif

@@ -23,6 +23,7 @@
 
 #include <stdbool.h>
 #include <syslog.h>
+#include <cairo.h>
 
 #include "libds.h"
 

@@ -70,10 +70,28 @@ LIBDS_AGE=1
 
 lib_LTLIBRARIES += src/libds/libds.la
 
+src/libds/list_bg.h: src/libds/list.h
+	m4 -D XTYPE=bg $< > $@
+
+src/libds/list_bg.c: src/libds/list.c src/libds/list_bg.h
+	m4 -D XTYPE=bg $< > $@
+
+src/libds/list_obj.h: src/libds/list.h
+	m4 -D XTYPE=obj $< > $@
+
+src/libds/list_obj.c: src/libds/list.c src/libds/list_obj.h
+	m4 -D XTYPE=obj $< > $@
+
+src/libds/libds.c: src/libds/list_bg.h src/libds/list_obj.h
+
 src_libds_libds_la_SOURCES =\
 	src/libds/libds-private.h \
 	src/libds/libds.c \
-	src/libds/xcairo.c
+	src/libds/xcairo.c \
+	src/libds/list_bg.c \
+	src/libds/list_bg.h \
+	src/libds/list_obj.c \
+	src/libds/list_obj.h
 
 # EXTRA_DIST += src/libds/libds.sym
 
