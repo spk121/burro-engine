@@ -41,8 +41,8 @@
 
 #include "libds.h"
 #include "libds-private.h"
+
 #if HAS_LIST_INCLUDE
-#include LIST_INCLUDE
 #else
 #include "list.h"
 #endif

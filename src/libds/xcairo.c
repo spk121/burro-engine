@@ -5,7 +5,6 @@
 #include "libds.h"
 #include "libds-private.h"
 
-
 static bool
 is_valid_cairo_antialias_t (cairo_antialias_t a)
 {

@@ -32,8 +32,6 @@
 
 #include "libds.h"
 #include "libds-private.h"
-#include "list_bg.h"
-#include "list_obj.h"
 
 /**
  * SECTION:libds
@@ -65,8 +63,8 @@ struct ds_ctx {
   uint32_t backdrop;
 
   // List of draw objects
-  ds_list_bg_t *bg_list;
-  ds_list_obj_t *obj_list;
+  ds_bg_list_t *bg_list;
+  ds_obj_list_t *obj_list;
 
   // List of objects
 
