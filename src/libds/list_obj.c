@@ -88,7 +88,7 @@ ds_obj_list_create_from (ds_ctx_t *ctx, size_t count, const ds_obj_t **objects,
     ds_obj_node_t *node = (ds_obj_node_t *) calloc (1, sizeof(ds_obj_node_t));
     if (node == NULL)
       goto fail2;
-    node->value = *objects;
+    node->value = (ds_obj_t *) *objects;
     node->prev = tail;
     tail->next = node;
     tail = node;
@@ -127,7 +127,7 @@ DS_LOCAL void
 ds_obj_list_node_set_value (ds_ctx_t *ctx, ds_obj_list_t *list, ds_obj_node_t *node,
 			const ds_obj_t *obj)
 {
-  node->value = obj;
+  node->value = (ds_obj_t *) obj;
 }
 
 DS_LOCAL ds_obj_node_t *
@@ -197,7 +197,7 @@ ds_obj_list_set_at (ds_ctx_t *ctx, ds_obj_list_t *list, size_t position,
     for (; position > 0; position --)
       node = node->prev;
   }
-  node->value = obj;
+  node->value = (ds_obj_t *) obj;
   return DS_OK;
 }
 
@@ -452,6 +452,7 @@ ds_obj_list_remove_at (ds_ctx_t *ctx, ds_obj_list_t *list, size_t position)
 
   ds_obj_free (removed_node->value);
   free (removed_node);
+  return DS_OK;
 }
 
 DS_LOCAL ds_error_t

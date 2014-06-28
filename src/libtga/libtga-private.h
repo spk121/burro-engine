@@ -12,15 +12,28 @@
 #define LOG_INFO (6)
 #define LOG_DEBUG (7)
 
-static inline void __attribute__((always_inline, format(printf, 2, 3)))
+#ifdef _WIN32
+#define INLINE_PRINTF
+#else
+#define INLINE_PRINTF __attribute__((always_inline, format(printf, 2, 3)))
+#endif
+
+static inline void INLINE_PRINTF
   tga_log_null(struct tga_ctx *ctx, const char *format, ...) {}
 
+#ifdef _WIN32
+#define tga_log_cond(ctx, prio, ...) \
+do { \
+if (tga_get_log_priority(ctx) >= prio) \
+	tga_log(ctx, prio, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); \
+} while (0)
+#else
 #define tga_log_cond(ctx, prio, arg...) \
   do { \
     if (tga_get_log_priority(ctx) >= prio) \
       tga_log(ctx, prio, __FILE__, __LINE__, __FUNCTION__, ## arg); \
   } while (0)
-
+#endif
 #ifdef ENABLE_LOGGING
 #  ifdef ENABLE_DEBUG
 #    define dbg(ctx, arg...) tga_log_cond(ctx, LOG_DEBUG, ## arg)
@@ -30,24 +43,40 @@ static inline void __attribute__((always_inline, format(printf, 2, 3)))
 #  define info(ctx, arg...) tga_log_cond(ctx, LOG_INFO, ## arg)
 #  define err(ctx, arg...) tga_log_cond(ctx, LOG_ERR, ## arg)
 #else
+#ifdef _WIN32
+#  define dbg(ctx, ...) tga_log_null(ctx, __VA_ARGS__)
+#  define info(ctx, ...) tga_log_null(ctx, __VA_ARGS__)
+#  define err(ctx, ...) tga_log_null(ctx, __VA_ARGS__)
+#else
 #  define dbg(ctx, arg...) tga_log_null(ctx, ## arg)
 #  define info(ctx, arg...) tga_log_null(ctx, ## arg)
 #  define err(ctx, arg...) tga_log_null(ctx, ## arg)
+#endif
 #endif
 
 #ifndef HAVE_SECURE_GETENV
 #  ifdef HAVE___SECURE_GETENV
 #    define secure_getenv __secure_getenv
 #  else
-#    error neither secure_getenv nor __secure_getenv is available
+#    if _WIN32
+#      define secure_getenv getenv
+#    else
+#      error neither secure_getenv nor __secure_getenv is available
+#    endif
 #  endif
+#endif
+
+#ifdef _WIN32
+#define PRINTF67
+#else
+#define PRINTF67 __attribute__((format(printf, 6, 7)))
 #endif
 
 void
   tga_log(struct tga_ctx *ctx,
           int priority, const char *file, int line, const char *fn,
           const char *format, ...)
-    __attribute__((format(printf, 6, 7)));
+    PRINTF67;
 
 #define TGA_PACKED_HEADER_LEN (18)
 #define TGA_PACKED_FOOTER_LEN (26)

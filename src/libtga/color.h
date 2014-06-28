@@ -99,9 +99,9 @@
 #define PTR_UNPACK16(p,o,c1,c2,c3)                \
   do {                                            \
     uint16_t __tmp = *((uint16_t *)(p));          \
-    (c3) = __tmp & 0b0000000000011111;            \
-    (c2) = (__tmp & 0b0000001111100000) >> 5;     \
-    (c1) = (__tmp & 0b0111110000000000) >> 10;    \
+    (c3) = __tmp & 0x001F;            \
+    (c2) = (__tmp & 0x03E0) >> 5;     \
+    (c1) = (__tmp & 0x7C00) >> 10;    \
     (o) = __tmp >> 15;                            \
   } while (0)
 #define PTR_UNPACK24(p,c1,c2,c3)                 \

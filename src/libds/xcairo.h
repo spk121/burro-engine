@@ -18,9 +18,9 @@ xcairo_set_source_rgb (ds_ctx_t *, cairo_t *cr, double red, double green,
 		       double blue);
 DS_LOCAL int
 xcairo_paint (ds_ctx_t *ctx, cairo_t *cr);
-DS_LOCAL int
+DS_LOCAL ds_error_t
 xcairo_image_surface_get_argb32_stride (ds_ctx_t *ctx, cairo_surface_t *surface, int *stride);
-DS_LOCAL int
+DS_LOCAL ds_error_t
 xcairo_image_surface_get_argb32_data (ds_ctx_t *ctx, cairo_surface_t *surface,
 				      uint32_t **data);
 

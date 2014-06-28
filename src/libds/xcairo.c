@@ -117,13 +117,14 @@ xcairo_set_antialias (ds_ctx_t *ctx, cairo_t *cr, cairo_antialias_t antialias)
     err (ctx, "cairo_set_antialias was not successful");
     return DS_ERROR_ANTIALIAS_FAILURE;
   }
+  return DS_OK;
 }
 
 DS_LOCAL void
 xcairo_set_source_rgb (ds_ctx_t *ctx, cairo_t *cr, double red, double green,
 		       double blue)
 {
-  cairo_status_t status;
+  // cairo_status_t status;
   // g_return_if_fail (cr != NULL);
   // g_return_if_fail (red >= 0.0 && red <= 1.0);
   // g_return_if_fail (green >= 0.0 && green <= 1.0);

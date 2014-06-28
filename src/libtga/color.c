@@ -104,13 +104,13 @@ convert32 (uint32_t c, color_format_t input, color_format_t output)
 static uint32_t
 convert16 (uint32_t c, color_format_t input, color_format_t output, bool key)
 {
-  const uint32_t rgb_mask = 0b0111111111111111;
-  const uint32_t o_mask = 0b1000000000000000;
-  const uint32_t a_mask = 0b1000000000000000;
-  const uint32_t orgb_mask = 0b1111111111111111;
-  const uint32_t argb_mask = 0b1111111111111111;
-  const uint32_t argb_transparent = 0b0000000000000000;
-  const uint32_t orgb_transparent = 0b1000000000000000;
+  const uint32_t rgb_mask = 0x7FFF;
+  const uint32_t o_mask = 0x8000;
+  const uint32_t a_mask = 0x8000;
+  const uint32_t orgb_mask = 0xFFFF;
+  const uint32_t argb_mask = 0xFFFF;
+  const uint32_t argb_transparent = 0x0000;
+  const uint32_t orgb_transparent = 0x8000;
   /*
     OUTPUT        | OUTPUT ARGB    | OUTPUT ORGB       | OUTPUT xRGB
     ---------------------------------------------------------------
@@ -160,8 +160,8 @@ convert16 (uint32_t c, color_format_t input, color_format_t output, bool key)
 
   if (COLOR_FORMAT_TYPE_IS_RGB (input) != COLOR_FORMAT_TYPE_IS_RGB (output)) {
     /* swap r and b */
-    uint32_t c2 = ((c & 0b1000001111100000) | (c & 0b0111110000000000) >> 10
-                   | (c & 0b0000000000011111) << 10);
+    uint32_t c2 = ((c & 0x83E0) | (c & 0x7c00) >> 10
+                   | (c & 0x001F) << 10);
     c = c2;
   }
   return c;
@@ -173,17 +173,17 @@ upconvert_16_32 (uint32_t c, color_format_t input, color_format_t output)
   bool overlay = false;
   uint32_t r, g, b, c2 = 0;
 
-  if (COLOR_FORMAT_TYPE_IS_OVERLAY (input) && (c & 0b1000000000000000))
+  if (COLOR_FORMAT_TYPE_IS_OVERLAY (input) && (c & 0x8000))
     overlay = true;
   if (COLOR_FORMAT_TYPE_IS_RGB (input)) {
-    r = (c & 0b0111110000000000) >> 7;
-    g = (c & 0b0000001111100000) >> 2;
-    b = (c & 0b0000000000011111) << 3;
+    r = (c & 0x7C00) >> 7;
+    g = (c & 0x03E0) >> 2;
+    b = (c & 0x001F) << 3;
   }
   if (COLOR_FORMAT_TYPE_IS_BGR (input)) {
-    r = (c & 0b0000000000011111) << 3;
-    g = (c & 0b0000001111100000) >> 2;
-    b = (c & 0b0111110000000000) >> 7;
+    r = (c & 0x001F) << 3;
+    g = (c & 0x03E0) >> 2;
+    b = (c & 0x7C00) >> 7;
   }
   if (COLOR_FORMAT_TYPE_IS_RGB (output))
     c2 = r << 16 | g << 8 | b;
@@ -205,13 +205,13 @@ downconvert_32_16 (uint32_t c, color_format_t input, color_format_t output)
       && COLOR_FORMAT_TYPE_IS_OVERLAY (output)) {
     /* We call 50% alpha or less as 'overlay' */
     if (!(c & 0x80000000))
-      c2 = 0b1000000000000000;
+      c2 = 0x8000;
   }
   else if (COLOR_FORMAT_TYPE_IS_ALPHA (input)
            && COLOR_FORMAT_TYPE_IS_ALPHA (output)) {
     /* We call 50% alpha or more as alpha */
     if (c & 0x80000000)
-      c2 = 0b1000000000000000;
+      c2 = 0x8000;
   }
   if (COLOR_FORMAT_TYPE_IS_RGB (input)) {
     r = (c & 0x00f80000) >> 19;

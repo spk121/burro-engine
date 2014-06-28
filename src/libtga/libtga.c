@@ -21,12 +21,17 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#else
 #include "config.h"
+#endif
 #include "libtga.h"
 #include "libtga-private.h"
 
@@ -137,10 +142,10 @@ log_priority(const char *priority)
 TGA_EXPORT int
 tga_new(tga_ctx_t **ctx)
 {
-  const char *env;
-  struct tga_ctx *c;
+  const char *env = NULL;
+  tga_ctx_t *c;
 
-  c = calloc(1, sizeof(struct tga_ctx));
+  c = (tga_ctx_t *) calloc(1, sizeof(struct tga_ctx));
   if (!c)
     return -TGA_OUT_OF_MEMORY;
 
@@ -149,7 +154,9 @@ tga_new(tga_ctx_t **ctx)
   c->log_priority = LOG_ERR;
 
   /* environment overwrites config */
+#ifndef _WIN32
   env = secure_getenv("BURRO_LIBTGA_LOG");
+#endif
   if (env != NULL)
     tga_set_log_priority(c, log_priority(env));
 
@@ -286,7 +293,7 @@ tga_image_new_from_memory(struct tga_ctx *ctx, const uint8_t *mem, size_t len,
   tga_image_t *t;
   tga_error_t ret;
 
-  t = calloc(1, sizeof(tga_image_t));
+  t = (tga_image_t *) calloc(1, sizeof(tga_image_t));
   if (!t)
     return -TGA_OUT_OF_MEMORY;
 

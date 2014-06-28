@@ -30,6 +30,9 @@
 extern "C" {
 #endif
 
+#ifdef _WIN32
+# define BUILDING_DLL
+#endif
 
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef BUILDING_DLL
@@ -82,25 +85,23 @@ extern "C" {
   struct ds_ctx;
 
 
-struct ds_ctx *ds_ref(struct ds_ctx *ctx);
-struct ds_ctx *ds_unref(struct ds_ctx *ctx);
+DS_EXPORT ds_ctx_t *ds_ref(ds_ctx_t *ctx);
+DS_EXPORT ds_ctx_t *ds_unref(ds_ctx_t *ctx);
 
-  DS_EXPORT ds_error_t
-   ds_new(struct ds_ctx **ctx, int width, int height);
+DS_EXPORT ds_error_t ds_new(struct ds_ctx **ctx, int width, int height);
 
-void ds_set_log_fn(struct ds_ctx *ctx,
-                  void (*log_fn)(struct ds_ctx *ctx,
+DS_EXPORT void ds_set_log_fn(ds_ctx_t *ctx,
+                  void (*log_fn)(ds_ctx_t *ctx,
                                  int priority, const char *file, int line, const char *fn,
                                  const char *format, va_list args));
-int ds_get_log_priority(struct ds_ctx *ctx);
-void ds_set_log_priority(struct ds_ctx *ctx, int priority);
-void *ds_get_userdata(struct ds_ctx *ctx);
-void ds_set_userdata(struct ds_ctx *ctx, void *userdata);
+DS_EXPORT int ds_get_log_priority(ds_ctx_t *ctx);
+DS_EXPORT void ds_set_log_priority(ds_ctx_t *ctx, int priority);
+DS_EXPORT void *ds_get_userdata(ds_ctx_t *ctx);
+DS_EXPORT void ds_set_userdata(ds_ctx_t *ctx, void *userdata);
 
-  void ds_set_backdrop(ds_ctx_t *ctx, uint32_t color);
-  uint32_t ds_get_backdrop(ds_ctx_t *ctx);
-  DS_EXPORT ds_error_t
-  ds_render(ds_ctx_t *ctx, uint32_t **data, int *width, int *height,
+DS_EXPORT void ds_set_backdrop(ds_ctx_t *ctx, uint32_t color);
+DS_EXPORT uint32_t ds_get_backdrop(ds_ctx_t *ctx);
+DS_EXPORT ds_error_t ds_render(ds_ctx_t *ctx, uint32_t **data, int *width, int *height,
 	    int *stride);
 
 /*

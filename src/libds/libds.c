@@ -22,7 +22,9 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <stdarg.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <stdbool.h>
 #include <stdint.h>
 #include <errno.h>
@@ -101,7 +103,7 @@ log_stderr(struct ds_ctx *ctx,
  * Returns: stored userdata
  **/
 DS_EXPORT void *
-ds_get_userdata(struct ds_ctx *ctx)
+ds_get_userdata(ds_ctx_t *ctx)
 {
   if (ctx == NULL)
     return NULL;
@@ -116,7 +118,7 @@ ds_get_userdata(struct ds_ctx *ctx)
  * Store custom @userdata in the library context.
  **/
 DS_EXPORT void
-ds_set_userdata(struct ds_ctx *ctx, void *userdata)
+ds_set_userdata(ds_ctx_t *ctx, void *userdata)
 {
   if (ctx == NULL)
     return;
@@ -155,11 +157,11 @@ log_priority(const char *priority)
 DS_EXPORT ds_error_t
 ds_new(struct ds_ctx **ctx, int width, int height)
 {
-  const char *env;
+  const char *env = NULL;
   struct ds_ctx *c;
   ds_error_t ret;
 
-  c = calloc(1, sizeof(struct ds_ctx));
+  c = (ds_ctx_t *) calloc(1, sizeof(struct ds_ctx));
   if (!c)
     return DS_ERROR_OUT_OF_MEMORY;
 
@@ -168,7 +170,9 @@ ds_new(struct ds_ctx **ctx, int width, int height)
   c->log_priority = LOG_ERR;
 
   /* environment overwrites config */
+#ifndef _WIN32
   env = secure_getenv("BURRO_DS_LOG");
+#endif
   if (env != NULL)
     ds_set_log_priority(c, log_priority(env));
 
@@ -198,7 +202,7 @@ ds_new(struct ds_ctx **ctx, int width, int height)
   dbg(c, "log_priority=%d\n", c->log_priority);
   dbg(c, "screen size %d, %d", width, height);
   *ctx = c;
-  return 0;
+  return DS_OK;
 }
 
 /**
@@ -209,8 +213,8 @@ ds_new(struct ds_ctx **ctx, int width, int height)
  *
  * Returns: the passed ds library context
  **/
-DS_EXPORT struct ds_ctx *
-ds_ref(struct ds_ctx *ctx)
+DS_EXPORT ds_ctx_t *
+ds_ref(ds_ctx_t *ctx)
 {
   if (ctx == NULL)
     return NULL;
@@ -225,8 +229,8 @@ ds_ref(struct ds_ctx *ctx)
  * Drop a reference of the ds library context.
  *
  **/
-DS_EXPORT struct ds_ctx *
-ds_unref(struct ds_ctx *ctx)
+DS_EXPORT ds_ctx_t *
+ds_unref(ds_ctx_t *ctx)
 {
   if (ctx == NULL)
     return NULL;
@@ -254,8 +258,8 @@ ds_unref(struct ds_ctx *ctx)
  *
  **/
 DS_EXPORT void
-ds_set_log_fn(struct ds_ctx *ctx,
-		  void (*log_fn)(struct ds_ctx *ctx,
+ds_set_log_fn(ds_ctx_t*ctx,
+		  void (*log_fn)(ds_ctx_t *ctx,
 				 int priority, const char *file,
 				 int line, const char *fn,
 				 const char *format, va_list args))
@@ -316,21 +320,22 @@ ds_render(ds_ctx_t *ctx, uint32_t **data, int *width, int *height, int *stride)
     *data = NULL;
     *width = 0;
     *height = 0;
-    return ret;
+    return DS_ERROR_PAINT_FAILURE;
   }
 
   ret = xcairo_image_surface_get_argb32_stride(ctx, ctx->screen_surface,
 					       stride);
   if (ret < 0)
-    return ret;
+    return DS_ERROR_PAINT_FAILURE;
   ret = xcairo_image_surface_get_argb32_data(ctx, ctx->screen_surface, data);
   if (ret < 0)
-    return ret;
+    return DS_ERROR_PAINT_FAILURE;
   *width = ctx->width;
   *height = ctx->height;
   return DS_OK;
 }
 
+#if 0
 struct ds_list_entry;
 struct ds_list_entry *ds_list_entry_get_next(struct ds_list_entry *list_entry);
 const char *ds_list_entry_get_name(struct ds_list_entry *list_entry);
@@ -389,3 +394,4 @@ ds_thing_get_some_list_entry(struct ds_thing *thing)
 {
   return NULL;
 }
+#endif

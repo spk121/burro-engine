@@ -6,6 +6,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+#ifdef _WIN32
+#define BUILDING_DLL
+#endif
+
 #if defined _WIN32 || defined __CYGWIN__
   #ifdef BUILDING_DLL
     #ifdef __GNUC__

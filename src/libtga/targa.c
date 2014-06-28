@@ -108,7 +108,7 @@ TGA_LOCAL tga_error_t
 unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
 {
   int i;
-  const uint8_t *raw_footer;
+  const uint8_t *raw_footer = NULL;
   tga_error_t error;
   size_t id_size = 0;
   size_t color_map_size = 0;
@@ -146,7 +146,7 @@ unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
       t->version = 1;
   }
   // If it is a 2.0 file, we can properly parse the footer
-  if (t->version == 2) {
+  if (t->version == 2 && raw_footer != NULL) {
     // Field 28 - Extension Area Offset
     t->footer.extension_offset = get_u32(raw_footer + 0);
 
@@ -325,7 +325,7 @@ unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
   if (id_size == 0)
     t->data.id_string = NULL;
   else {
-    t->data.id_string = calloc (id_size + 1, sizeof(char));
+    t->data.id_string = (char *) calloc (id_size + 1, sizeof(char));
     memcpy(t->data.id_string, pos, id_size);
     t->data.id_string[id_size] = '\0';
     pos += id_size;
@@ -350,7 +350,7 @@ unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
   }
 
   if (color_map_size > 0) {
-    t->data.color_map_data = calloc (color_map_size, sizeof(uint8_t));
+    t->data.color_map_data = (uint8_t *) calloc (color_map_size, sizeof(uint8_t));
     memcpy(t->data.color_map_data, pos, color_map_size);
     pos += color_map_size;
   }
@@ -365,7 +365,7 @@ unpack_memory (const uint8_t *mem, size_t len, tga_image_t *t)
   else {
     image_unpacked_size = (TGA_IMAGE_SIZE(t)
                            * BIT_TO_BYTE (t->header.pixel_depth));
-    t->data.image_data = calloc(image_unpacked_size, sizeof(uint8_t));
+    t->data.image_data = (uint8_t *) calloc(image_unpacked_size, sizeof(uint8_t));
 
     // How to read the unpack the data depends on the format
     if (TGA_IMAGE_TYPE_UNCOMPRESSED(t)) {
@@ -672,12 +672,12 @@ void tga_get_image_dimensions (const tga_image_t *t,
 void tga_get_image_orientation (const tga_image_t *t, tga_hflip_t *hflip, tga_vflip_t *vflip)
 {
   if (tga_has_image (t)) {
-    *hflip = t->header.image_descriptor & 0b00010000 ? 1 : 0;
-    *vflip = t->header.image_descriptor & 0b00100000 ? 1 : 0;
+    *hflip = t->header.image_descriptor & 0x10 ? RIGHT_TO_LEFT : LEFT_TO_RIGHT;
+    *vflip = t->header.image_descriptor & 0x20 ? TOP_TO_BOTTOM : BOTTOM_TO_TOP;
   }
   else {
-    *hflip = 0;
-    *vflip = 0;
+    *hflip = LEFT_TO_RIGHT;
+    *vflip = BOTTOM_TO_TOP;
   }
 }
 
