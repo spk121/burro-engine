@@ -87,9 +87,7 @@ extern "C" {
 
 DS_EXPORT ds_ctx_t *ds_ref(ds_ctx_t *ctx);
 DS_EXPORT ds_ctx_t *ds_unref(ds_ctx_t *ctx);
-
-DS_EXPORT ds_error_t ds_new(struct ds_ctx **ctx, int width, int height);
-
+DS_EXPORT ds_error_t ds_new(ds_ctx_t **ctx, int width, int height);
 DS_EXPORT void ds_set_log_fn(ds_ctx_t *ctx,
                   void (*log_fn)(ds_ctx_t *ctx,
                                  int priority, const char *file, int line, const char *fn,
@@ -126,8 +124,8 @@ const char *ds_list_entry_get_value(struct ds_list_entry *list_entry);
 struct ds_thing;
 struct ds_thing *ds_thing_ref(struct ds_thing *thing);
 struct ds_thing *ds_thing_unref(struct ds_thing *thing);
-struct ds_ctx *ds_thing_get_ctx(struct ds_thing *thing);
-int ds_thing_new_from_string(struct ds_ctx *ctx, const char *string, struct ds_thing **thing);
+ds_ctx_t *ds_thing_get_ctx(struct ds_thing *thing);
+int ds_thing_new_from_string(ds_ctx_t *ctx, const char *string, struct ds_thing **thing);
 struct ds_list_entry *ds_thing_get_some_list_entry(struct ds_thing *thing);
 
 #define DS_PACK_RGB24(r,g,b)			\

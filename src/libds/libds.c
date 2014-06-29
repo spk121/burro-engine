@@ -73,7 +73,7 @@ struct ds_ctx {
 };
 
 void
-ds_log(struct ds_ctx *ctx,
+ds_log(ds_ctx_t *ctx,
 	   int priority, const char *file, int line, const char *fn,
 	   const char *format, ...)
 {
@@ -85,7 +85,7 @@ ds_log(struct ds_ctx *ctx,
 }
 
 static void
-log_stderr(struct ds_ctx *ctx,
+log_stderr(ds_ctx_t *ctx,
 	   int priority, const char *file, int line, const char *fn,
 	   const char *format, va_list args)
 {
@@ -155,13 +155,13 @@ log_priority(const char *priority)
  * Returns: a new ds library context
  **/
 DS_EXPORT ds_error_t
-ds_new(struct ds_ctx **ctx, int width, int height)
+ds_new(ds_ctx_t **ctx, int width, int height)
 {
   const char *env = NULL;
-  struct ds_ctx *c;
+  ds_ctx_t *c;
   ds_error_t ret;
 
-  c = (ds_ctx_t *) calloc(1, sizeof(struct ds_ctx));
+  c = (ds_ctx_t *) calloc(1, sizeof(ds_ctx_t));
   if (!c)
     return DS_ERROR_OUT_OF_MEMORY;
 
@@ -274,7 +274,7 @@ ds_set_log_fn(ds_ctx_t*ctx,
  *
  * Returns: the current logging priority
  **/
-DS_EXPORT int ds_get_log_priority(struct ds_ctx *ctx)
+DS_EXPORT int ds_get_log_priority(ds_ctx_t *ctx)
 {
   return ctx->log_priority;
 }
@@ -288,19 +288,19 @@ DS_EXPORT int ds_get_log_priority(struct ds_ctx *ctx)
  * are logged.
  **/
 DS_EXPORT void
-ds_set_log_priority(struct ds_ctx *ctx, int priority)
+ds_set_log_priority(ds_ctx_t *ctx, int priority)
 {
   ctx->log_priority = priority;
 }
 
 DS_EXPORT void
-ds_set_backdrop(struct ds_ctx *ctx, uint32_t bd)
+ds_set_backdrop(ds_ctx_t *ctx, uint32_t bd)
 {
   ctx->backdrop = bd;
 }
 
 DS_EXPORT uint32_t
-ds_get_backdrop(struct ds_ctx *ctx)
+ds_get_backdrop(ds_ctx_t *ctx)
 {
   return ctx->backdrop;
 }
@@ -342,7 +342,7 @@ const char *ds_list_entry_get_name(struct ds_list_entry *list_entry);
 const char *ds_list_entry_get_value(struct ds_list_entry *list_entry);
 
 struct ds_thing {
-  struct ds_ctx *ctx;
+  ds_ctx_t *ctx;
   int refcount;
 };
 
@@ -368,14 +368,14 @@ ds_thing_unref(struct ds_thing *thing)
   return NULL;
 }
 
-DS_EXPORT struct ds_ctx *
+DS_EXPORT ds_ctx_t *
 ds_thing_get_ctx(struct ds_thing *thing)
 {
   return thing->ctx;
 }
 
 DS_EXPORT int
-ds_thing_new_from_string(struct ds_ctx *ctx, const char *string, struct ds_thing **thing)
+ds_thing_new_from_string(ds_ctx_t *ctx, const char *string, struct ds_thing **thing)
 {
   struct ds_thing *t;
 
