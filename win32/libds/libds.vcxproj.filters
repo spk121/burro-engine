@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\libds\bg.h" />
+    <ClInclude Include="..\..\src\libds\libds.h" />
+    <ClInclude Include="..\..\src\libds\libds-private.h" />
+    <ClInclude Include="..\..\src\libds\obj.h" />
+    <ClInclude Include="..\..\src\libds\xcairo.h" />
+    <ClInclude Include="..\..\src\libds\list_bg.h" />
+    <ClInclude Include="..\..\src\libds\list_obj.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\libds\libds.c" />
+    <ClCompile Include="..\..\src\libds\xcairo.c" />
+    <ClCompile Include="..\..\src\libds\list_bg.c" />
+    <ClCompile Include="..\..\src\libds\list_obj.c" />
+  </ItemGroup>
+</Project>
