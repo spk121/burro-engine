@@ -1,4 +1,5 @@
 #+TITLE: Project Burro Game Engine Implementation TODO
+#+OPTIONS: todo:t
 
 I'm giving up on the C+GLib+Gtk version of the engine because it will
 never get finished.  I'm moving to a more traditional C++, SDL2
