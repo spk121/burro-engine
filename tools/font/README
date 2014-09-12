@@ -1,0 +1,6 @@
+This BDF converter program converts BDF files into a
+C-like header.
+
+In the $(srcdir) is a font generated with this tool.
+
+This font came from Markus Kuhn's fixed font collection

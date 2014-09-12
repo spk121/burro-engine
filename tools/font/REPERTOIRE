@@ -1,0 +1,91 @@
+C0 Controls and Basic Latin
+U+00 -- U+7F
+
+C1 Controls and Latin 1 Supplement
+U+8E -- U+8F
+U+9B
+U+A1 -- U+A5
+U+A7 -- U+AB
+U+AE -- U+AF
+U+B1 -- U+B7
+U+B9 -- U+C5
+U+C7 -- U+CA
+U+CC -- U+CD
+U+CF -- U+D6
+U+D9 -- U+DD
+U+E0 -- U+E5
+U+E7 -- U+E8
+U+EA -- U+EC
+U+EE -- U+EF
+U+F1 -- U+F6
+U+F9 -- U+FB
+U+FD
+U+FF
+
+Latin Extended A
+U+0100 -- U+010F
+U+0111 -- U+0113
+U+0116 -- U+0126
+U+0128 -- U+012B
+U+012E -- U+0130
+U+013C
+U+0134 -- U+0137
+U+0139 -- U+013C
+U+013E
+U+0143 -- U+0148
+U+014C -- U+014D
+U+0150 -- U+0151
+U+0154 -- U+0165
+U+0168 -- U+017E
+
+
+Spacing Modifier Letters
+U+02D7 -- U+02DD
+
+General Punctuation
+0x2014
+0x2018 -- 0x2019
+0x201C -- 0x201D
+0x203E
+
+Letterlike Symbols
+U+2122
+U+2126
+
+Number Forms
+U+215B -- U+215E
+
+Arrows
+U+2190 -- U+2193
+
+Block Elements
+U+2500 -- U+2503
+U+250C -- U+250F
+U+2510 -- U+2514
+U+2515 -- U+2518
+U+2519 -- U+251C
+U+2520
+U+2523 -- U+2524
+U+2528
+U+252B -- U+252C
+U+2530
+U+2534
+U+2538
+U+253C
+U+2542
+U+2580
+U+2584
+U+2588
+U+258C
+U+2590 -- U+2593
+U+25A0
+
+Miscellaneous Symbols and Arrows
+U+2B24
+
+Geometric Shapes
+U+25CF
+U+25EF
+
+Miscellaneous
+0x266A
