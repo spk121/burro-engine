@@ -1,0 +1,17 @@
+\input texinfo
+@setfilename js_api.info
+@settitle Project Burro Javascript API
+
+@node Top,  , (dir), (dir)
+
+@chapter API Reference
+
+@section Game Loop Primitive Functions
+
+@defun die
+This procedure enqueues a SDL_QUIT signal in the SDL Event loop.
+
+The return value is VOID.
+@end defun
+
+@bye
