@@ -31,8 +31,8 @@ extern "C" {
 #define FALSE 0
 
 // Main screen
-#define MAIN_SCREEN_WIDTH 480
-#define MAIN_SCREEN_HEIGHT 288
+#define MAIN_SCREEN_WIDTH 640
+#define MAIN_SCREEN_HEIGHT 312
 #define MAIN_SCREEN_MAGNIFICATION 2
 
 // Backgrounds
@@ -64,8 +64,8 @@ extern "C" {
 // Console
 #define FAST_BLINK_TIME 300	/* milliseconds */
 #define SLOW_BLINK_TIME 500	/* milliseconds */
-#define CONSOLE_ROWS 22
-#define CONSOLE_COLS 60
+#define CONSOLE_ROWS 24
+#define CONSOLE_COLS 80
 #define CONSOLE_TAB 8		/* spaces per tab */
 #define CONSOLE_VTAB 6		/* lines per vtab */
 #define CONSOLE_OFFSET_X 0	/* pixels from left side of window */

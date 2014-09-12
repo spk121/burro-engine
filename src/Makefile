@@ -83,13 +83,15 @@ LIBS     = `sdl2-config --libs` \
 	`pkg-config mozjs-24 --libs `\
 	-L$(srcdir)/tmxparser/build -ltmxparser
 
-SRCS_C   =
+SRCS_C   = \
 
 SRCS_CPP = \
 	backdrop.cpp \
 	bg.cpp \
 	console.cpp \
 	draw.cpp \
+	ecma48.cpp \
+	ecma48_test.cpp \
 	eng.cpp \
 	lineedit.cpp \
 	loop.cpp \
@@ -121,6 +123,9 @@ burro:   $(OBJS) burro.iso
 
 burro.iso: $(DATA)
 	genisoimage -o $@ data
+
+ecma48.cpp: ecma48.rl
+	ragel -o $@ ecma48.rl
 
 console.cpp : fixed8x13.h
 

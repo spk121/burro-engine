@@ -30,6 +30,7 @@
 #include "obj.hpp"
 #include "loop.hpp"
 #include "xsdl.hpp"
+#include "ecma48_test.hpp"
 
 #ifdef JS_SCRIPT_IS_PACKED
 extern char _binary_script_js_start[];
@@ -100,6 +101,8 @@ int Interpreter::initialize(bool unpacked_flag)
     if (!JS_DefineFunctions(cx, global, obj_functions))
         return false;
     if (!JS_DefineFunctions(cx, global, game_loop_functions))
+        return false;
+    if (!JS_DefineFunctions(cx, global, ecma48_test_functions))
         return false;
 	
 	
