@@ -756,17 +756,14 @@ int main(int argc, char **argv)
       fprintf (out, "} glyph_fixed%dx%d_t;\n", fbb_x, fbb_y);
       fprintf (out, "\n");
       fprintf (out, "glyph_fixed%dx%d_t fixed%dx%d_glyphs[%d] = {\n", fbb_x, fbb_y, fbb_x, fbb_y, n);
-      int count = 0;
       for (i = 0; i < MAX16BIT; i ++)
         {
           if (glyph[i]) {
               fprintf (out, "  {0x%04x, FIXED%dx%d_METRICS_%d, FIXED%dx%d_BITMAP_%d},\n", i, fbb_x, fbb_y, i, 
                        fbb_x, fbb_y, i);
-              count ++;
           }
         }
       fprintf (out, "};\n");
-      fprintf(out, "#define FIXED%dx%d_COUNT      %d\n\n", fbb_x, fbb_y, count);
       fclose(out);
       
       /* The End */
