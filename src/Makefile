@@ -75,7 +75,7 @@ LIBS     = `sdl2-config --libs` \
 	`pkg-config cairo --libs` \
 	`pkg-config tinyxml --libs` \
 	`pkg-config libiso9660++ --libs` \
-	`pkg-config mozjs-24 --cflags `\
+	`pkg-config mozjs-24 --libs `\
 	-L$(srcdir)/tmxparser/build -ltmxparser
 
 SRCS_C   =
