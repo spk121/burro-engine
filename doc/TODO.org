@@ -1,9 +1,7 @@
 #+TITLE: Project Burro Game Engine Implementation TODO
 #+OPTIONS: todo:t
 
-I'm giving up on the C+GLib+Gtk version of the engine because it will
-never get finished.  I'm moving to a more traditional C++, SDL2
-engine, but I still doing soft rendering in Cairo.
+Here is the way forward for my strange game engine.
 
 * Console Layer
   Create a bitmapped-font on-screen console for display text.
@@ -18,6 +16,47 @@ engine, but I still doing soft rendering in Cairo.
 ** DONE Make readline-like functionality work
 ** TODO Tab Completion
 
+* Resource File
+  I'm using libiso9660++
+** DONE Functions to extract subfiles from ISO
+** TODO Scripts to assemble the ISO files from TMX, PNG, WAV, and JS
+** TODO Write a Filename-to-ID map class.
+** TODO Populate a Filename-to-ID class from the contents of the reasource file
+
+* Resource Cache
+  The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
+  It stores them in their intermediate forms, TmxMap classes, Cairo
+  surfaces, JS text, and SDL_Mixer chuncks respectively
+** TODO Use Filename-to-ID map
+** TODO Loader for WAV -> SDL_Mixer chunk
+** TODO Loader for JS
+** TODO Loader for PNG -> Cairo surface
+** TODO Loader for TMX -> TmxMap
+** TODO JS Binding for loader
+
+* Renderer
+  Switching to TileD as the level editor and using the TMX classes from
+  tmxparser means that the Cairo renderer needs to be modified.
+** TODO Render backgrounds from TMX data and Resource Cache
+
+* Critical Parameters List
+  A list of booleans, integer, fixed-point, or thunk variables that can be
+  modified by the INI files and maybe a Debug Menu
+** TODO A storage model
+** TODO A C++ getter/setter model
+** TODO A JS getter/setter model
+** TODO Use Critical Parameters
+   1. Frame rate
+   2. Update rate
+   3. PAK file name
+       
+* INI File parser
+  GNU Ragel can be used to write the parser.
+** TODO Write parser
+** TODO Load user's INI file for local modifications
+** TODO Load system INI file for defaults
+** TODO Hook to critical parameters list
+
 * Console: Debug Menu and Viewer
   The debug menu uses the console to display a list of variables and
   commands.  Each menu entry does one of the following
@@ -30,48 +69,20 @@ engine, but I still doing soft rendering in Cairo.
 ** TODO Parse menu contents from some XML file?
 ** TODO Is this stupid?
 
-* Critical Parameters List
-  A list of booleans, integer, fixed-point, or thunk variables that can be
-  modified by the INI files and maybe a Debug Menu
-** TODO A storage model
-** TODO A C++ getter/setter model
-** TODO A JS getter/setter model
-
-* INI File parser
-  GNU Ragel can be used to write the parser.
-** TODO Write parser
-** TODO Load user's INI file for local modifications
-** TODO Load system INI file for defaults
-** TODO Hook to critical parameters list
+* Sprites
+  Sprites are stored as filmstrips with associated metadata
+** TODO XML format for sprite filmstrips
+** TODO Add sprite data to resource file
+** TODO Add sprite data to resource cache
+** TODO Associate TMX objects with TileD objects, somehow
+** TODO Add sprites to renderer
 
 * Level Editor
   TileD seems to be the easiest editor to integrate. There is a class
-  structure and XML parser for TildD tmx files
+  structure and XML parser for TileD TMX files
   here. [https://github.com/andrewrk/tmxparser/] I can use that class
   structure directly.
-** TODO Be able to load TMX files from the PAK file.
-
-* Renderer
-  Switching to TileD as the level editor and using the TMX classes from
-  tmxparser means that the Cairo renderer needs to be modified.
-** TODO Render backgrounds directly from TMX data and from the
-   resources in the resource cache.
-
-* Resource Cache
-  The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
-  It stores them in their intermediate forms, TmxMap classes, Cairo
-  surfaces, JS text, and SDL_Mixer chuncks respectively
-** TODO Loader for WAV
-** TODO Loader for JS
-** TODO Loader for PNG
-** TODO Loader for TMX
-
-* Resource File
-  I'm using libiso9660++
-** DONE Functions to extract subfiles from ISO
-** TODO Scripts to assemble the ISO files from TMX, PNG, WAV, and JS
-** TODO Write a map from PAK paths to resource IDs  
-
+** TODO Express TMX Objects as JS objects
 
 * The Game
 ** The α layer - low-level paranoid wrapper
@@ -102,3 +113,4 @@ engine, but I still doing soft rendering in Cairo.
 
 ** The Data
    PNGs, TMXs, JS scripts, and WAVs
+
