@@ -17,12 +17,12 @@
    You should have received a copy of the GNU General Public License
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
-
+ 
 #include <SDL.h>
 
 #include "jsapi.hpp"
 
-#include "js.hpp"
+#include "Interpreter.hpp"
 #include "backdrop.hpp"
 #include "bg.hpp"
 #include "console.hpp"

@@ -29,7 +29,7 @@ CPPFLAGS = \
 	-Wall \
 	-Wunused-macros \
 	-Wendif-labels \
-	-pedantic \
+	-Wunknown-pragmas \
 	`sdl2-config --cflags` \
 	`pkg-config cairo --cflags` \
 	`pkg-config tinyxml --cflags` \
@@ -37,6 +37,9 @@ CPPFLAGS = \
 	`pkg-config mozjs-24 --cflags `\
 	-I$(srcdir) \
 	-I$(srcdir)/tmxparser/src
+
+#	-pedantic \
+
 
 DEFS     = -DSDL_ASSERT_LEVEL=2
 
@@ -52,9 +55,11 @@ CWARN = \
     -Wpointer-arith \
     -Wstrict-aliasing \
     -Wstrict-overflow=5 \
-    -Wundef \
     -Wunreachable-code \
     -Winvalid-pch
+
+#    -Wundef \
+
 
 CXXWARN = $(CWARN) -Weffc++ -Wsign-promo
 

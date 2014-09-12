@@ -1,4 +1,4 @@
-/* js.hpp -- the SpiderMonkey binding
+/* Interpreter.hpp -- the SpiderMonkey binding
 
    Copyright 2014, Michael L. Gran
 
@@ -18,8 +18,8 @@
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#ifndef BURRO_JS_H
-#define BURRO_JS_H
+#ifndef BURRO_INTERPRETER_H
+#define BURRO_INTERPRETER_H
 
 #include "jsapi.hpp"
 
