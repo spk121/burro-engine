@@ -1,0 +1,16 @@
+I'm using ac-complete.  Is Semantic better?
+
+FLYMAKE
+
+Can I set up 'info-lookup-symbol' for my API?
+
+Setup HideShow so that I can collapse blocks?
+
+Use Version Control from Emacs?
+
+TAGS
+
+EDE mode -- Emacs as dev environment
+  add (global-ede-mode t) in init
+  is it worth it?
+  
