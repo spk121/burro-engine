@@ -1,8 +1,9 @@
 burro-engine
 ============
 
-This is the README for the Project Burro Game Engine version 0.1.  This is pre-alpha,
-and aiming for Nov 2014 release.  The nickname for versoin 0.1 is "Common Markdown".
+This is the README for the Project Burro Game Engine version 0.1.  This is currently
+pre-alpha code.  I'm aiming for Nov 2014 release.  The nickname for versoin 0.1 is
+"Common Markdown".
 
 This is a 2D game engine I started writing on a whim after reading about the
 internals of the Nintendo DS's 2D engine.  I really liked the idea of the
