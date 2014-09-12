@@ -86,7 +86,6 @@ SRCS_CPP = \
 	console.cpp \
 	draw.cpp \
 	eng.cpp \
-	js.cpp \
 	lineedit.cpp \
 	loop.cpp \
 	main.cpp \
@@ -95,7 +94,8 @@ SRCS_CPP = \
 	utf.cpp \
 	xcairo.cpp \
 	xiso9660.cpp \
-	xsdl.cpp
+	xsdl.cpp \
+	Interpreter.cpp
 
 SRCS_JS  = \
 	script.js
