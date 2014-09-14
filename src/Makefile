@@ -102,7 +102,9 @@ SRCS_CPP = \
 	xcairo.cpp \
 	xiso9660.cpp \
 	xsdl.cpp \
-	Interpreter.cpp
+	Interpreter.cpp \
+	ResHandle.cpp \
+	ResCache.cpp
 
 SRCS_JS  = \
 	script.js
@@ -152,6 +154,9 @@ fixed8x13.h: nxfonts_myfont.h
 clean:
 	rm -f *.o burro core
 
+.PHONY: check-syntax
+
 check-syntax:
-	$(CC) $(CFLAGS) -fsyntax-only $(SRCS_C)
-	$(CXX) -Wall -Wextra -pedantic -fsyntax-only $(SRCS_CPP)
+	$(CXX) $(CXXFLAGS) -fsyntax-only $(SRCS_CPP)
+
+#	$(CC) $(CFLAGS) -fsyntax-only $(SRCS_C)
