@@ -20,8 +20,8 @@ Here is the way forward for my strange game engine.
   I'm using libiso9660++
 ** DONE Functions to extract subfiles from ISO
 ** TODO Scripts to assemble the ISO files from TMX, PNG, WAV, and JS
-** TODO Write a Filename-to-ID map class.
-** TODO Populate a Filename-to-ID class from the contents of the reasource file
+** DONE Write a Filename-to-ID map class.
+** DONE Populate a Filename-to-ID class from the contents of the reasource file
 
 * Resource Cache
   The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
