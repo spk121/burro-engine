@@ -37,7 +37,12 @@ Here is the way forward for my strange game engine.
 * Renderer
   Switching to TileD as the level editor and using the TMX classes from
   tmxparser means that the Cairo renderer needs to be modified.
-** TODO Render backgrounds from TMX data and Resource Cache
+** TODO Make 4-z-level background class
+*** TODO Make image backend for 4 bg layers
+*** TODO Have coordinate transform to paint BG layers during OnPaint()
+*** TODO C++/JS Binding for BG
+** TODO Helper functions to render background layers from TMX data and Resource Cache
+** TODO C++/JS Binding for TMX-to-BG updating
 
 * Critical Parameters List
   A list of booleans, integer, fixed-point, or thunk variables that can be
