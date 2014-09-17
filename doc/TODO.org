@@ -27,10 +27,10 @@ Here is the way forward for my strange game engine.
   The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
   It stores them in their intermediate forms, TmxMap classes, Cairo
   surfaces, JS text, and SDL_Mixer chuncks respectively
-** TODO Use Filename-to-ID map
+** DONE Use Filename-to-ID map
 ** TODO Loader for WAV -> SDL_Mixer chunk
 ** TODO Loader for JS
-** TODO Loader for PNG -> Cairo surface
+** DONE Loader for PNG -> Cairo surface
 ** TODO Loader for TMX -> TmxMap
 ** TODO JS Binding for loader
 
