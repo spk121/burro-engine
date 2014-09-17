@@ -30,7 +30,6 @@ public:
     ResHandle(unsigned int id, string name, vector<char>& data);
     unsigned int get_id() { return m_ID; }
     void *get();
-    unsigned int get_size();
-    ~ResHandle();
+    unsigned int get_size() {return m_size; }
 };
 

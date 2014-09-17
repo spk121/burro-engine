@@ -1,3 +1,7 @@
+#ifndef BURRO_RESCACHE_H
+#define BURRO_RESCACHE_H
+
+
 #include <map>
 #include <list>
 #include <algorithm>
@@ -32,3 +36,7 @@ struct ResCache {
     void* Get(unsigned int ID);
 
 };
+
+
+#endif
+
