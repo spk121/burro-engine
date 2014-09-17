@@ -98,10 +98,12 @@ SRCS_CPP = \
 	main.cpp \
 	obj.cpp \
 	tga.cpp \
+	tmx.cpp \
 	utf.cpp \
 	xcairo.cpp \
 	xiso9660.cpp \
 	xsdl.cpp \
+	Background.cpp \
 	Interpreter.cpp \
 	ResHandle.cpp \
 	ResCache.cpp
