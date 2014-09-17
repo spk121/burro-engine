@@ -8,6 +8,7 @@
               (split-string
                "
  /home/mike/burro-engine2/src
+ /home/mike/burro-engine2/src/tmxparser/src
  /usr/include/c++/4.8.3
  /usr/include/c++/4.8.3/i686-redhat-linux
  /usr/include/c++/4.8.3/backward
