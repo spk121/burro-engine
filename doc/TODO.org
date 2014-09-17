@@ -3,6 +3,20 @@
 
 Here is the way forward for my strange game engine.
 
+The current sub-task
+- Set font to 8x13 fixed and the console to 80x25 for 640px by 325 px
+(480 x 270 makes 80c 20r in the old 6x13 Misc-Fixed and is 1/4 of 1080p)
+- Set the screen size to 640 by 325 and the console to 80*25
+- Create a 4-layer TMX map and PNG spritesheet
+- Put PNG, TMX and JS in PAK files
+- Interpret JS on startup
+- Add JS func to create a TMX object from a TMX in the PAK file
+- Add JS func to update BG surface with a TMX object
+- Add functions in main.js to load up the TMX object and update the BG
+- Add JS func to send controller info to interpreter
+- Add JS func to move BG layers
+- Add functionality in main.js to scroll BG with controller input
+
 * Console Layer
   Create a bitmapped-font on-screen console for display text.
 ** DONE Write text drawing primitives in Cairo
