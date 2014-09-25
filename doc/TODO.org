@@ -20,6 +20,7 @@ The current sub-task
     - 8x13B is the most game-like misc-fixed font
     - 66 cols is "best" text line witdh
     - 33x20 16px blocks
+  - The 18x18ja font is cool, too
 - Create a 4-layer TMX map and PNG spritesheet
 - Put PNG, TMX and JS in PAK files
 - Interpret JS on startup
