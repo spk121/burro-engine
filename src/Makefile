@@ -106,10 +106,11 @@ SRCS_CPP = \
 	Background.cpp \
 	Interpreter.cpp \
 	ResHandle.cpp \
-	ResCache.cpp
+	ResCache.cpp \
+	ResourceFile.cpp 
 
 SRCS_JS  = \
-	script.js
+	main.js
 
 SRCS     = $(SRCS_C) $(SRCS_CPP)
 OBJS     = $(SRCS_C:.c=.o) \
@@ -125,8 +126,8 @@ all:     burro burro.iso ../tools/font/bdf-converter
 burro:   $(OBJS) burro.iso
 	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
-burro.iso: $(DATA)
-	genisoimage -o $@ data
+burro.iso: $(DATA) $(SRCS_JS)
+	genisoimage -o $@ data $(SRCS_JS)
 
 ecma48.cpp: ecma48.rl
 	ragel -o $@ ecma48.rl
