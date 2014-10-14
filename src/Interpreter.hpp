@@ -20,23 +20,26 @@
 
 #ifndef BURRO_INTERPRETER_H
 #define BURRO_INTERPRETER_H
-
+#include <string>
 #include "jsapi.hpp"
+
+using namespace std;
 
 class Interpreter {
 private:
-	JSClass global_class;
-	JSRuntime *rt;
-	JSContext *cx;
-	JSObject *global;
+    JSClass global_class;
+    JSRuntime *rt;
+    JSContext *cx;
+    JSObject *global;
 
 public:
-	Interpreter();
-	int initialize(bool unpacked_flag);
-	int finalize();
-	void do_console_command (char *str);
-	void do_idle(uint32_t delta_t);
-	void do_after_draw_frame(uint32_t delta_t);
+    Interpreter();
+    int Initialize();
+    int Finalize();
+    void Parse (const string& resource_name);
+    void Do_console_command (char *str);
+    void Do_idle(uint32_t delta_t);
+    void Do_after_draw_frame(uint32_t delta_t);
 };
 
 extern Interpreter interpreter;

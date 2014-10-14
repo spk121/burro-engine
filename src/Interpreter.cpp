@@ -17,12 +17,13 @@
    You should have received a copy of the GNU General Public License
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
- 
+
 #include <SDL.h>
 
 #include "jsapi.hpp"
 
 #include "Interpreter.hpp"
+#include "ResourceFile.hpp"
 #include "backdrop.hpp"
 #include "bg.hpp"
 #include "console.hpp"
@@ -43,53 +44,53 @@ js_console_error_reporter(JSContext *cx, const char *message, JSErrorReport *rep
 Interpreter interpreter{};
 
 Interpreter::Interpreter()
-	: global_class{ "global",
-		JSCLASS_NEW_RESOLVE | JSCLASS_GLOBAL_FLAGS,
-		JS_PropertyStub,
-		JS_DeletePropertyStub,
-		JS_PropertyStub,
-		JS_StrictPropertyStub,
-		JS_EnumerateStub,
-		JS_ResolveStub,
-		JS_ConvertStub,
-		nullptr,
-		JSCLASS_NO_OPTIONAL_MEMBERS},
-	rt {nullptr},
-	cx {nullptr},
-	global {nullptr}
-{	
+    : global_class{ "global",
+        JSCLASS_NEW_RESOLVE | JSCLASS_GLOBAL_FLAGS,
+        JS_PropertyStub,
+        JS_DeletePropertyStub,
+        JS_PropertyStub,
+        JS_StrictPropertyStub,
+        JS_EnumerateStub,
+        JS_ResolveStub,
+        JS_ConvertStub,
+        nullptr,
+        JSCLASS_NO_OPTIONAL_MEMBERS},
+    rt {nullptr},
+    cx {nullptr},
+    global {nullptr}
+{
 }
 
-int Interpreter::initialize(bool unpacked_flag)
+int Interpreter::Initialize()
 {
-	// JS_Init();
-	
+    // JS_Init();
+
     rt = JS_NewRuntime(8L * 1024 * 1024, JS_NO_HELPER_THREADS);
     if (!rt)
         return 1;
-	
+
     cx = JS_NewContext(rt, 8192);
     if (!cx)
         return 1;
-	
+
     /* Enter a request before running anything in the context */
     JSAutoRequest ar(cx);
-	
+
     /* Create the global object in a new compartment. */
     global = JS_NewGlobalObject(cx, &global_class, nullptr);
     if (!global) {
         fprintf(stderr, "can't create global object for javascript instance");
         abort();
     }
-	
+
     /* Set the context's global */
     JSAutoCompartment ac(cx, global);
     JS_SetGlobalObject(cx, global);
-	
+
     /* Populate the global object with the standard globals, like Object and Array. */
     if (!JS_InitStandardClasses(cx, global))
         return 1;
-	
+
     if (!JS_DefineFunctions(cx, global, backdrop_functions))
         return false;
     if (!JS_DefineFunctions(cx, global, bg_functions))
@@ -104,53 +105,26 @@ int Interpreter::initialize(bool unpacked_flag)
         return false;
     if (!JS_DefineFunctions(cx, global, ecma48_test_functions))
         return false;
-	
-	
-    JS_SetErrorReporter(cx, js_console_error_reporter);
-	
-    if (unpacked_flag) {
-        // Load in Javascript from the data path
-        SDL_RWops *fp = xSDL_RWFromDataFile("script.js", "r");
-        int64_t len = xSDL_RWseek(fp, 0, RW_SEEK_END);
-        xSDL_RWseek(fp, 0, RW_SEEK_SET);
-        char buf[len];          // FIXME - VLA
-        SDL_RWread(fp, buf, sizeof(buf), 1);
-        SDL_RWclose(fp);
-        JS::Value rval;
-        JSBool ok = JS_EvaluateScript(cx, global, buf, len, "script.js", 0, &rval);
-        SDL_assert(ok);
-    }
-    else {
-        // Load in Javascript from a data partition embedded in this executable
-#ifdef JS_SCRIPT_IS_PACKED
-        JS::Value rval;
-        JSBool ok;
-        ok = JS_EvaluateScript(cx, global, _binary_script_js_start,
-                               _binary_script_js_end - _binary_script_js_start,
-                               "(internal)", 0, &rval);
-        if (ok && !rval.isUndefined()) {
 
-            JSString *rval_as_jsstring = JS_ValueToString(cx, rval);
-            if (!rval_as_jsstring)
-                goto cont;
-            char *rval_as_str = JS_EncodeString(cx, rval_as_jsstring);
-            if (!rval_as_str)
-                goto cont;
-            printf("%s\n", rval_as_str);
-        }
-#else
-        printf("Error: no packed js script\n");
-        exit(1);
-#endif
-    }
-#ifdef JS_SCRIPT_IS_PACKED
- cont:
-#endif
-    
+
+    JS_SetErrorReporter(cx, js_console_error_reporter);
     return 0;
 }
 
-int Interpreter::finalize(void)
+void Interpreter::Parse (const string& resource_name)
+{
+    // Load in Javascript from the data path
+    vector<char> v = resource_file.Get_data (resource_name);
+    string s(v.begin(), v.end());
+
+    JSAutoCompartment ac(cx, global);
+
+    JS::Value rval;
+    JSBool ok = JS_EvaluateScript(cx, global, s.c_str(), strlen(s.c_str()), resource_name.c_str(), 0, &rval);
+    // SDL_assert(ok == JS_TRUE);
+}
+
+int Interpreter::Finalize(void)
 {
     JS_DestroyContext(cx);
     JS_DestroyRuntime(rt);
@@ -158,7 +132,7 @@ int Interpreter::finalize(void)
     return 0;
 }
 
-void Interpreter::do_idle(uint32_t delta_t)
+void Interpreter::Do_idle(uint32_t delta_t)
 {
     JS::Value argv[1], rval;
     argv[0].setNumber(delta_t);
@@ -166,7 +140,7 @@ void Interpreter::do_idle(uint32_t delta_t)
     JS_CallFunctionName(cx, global, "DoIdle", 1, argv, &rval);
 }
 
-void Interpreter::do_after_draw_frame(uint32_t delta_t)
+void Interpreter::Do_after_draw_frame(uint32_t delta_t)
 {
     JS::Value argv[1], rval;
     argv[0].setNumber(delta_t);
@@ -174,21 +148,21 @@ void Interpreter::do_after_draw_frame(uint32_t delta_t)
     JS_CallFunctionName(cx, global, "DoAfterDrawFrame", 1, argv, &rval);
 }
 
-void Interpreter::do_console_command (char *str)
+void Interpreter::Do_console_command (char *str)
 {
     JSAutoCompartment ac(cx, global);
 
     JS::Value rval;
-    
+
     if (JS_EvaluateScript(cx, global, str, strlen(str), "console", 0, &rval) == JS_TRUE)
     {
-		console_move_to_column(0);
-		console_erase_to_end_of_line();
+        console_move_to_column(0);
+        console_erase_to_end_of_line();
 
         if (!rval.isUndefined())
         {
             JSString *rval_as_jsstring = JS_ValueToString(cx, rval);
-            if (rval_as_jsstring) 
+            if (rval_as_jsstring)
             {
                 char *rval_as_str = JS_EncodeString(cx, rval_as_jsstring);
                 if (rval_as_str)
@@ -199,29 +173,29 @@ void Interpreter::do_console_command (char *str)
             }
             else
                 // rval can be represented as a string
-				console_write_utf8_string("(unexpressable)");
+                console_write_utf8_string("(unexpressable)");
         }
         else
             // Function doesn't return anything
-			console_write_utf8_string("OK");
+            console_write_utf8_string("OK");
 
-		console_move_down(1);
-		console_move_to_column(0);
+        console_move_down(1);
+        console_move_to_column(0);
     }
     else
     {
         // compilation failure
         JS_ReportPendingException(cx);
-    }   
+    }
 }
 
 static void
 js_console_error_reporter(JSContext *cx, const char *message, JSErrorReport *report)
 {
-	console_move_to_column(0);
-	console_erase_to_end_of_line();
+    console_move_to_column(0);
+    console_erase_to_end_of_line();
     console_write_utf8_string(message);
-	console_move_down(1);
-	console_move_to_column(0);
+    console_move_down(1);
+    console_move_to_column(0);
 }
 
