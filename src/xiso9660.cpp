@@ -13,7 +13,14 @@ map<unsigned int, string> xiso_file_hash {};
 static void
 build_hash (ISO9660::IFS& iso, const char psz_path[]);
 
-static unsigned int quick_hash(string str)
+void
+xiso9660_initialize_hash (ISO9660::IFS& iso)
+{
+    xiso_file_hash.empty();
+    build_hash(iso, "");
+}
+
+unsigned int quick_hash(string str)
 {
     unsigned int val = 0;
     for (size_t i = 0; i < str.size(); i ++)
@@ -52,9 +59,6 @@ ISO9660::IFS xiso9660_open(const string& name)
                      "Can't open ISO file '%s'", name.c_str());
         exit (1);
     }
-    xiso_file_hash.empty();
-    build_hash(iso, "");
-
     return iso;
 }
 
@@ -132,6 +136,10 @@ build_hash (ISO9660::IFS& iso, const char psz_path[])
             // full_name.erase(0,1);
             printf("%s\n", full_name.c_str());
             xiso_file_hash[quick_hash(full_name)] = full_name;
+            SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
+                         "Resource Hash: adding %s as %u",
+                         full_name.c_str(),
+                         quick_hash(full_name));
         }
     }
 }

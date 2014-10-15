@@ -4,6 +4,7 @@
 Here is the way forward for my strange game engine.
 
 The current sub-task
+
 - Choose a resolution
   - 480x270 is 1/4 of 1920x1080
     - 80 cols of 480 is 6 pixels per character cell
@@ -21,6 +22,7 @@ The current sub-task
     - 66 cols is "best" text line witdh
     - 33x20 16px blocks
   - The 18x18ja font is cool, too
+
 - Create a 4-layer TMX map and PNG spritesheet
 - Put PNG, TMX and JS in PAK files
 - Interpret JS on startup
@@ -36,7 +38,6 @@ The current sub-task
 ** DONE Write text drawing primitives in Cairo
 ** DONE Write ECMA-48 parser
 ** DONE Make a font
-
 * Console: JS
   Express a JS console with command line editing, command-line history,
   and maybe even some tab completion.
@@ -50,7 +51,7 @@ The current sub-task
 ** TODO Scripts to assemble the ISO files from TMX, PNG, WAV, and JS
 ** DONE Write a Filename-to-ID map class.
 ** DONE Populate a Filename-to-ID class from the contents of the reasource file
-
+   
 * Resource Cache
   The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
   It stores them in their intermediate forms, TmxMap classes, Cairo

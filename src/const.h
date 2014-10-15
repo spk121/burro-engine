@@ -33,7 +33,7 @@ extern "C" {
 // Main screen
 #define MAIN_SCREEN_WIDTH 640
 #define MAIN_SCREEN_HEIGHT 312
-#define MAIN_SCREEN_MAGNIFICATION 2
+#define MAIN_SCREEN_MAGNIFICATION 1
 
 // Backgrounds
 #define MAIN_BACKGROUNDS_COUNT 4
@@ -125,8 +125,8 @@ extern "C" {
 #define UNDERLINE_OFFSET        13 
 
 // FRAME_RATE
-#define UPDATE_RATE (100 / 60)	/* microseconds between logic updates */
-#define REFRESH_RATE (100 / 60) /* microseconds between frame redraws */
+#define UPDATE_RATE  (1000.0 / 60.0)	/* milliseconds between logic updates */
+#define REFRESH_RATE (1000.0 / 60.0) /* milliseconds between frame redraws */
 
 #ifdef __cplusplus
 }
