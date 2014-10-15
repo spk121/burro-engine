@@ -4,9 +4,23 @@
 Here is the way forward for my strange game engine.
 
 The current sub-task
-- Set font to 8x13 fixed and the console to 80x25 for 640px by 325 px
-(480 x 270 makes 80c 20r in the old 6x13 Misc-Fixed and is 1/4 of 1080p)
-- Set the screen size to 640 by 325 and the console to 80*25
+- Choose a resolution
+  - 480x270 is 1/4 of 1920x1080
+    - 80 cols of 480 is 6 pixels per character cell
+    - misc-fixed comes in 6x10, 6x12 and 6x13 for 27, 22, and 20 rows respectively
+    - old X11 fixed is 6x13
+    - 8x13B is the blockiest (thus gamiest) fixed font, for 60c  
+  - 352x288 is CIF
+    - 6x12 font gives 58c 24r
+  - 176x144 is QCIF 
+    - 6x9 font give 29c 16r
+  - 640x480 is VGA
+    - 8x13 font give 80c 36r
+  - 528x325
+    - 8x13B is the most game-like misc-fixed font
+    - 66 cols is "best" text line witdh
+    - 33x20 16px blocks
+  - The 18x18ja font is cool, too
 - Create a 4-layer TMX map and PNG spritesheet
 - Put PNG, TMX and JS in PAK files
 - Interpret JS on startup
