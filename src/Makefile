@@ -87,7 +87,6 @@ SRCS_C   = \
 
 SRCS_CPP = \
 	backdrop.cpp \
-	bg.cpp \
 	console.cpp \
 	draw.cpp \
 	ecma48.cpp \
@@ -118,7 +117,7 @@ OBJS     = $(SRCS_C:.c=.o) \
 
 AUX      = const.h
 
-DATA = data/map1.tmx
+DATA = data/map1.tmx data/pics/cave.png
 
 .PHONY:  all
 all:     burro burro.iso ../tools/font/bdf-converter

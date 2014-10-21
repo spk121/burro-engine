@@ -1,4 +1,4 @@
-/* Interpreter.hpp -- the SpiderMonkey binding
+/* obj.hpp -- Object (sprite) functions
 
    Copyright 2014, Michael L. Gran
 
@@ -18,33 +18,18 @@
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#ifndef BURRO_INTERPRETER_H
-#define BURRO_INTERPRETER_H
-#include <string>
+#ifndef BURRO_OBJ_H
+#define BURRO_OBJ_H
+
+#include <cairo.h>
 #include "jsapi.hpp"
 
-using namespace std;
+bool             obj_is_shown (int id);
+cairo_surface_t *obj_render_to_cairo_surface (int id);
+int              obj_get_priority (int id);
+void             obj_get_location (int id, double *x, double *y, double *rotation_center_x,
+                                   double *rotation_center_y, double *rotation, double *expansion);
 
-class Interpreter {
-private:
-    JSClass global_class;
-    JSRuntime *rt;
-    JSContext *cx;
-    JSObject *global;
-
-private:
-    void Do_uint32_func (const string& name, uint32_t val);
-    
-public:
-    Interpreter();
-    int Initialize();
-    int Finalize();
-    void Parse (const string& resource_name);
-    void Do_console_command (char *str);
-    void Do_idle(uint32_t delta_t);
-    void Do_after_draw_frame(uint32_t delta_t);
-};
-
-extern Interpreter interpreter;
+extern JSFunctionSpec obj_functions[13];
 
 #endif

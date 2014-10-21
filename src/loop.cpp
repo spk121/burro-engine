@@ -43,7 +43,7 @@ Loop::Loop()
 	initialized_flag{false},
 	minimized_flag{false},
 	quitting_flag{false},
-	run_full_speed_flag{true},
+	run_full_speed_flag{false},
 	update_count{0},
 	draw_count{0},
 	before_update_time{0},

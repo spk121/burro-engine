@@ -55,6 +55,24 @@
 #define DECLARE_BOOL_FUNC_VOID(NAME1, NAME2)    \
     JS_FS(#NAME1, NAME1, 0, 0),
 
+#define DEFINE_DOUBLE_FUNC_INT(NAME1, NAME2)                  \
+    static JSBool                                             \
+    NAME1 (JSContext *cx, unsigned argc, jsval *vp)           \
+    {                                                         \
+        jsval* argv = JS_ARGV(cx, vp);                        \
+        int n;                                                \
+        if(!JS_ConvertArguments(cx, argc, argv, "i", &n))     \
+            return JS_FALSE;                                  \
+        double r = NAME2 (n);                                 \
+        JS::Value ret;                                        \
+        ret.setNumber(r);                                     \
+        JS_SET_RVAL(cx, vp, ret);                             \
+        return JS_TRUE;                                       \
+    }
+
+#define DECLARE_DOUBLE_FUNC_INT(NAME1, NAME2)   \
+    JS_FS(#NAME1, NAME1, 1, 0),
+
 #define DEFINE_DOUBLE_FUNC_VOID(NAME1, NAME2)       \
     static JSBool                                   \
     NAME1 (JSContext *cx, unsigned argc, jsval *vp) \
@@ -119,6 +137,24 @@
 #define DECLARE_VOID_FUNC_INT(NAME1, NAME2)     \
     JS_FS(#NAME1, NAME1, 1, 0),
 
+
+#define DEFINE_VOID_FUNC_INT_DOUBLE(NAME1, NAME2)                       \
+    static JSBool                                                       \
+    NAME1 (JSContext *cx, unsigned argc, jsval *vp)                     \
+    {                                                                   \
+        jsval* argv = JS_ARGV(cx, vp);                                  \
+        int i1;                                                         \
+        double d1;                                                      \
+        if(!JS_ConvertArguments(cx, argc, argv, "id", &i1, &d1))        \
+            return JS_FALSE;                                            \
+        NAME2 (i1, d1);                                                 \
+        JS_SET_RVAL(cx, vp, JSVAL_VOID);                                \
+        return JS_TRUE;                                                 \
+    }                                                                   \
+    
+#define DECLARE_VOID_FUNC_INT_DOUBLE(NAME1, NAME2)  \
+    JS_FS(#NAME1, NAME1, 2, 0),
+
 #define DEFINE_VOID_FUNC_INT_DOUBLEx2(NAME1, NAME2)                     \
     static JSBool                                                       \
     NAME1 (JSContext *cx, unsigned argc, jsval *vp)                     \
@@ -136,6 +172,22 @@
 #define DECLARE_VOID_FUNC_INT_DOUBLEx2(NAME1, NAME2)    \
     JS_FS(#NAME1, NAME1, 3, 0),
 
+#define DEFINE_VOID_FUNC_INT_DOUBLEx7(NAME1, NAME2)                     \
+    static JSBool                                                       \
+    NAME1 (JSContext *cx, unsigned argc, jsval *vp)                     \
+    {                                                                   \
+        jsval* argv = JS_ARGV(cx, vp);                                  \
+        int i1;                                                         \
+        double d1, d2, d3, d4, d5, d6, d7;                                 \
+        if(!JS_ConvertArguments(cx, argc, argv, "iddddddd", &i1, &d1, &d2, &d3, &d4, &d5, &d6, &d7)) \
+            return JS_FALSE;                                            \
+        NAME2 (i1, d1, d2, d3, d4, d5, d6, d7);                            \
+        JS_SET_RVAL(cx, vp, JSVAL_VOID);                                \
+        return JS_TRUE;                                                 \
+    }                                                                   \
+
+#define DECLARE_VOID_FUNC_INT_DOUBLEx7(NAME1, NAME2)    \
+    JS_FS(#NAME1, NAME1, 8, 0),
 
 #define DEFINE_VOID_FUNC_INTx2(NAME1, NAME2)                    \
     static JSBool                                               \

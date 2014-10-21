@@ -40,13 +40,8 @@ int main(int argc, char** argv)
             break;
         }
     }
-    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
-        fprintf(stderr, 
-                "\nUnable to initialize SDL:  %s\n",
-                SDL_GetError()
-                );
-        return 1;
-    }
+    
+    xSDL_Init_or_die (SDL_INIT_VIDEO | SDL_INIT_TIMER);
     SDL_LogSetAllPriority(SDL_LOG_PRIORITY_DEBUG);
     eng_initialize();
 
@@ -78,7 +73,7 @@ int main(int argc, char** argv)
 
     draw_initialize();
     lineedit_initialize();
-    bg_set_brightness(1.0);
+    // bg_set_brightness(1.0);
     
     console_reset();
     ecma48_init();

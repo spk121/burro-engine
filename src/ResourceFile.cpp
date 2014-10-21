@@ -9,9 +9,14 @@ ResourceFile resource_file {};
 unsigned int ResourceFile::Quick_hash (const string& str)
 {
     unsigned int val = 0;
-    for(const char& c : str) {
-        val = val * 101 + c;
+    for (size_t i = 0; i < str.size(); i ++) {
+        char c = str[i];
+        if (c == '\0')
+            break;
+        val = val * 101 + (unsigned char) c;
+        val = val & 0xFFFF;
     }
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Resource File Quick Hash: \"%s\" = %x", str.c_str(), val);
     return val;
 }
 
@@ -75,7 +80,7 @@ void ResourceFile::Build_hash (const string& path)
                                        (char *) full_name.c_str(),
                                        i_joliet_level);
         }
-        full_name.insert(0, path.c_str());
+       full_name = full_name.insert(0, path);
 
         // Recursively descend into subdirectories
         if (p_statbuf->type == 2 /* _STAT_DIR */
@@ -92,7 +97,7 @@ void ResourceFile::Build_hash (const string& path)
             printf("%s\n", full_name.c_str());
             xiso_file_hash[Quick_hash(full_name)] = full_name;
             SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION,
-                         "Resource Hash: adding %s as %u",
+                         "Resource Hash: adding \"%s\" as %x",
                          full_name.c_str(),
                          Quick_hash(full_name));
         }
@@ -138,7 +143,7 @@ vector<char> ResourceFile::Get_data(const string& resource_name)
 
     // Read the data from the buffer in 2K blocks
     for (size_t i = 0; i < block_length; i += ISO_BLOCKSIZE) {
-        long int bytes_read = iso_file.seek_read(buffer.data() + i * ISO_BLOCKSIZE,
+        long int bytes_read = iso_file.seek_read(buffer.data() + i,
                                                  s->p_stat->lsn + (i / ISO_BLOCKSIZE));
         // Assert something if bytes_read != ISO_BLOCKSIZE
     }

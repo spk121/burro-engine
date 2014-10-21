@@ -1,11 +1,13 @@
 #include "SDL.h"
 #include "ResCache.hpp"
 #include "xiso9660.hpp"
+#include "ResourceFile.hpp"
 
-ResCache::ResCache(const unsigned int size_in_MB, string pack_filename)
+ResCache resource_cache {10};
+
+ResCache::ResCache(const unsigned int size_in_MB)
     : m_lru {},
     m_resources {},
-    m_file {xiso9660_open (pack_filename)},
     m_cache_size {size_in_MB * 1024 * 1024},
     m_allocated {0}
 {
@@ -16,7 +18,6 @@ ResCache::~ResCache()
 {
     while (m_lru.size() > 0)
         Free_oldest_resource();
-    xiso9660_close(m_file);
 }
 
 // Get the contents of a resource by ID, while, at the same time,
@@ -28,6 +29,7 @@ void* ResCache::Get(unsigned int ID)
         return Load(ID);
     return Update(handle);
 }
+
 
 // Look for resource by ID.
 // Return a handle to the resource, or NULL on failure.
@@ -67,18 +69,19 @@ void* ResCache::Update(ResHandle* handle)
 void* ResCache::Load(unsigned int ID)
 {
     // Look of the filename in the strings-to-ID table
-    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Resource Cache: Loading %u", ID);
-    auto i = xiso_file_hash.find(ID);
-    if (i == xiso_file_hash.end()) {
+    SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Resource Cache: Loading %x", ID);
+    auto i = resource_file.xiso_file_hash.find(ID);
+    if (i == resource_file.xiso_file_hash.end()) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
-                     "Resource Cache: no such ID: %u", ID);
+                     "Resource Cache: no such ID: %x", ID);
         return NULL;
     }
 
     // Get the data in its file format
     string name = (*i).second;
     // ISO9660::IFS iso_file = xiso9660_open("data.iso");
-    vector<char> data = xiso9660_get_data(m_file, name);
+    // vector<char> data = xiso9660_get_data(m_file, name);
+    vector<char> data = resource_file.Get_data(name);
     // xiso9660_close(iso_file);
 
     // Unpack the data from its file format to its resource

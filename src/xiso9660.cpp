@@ -20,11 +20,13 @@ xiso9660_initialize_hash (ISO9660::IFS& iso)
     build_hash(iso, "");
 }
 
-unsigned int quick_hash(string str)
+unsigned int quick_hash(const string& str)
 {
     unsigned int val = 0;
-    for (size_t i = 0; i < str.size(); i ++)
-        val = val * 101 + str[i];
+    for (size_t i = 0; i < str.size(); i ++) {
+        val = val * 101 + (unsigned char) (str[i]);
+        val = val & 0xFFFF;
+    }
     return val;
 }
 
@@ -78,7 +80,7 @@ vector<char> xiso9660_get_data(ISO9660::IFS& iso, const string& name)
 
     // Read the data from the buffer in 2K blocks
     for (size_t i = 0; i < block_length; i += ISO_BLOCKSIZE) {
-        long int bytes_read = iso.seek_read(buffer.data() + i * ISO_BLOCKSIZE,
+        long int bytes_read = iso.seek_read(buffer.data() + i,
                                             s->p_stat->lsn + (i / ISO_BLOCKSIZE));
         // Assert something if bytes_read != ISO_BLOCKSIZE
     }

@@ -26,18 +26,78 @@
 #include "xsdl.hpp"
 #include "tmx.hpp"
 // #include "bg2.hpp"
-#include "xiso9660.hpp"
+// #include "xiso9660.hpp"
 #include "xcairo.hpp"
 #include "ResCache.hpp"
-#include "tmx.hpp"
 #include <cstdio>
 #include <cstdlib>
 #include <algorithm>
+#include "ResourceFile.hpp"
+
+#include "jsapi.hpp"
+#include "js_func.hpp"
+
 
 using namespace std;
 using namespace Tmx;
 
+Map tmx_map {};
+
+static unsigned int quick_hash(const string& str)
+{
+    unsigned int val = 0;
+    for (size_t i = 0; i < str.size(); i ++) {
+        if (str[i] == '\0')
+            break;
+        val = val * 101 + (unsigned char) str[i];
+        val = val & 0xFFFF;
+    }
+    // SDL_LogDebug(SDL_LOG_CATEGORY_APPLICATION, "Tmx Quick Hash: \"%s\" = %x", str.c_str(), val);   
+    return val;
+}
+
+
 void tmx_draw_layer(cairo_t* screen, Map& map, Layer* layer);
+
+void tmx_set_map_from_resource (string resource_name)
+{
+    vector<char> data = resource_file.Get_data(resource_name);
+    string text {data.begin(), data.end()};
+    
+    tmx_map.ParseText(text);
+
+	if (tmx_map.HasError()) {
+		SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+					 "Can't open map file: %s, %d, %s",
+					 resource_name.c_str(),
+					 tmx_map.GetErrorCode(),
+					 tmx_map.GetErrorText().c_str());
+	}
+
+#if 0
+
+// Properties of the map
+	auto map_properties = tmx_map.GetProperties().GetList();
+	bg.colorswap = stoi(map_properties["colorswap"]);
+	bg.brightness = stod(map_properties["brightness"]);
+
+	int map_width = tmx_map.GetWidth(); // In tiles
+	int map_height = tmx_map.GetHeight();
+
+	
+	// Load the map layers. A vector of pointers to layers.
+	auto layers = tmx_map.GetLayers();
+	bg.layers.clear();
+	for_each(layers.begin(), layers.end(),
+			 [](Layer* layer) { bg.add_tmx_layer(layer); });
+
+	bg.tilesets.clear();
+	auto tilesets = tmx_map.GetTilesets();
+	for_each(tilesets.begin(), tilesets.end(),
+			 [](Tileset* tileset) { bg.add_tmx_tileset(tileset); });
+#endif
+}
+
 cairo_surface_t* tmx_render_layer_to_cairo_surface(Map &map, int z_level, ResCache& resource_cache)
 {
     for (auto layer : map.GetLayers()) {
@@ -75,24 +135,31 @@ cairo_surface_t* tmx_render_map_layer_to_cairo_surface(Map& map1, Layer* layer, 
     int target_stride = xcairo_image_surface_get_argb32_stride (target_surface);
     xcairo_surface_flush (target_surface);
 
-    for (int target_tile_row_index; target_tile_row_index < map1.GetHeight(); target_tile_row_index ++) {
-        for (int target_tile_column_index; target_tile_column_index < map1.GetWidth(); target_tile_column_index ++) {
-            const Tileset *tilesheet_for_current_tile = map1.FindTileset(layer->GetTileId(target_tile_column_index, target_tile_row_index));
+    for (int target_tile_row_index = 0; target_tile_row_index < map1.GetHeight(); target_tile_row_index ++) {
+        for (int target_tile_column_index = 0; target_tile_column_index < map1.GetWidth(); target_tile_column_index ++) {
+
+            // If the tileset index for this cell is zero, this cell is unpopulated
+            int tileset_index = layer->GetTileTilesetIndex (target_tile_column_index, target_tile_row_index);
+            if (tileset_index < 0)
+                continue;
+            
+            int tile_id = layer->GetTileId(target_tile_column_index, target_tile_row_index);
+            
+            const Tileset *tilesheet_for_current_tile = map1.GetTileset(tileset_index);
             const Image *tmx_image_for_current_tile = tilesheet_for_current_tile->GetImage();
             cairo_surface_t* tilesheet_surface = (cairo_surface_t*) resource_cache.Get(quick_hash(tmx_image_for_current_tile->GetSource()));
             uint32_t* tilesheet_argb32_data = xcairo_image_surface_get_argb32_data (tilesheet_surface);
             
-            int map_index  = layer->GetTileId(target_tile_column_index, target_tile_row_index) - tilesheet_for_current_tile->GetFirstGid();
             int image_width = tmx_image_for_current_tile->GetWidth();
             // int image_height = tmx_image_for_current_tile->GetHeight();
             int tilesheet_margin = tilesheet_for_current_tile->GetMargin();
             int tilesheet_spacing = tilesheet_for_current_tile->GetSpacing();
             int tile_width = tilesheet_for_current_tile->GetTileWidth();
             int tile_height = tilesheet_for_current_tile->GetTileHeight();
-            int tilesheet_width_in_tiles = (image_width - 2*tilesheet_margin) / (tile_width + tilesheet_spacing);
+            int tilesheet_width_in_tiles = (image_width - 2 * tilesheet_margin) / (tile_width + tilesheet_spacing);
             // int tilesheet_height_in_tiles = (image_height - 2*tilesheet_margin) / (tile_height + tilesheet_spacing);
-            int tilesheet_tile_row_index = map_index / tilesheet_width_in_tiles;
-            int tilesheet_tile_column_index = map_index % tilesheet_width_in_tiles;
+            int tilesheet_tile_row_index = tile_id / tilesheet_width_in_tiles;
+            int tilesheet_tile_column_index = tile_id % tilesheet_width_in_tiles;
             int tilesheet_pixel_column_index_start = tilesheet_margin + tilesheet_tile_column_index * (tile_width + tilesheet_spacing);
             int tilesheet_pixel_row_index_start = tilesheet_margin + tilesheet_tile_row_index * (tile_height + tilesheet_spacing);
             int tilesheet_stride = xcairo_image_surface_get_argb32_stride (tilesheet_surface);
@@ -260,6 +327,7 @@ int tmx_load(string mapname)
 }
 #endif
 
+#if 0
 int tmx_debug() {
     string data_path{xsdl_get_data_path()};
     data_path.append("burro.iso");
@@ -406,3 +474,12 @@ int tmx_debug() {
 
 	return 0;
 }
+#endif
+
+DEFINE_VOID_FUNC_STRING(TmxSetMapFromResource, tmx_set_map_from_resource)
+
+JSFunctionSpec tmx_functions[2] = {
+    DECLARE_VOID_FUNC_STRING(TmxSetMapFromResource, tmx_set_map_from_resource)
+    JS_FS_END
+};
+

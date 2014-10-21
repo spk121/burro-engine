@@ -26,6 +26,8 @@
 #include "const.h"
 #include "xcairo.hpp"
 #include <array>
+#include "jsapi.hpp"
+#include "js_func.hpp"
 
 using namespace std;
 using namespace Tmx;
@@ -49,23 +51,25 @@ struct Background_Layer {
     /** the rotation angle of the background about its rotation
      * center, in radians */
     double rotation;
+
+    /** zero is transparent. one is default */
+    double opacity;
     
     /** The image data of the layer as a Cairo surface. */
     cairo_surface_t* surface;
 };
 
 struct Background {
-	bool colorswap;
-	double brightness;
     array<Background_Layer, MAIN_BACKGROUNDS_COUNT> layers;
 
     void Reset();
     void Update_layer_from_cairo_surface (cairo_surface_t *layer, int z_level);
     void Update_layers_from_tmx_map(Map& map, ResCache& resource_cache);
     void Draw_zlevel_to_context(cairo_t *screen, int z_level);
-    
 };
 
 extern Background bg;
+extern JSFunctionSpec background_functions[16];
+
 
 #endif

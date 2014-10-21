@@ -11,7 +11,6 @@ class ResourceFile
 {
 private:
     ISO9660::IFS iso_file;
-    map<unsigned int, string> xiso_file_hash;
 
     static unsigned int Quick_hash (const string& str);
     static bool Check_file_exists (const string& name);
@@ -22,6 +21,8 @@ private:
     void Build_hash (const string& path);
 
 public:
+    map<unsigned int, string> xiso_file_hash;
+
     void Open (const string& iso_name);
     void Close (void);
     vector<char> Get_data(const string& resource_name);

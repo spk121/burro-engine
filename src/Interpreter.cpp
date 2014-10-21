@@ -19,6 +19,7 @@
    <http://www.gnu.org/licenses/>. */
 
 #include <SDL.h>
+#include <vector>
 
 #include "jsapi.hpp"
 
@@ -32,6 +33,8 @@
 #include "loop.hpp"
 #include "xsdl.hpp"
 #include "ecma48_test.hpp"
+#include "tmx.hpp"
+#include "Background.hpp"
 
 #ifdef JS_SCRIPT_IS_PACKED
 extern char _binary_script_js_start[];
@@ -91,22 +94,24 @@ int Interpreter::Initialize()
     if (!JS_InitStandardClasses(cx, global))
         return 1;
 
-    if (!JS_DefineFunctions(cx, global, backdrop_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, bg_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, console_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, eng_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, obj_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, game_loop_functions))
-        return false;
-    if (!JS_DefineFunctions(cx, global, ecma48_test_functions))
-        return false;
-
-
+    vector<const JSFunctionSpec *> functions {
+        backdrop_functions,
+            // bg_functions,
+            console_functions,
+            eng_functions,
+            obj_functions,
+            game_loop_functions,
+            ecma48_test_functions,
+            tmx_functions,
+            background_functions
+            };
+    
+    all_of (functions.begin(),
+            functions.end(),
+            [=](const JSFunctionSpec *list) {
+                return (JS_DefineFunctions(cx, global, (list)) == JS_TRUE);
+            });
+    
     JS_SetErrorReporter(cx, js_console_error_reporter);
     return 0;
 }
@@ -120,8 +125,7 @@ void Interpreter::Parse (const string& resource_name)
     JSAutoCompartment ac(cx, global);
 
     JS::Value rval;
-    JSBool ok = JS_EvaluateScript(cx, global, s.c_str(), strlen(s.c_str()), resource_name.c_str(), 0, &rval);
-    // SDL_assert(ok == JS_TRUE);
+    JS_EvaluateScript(cx, global, s.c_str(), strlen(s.c_str()), resource_name.c_str(), 0, &rval);
 }
 
 int Interpreter::Finalize(void)
@@ -132,20 +136,22 @@ int Interpreter::Finalize(void)
     return 0;
 }
 
-void Interpreter::Do_idle(uint32_t delta_t)
+void Interpreter::Do_uint32_func (const string& name, uint32_t val)
 {
     JS::Value argv[1], rval;
-    argv[0].setNumber(delta_t);
+    argv[0].setNumber(val);
     JSAutoCompartment ac(cx, global);
-    JS_CallFunctionName(cx, global, "DoIdle", 1, argv, &rval);
+    JS_CallFunctionName(cx, global, name.c_str(), 1, argv, &rval);
+}
+
+void Interpreter::Do_idle(uint32_t delta_t)
+{
+    Do_uint32_func("DoIdle", delta_t);
 }
 
 void Interpreter::Do_after_draw_frame(uint32_t delta_t)
 {
-    JS::Value argv[1], rval;
-    argv[0].setNumber(delta_t);
-    JSAutoCompartment ac(cx, global);
-    JS_CallFunctionName(cx, global, "DoAfterDrawFrame", 1, argv, &rval);
+    Do_uint32_func("DoAfterDrawFrame", delta_t);
 }
 
 void Interpreter::Do_console_command (char *str)

@@ -1,4 +1,4 @@
-/* Interpreter.hpp -- the SpiderMonkey binding
+/* utf.hpp -- Unicode functions
 
    Copyright 2014, Michael L. Gran
 
@@ -18,33 +18,11 @@
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#ifndef BURRO_INTERPRETER_H
-#define BURRO_INTERPRETER_H
-#include <string>
-#include "jsapi.hpp"
+#ifndef BURRO_UTF_H
+#define BURRO_UTF_H
 
-using namespace std;
-
-class Interpreter {
-private:
-    JSClass global_class;
-    JSRuntime *rt;
-    JSContext *cx;
-    JSObject *global;
-
-private:
-    void Do_uint32_func (const string& name, uint32_t val);
-    
-public:
-    Interpreter();
-    int Initialize();
-    int Finalize();
-    void Parse (const string& resource_name);
-    void Do_console_command (char *str);
-    void Do_idle(uint32_t delta_t);
-    void Do_after_draw_frame(uint32_t delta_t);
-};
-
-extern Interpreter interpreter;
+size_t   mbs_len (const char *s);
+wchar_t* mbs_to_wcs_alloc(const char *s);
+wchar_t* utf8_to_wcs_alloc(const char *s);
 
 #endif

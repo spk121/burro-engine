@@ -1,4 +1,4 @@
-/* Interpreter.hpp -- the SpiderMonkey binding
+/* xsdl2.hpp -- helper functions for the SDL2 library
 
    Copyright 2014, Michael L. Gran
 
@@ -18,33 +18,20 @@
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#ifndef BURRO_INTERPRETER_H
-#define BURRO_INTERPRETER_H
-#include <string>
-#include "jsapi.hpp"
+#ifndef BURRO_XSDL_H
+#define BURRO_XSDL_H
 
-using namespace std;
+#include <SDL.h>
+#include <stdint.h>
 
-class Interpreter {
-private:
-    JSClass global_class;
-    JSRuntime *rt;
-    JSContext *cx;
-    JSObject *global;
-
-private:
-    void Do_uint32_func (const string& name, uint32_t val);
-    
-public:
-    Interpreter();
-    int Initialize();
-    int Finalize();
-    void Parse (const string& resource_name);
-    void Do_console_command (char *str);
-    void Do_idle(uint32_t delta_t);
-    void Do_after_draw_frame(uint32_t delta_t);
-};
-
-extern Interpreter interpreter;
+void        xsdl_init_file_io (void);
+const char* xsdl_get_data_path (void);
+uint8_t     xsdl_read_uint8 (SDL_RWops *context);
+size_t      xsdl_read_char_array (char *ptr, size_t len, SDL_RWops *istream);
+size_t      xsdl_read_uint8_array (uint8_t *ptr, size_t len, SDL_RWops *istream);
+size_t      xsdl_read_rle_array (void *data, size_t size, size_t count, SDL_RWops* istream);
+SDL_RWops*  xSDL_RWFromDataFile(const char *file, const char *mode);
+int64_t     xSDL_RWseek(SDL_RWops* context, int64_t offset, int whence);
+void        xSDL_Init_or_die (uint32_t flags);
 
 #endif

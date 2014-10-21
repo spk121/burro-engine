@@ -1,4 +1,4 @@
-/* Interpreter.hpp -- the SpiderMonkey binding
+/* eng.hpp -- Top-level graphics engine
 
    Copyright 2014, Michael L. Gran
 
@@ -18,33 +18,24 @@
    along with Project Burro.  If not, see
    <http://www.gnu.org/licenses/>. */
 
-#ifndef BURRO_INTERPRETER_H
-#define BURRO_INTERPRETER_H
-#include <string>
+#ifndef BURRO_ENG_H
+#define BURRO_ENG_H
+
 #include "jsapi.hpp"
 
-using namespace std;
+void eng_initialize ();
 
-class Interpreter {
-private:
-    JSClass global_class;
-    JSRuntime *rt;
-    JSContext *cx;
-    JSObject *global;
+void eng_present();
+void eng_finalize();
+void eng_initialize();
+void eng_set_brightness(double b);
+double eng_get_brightness();
+void eng_uncolorswap();
+void eng_colorswap();
+bool eng_is_colorswap();
+void eng_unblank();
+void eng_blank();
+bool eng_is_blank();
 
-private:
-    void Do_uint32_func (const string& name, uint32_t val);
-    
-public:
-    Interpreter();
-    int Initialize();
-    int Finalize();
-    void Parse (const string& resource_name);
-    void Do_console_command (char *str);
-    void Do_idle(uint32_t delta_t);
-    void Do_after_draw_frame(uint32_t delta_t);
-};
-
-extern Interpreter interpreter;
-
+extern JSFunctionSpec eng_functions[9];
 #endif
