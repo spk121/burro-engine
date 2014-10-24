@@ -90,6 +90,10 @@ void Loop::go ()
             if (console_flag && (e.type == SDL_KEYDOWN || e.type == SDL_TEXTINPUT)) {
                 do_console_event(e);
                 continue;
+            } else if (!console_flag
+                       && (e.type == SDL_KEYDOWN || e.type == SDL_KEYUP)
+                       && !(e.type == SDL_KEYDOWN && e.key.repeat == true)) {
+                do_keypress_event(e);
             }
 			
             switch(e.type) {
@@ -194,6 +198,10 @@ void Loop::do_console_event (SDL_Event e)
                 }
                 lineedit_start(buf, 200, L"->");
             }
+            if (e.key.keysym.scancode == SDL_SCANCODE_GRAVE) {
+                set_console_mode(false);
+                return;
+            }
         }
         break;
     case SDL_TEXTEDITING:
@@ -218,6 +226,24 @@ void Loop::do_console_event (SDL_Event e)
         break;
     }
 }
+
+void Loop::do_keypress_event (SDL_Event e)
+{
+    bool press = (e.type == SDL_KEYDOWN);
+    if (e.key.keysym.scancode == SDL_SCANCODE_W || e.key.keysym.scancode == SDL_SCANCODE_UP)
+        interpreter.Do_keypress(EVENT_UP, press, SDL_GetTicks());
+    else if (e.key.keysym.scancode == SDL_SCANCODE_S || e.key.keysym.scancode == SDL_SCANCODE_DOWN)
+        interpreter.Do_keypress(EVENT_DOWN, press, SDL_GetTicks());
+    else if (e.key.keysym.scancode == SDL_SCANCODE_A || e.key.keysym.scancode == SDL_SCANCODE_LEFT)
+        interpreter.Do_keypress(EVENT_LEFT, press, SDL_GetTicks());
+    else if (e.key.keysym.scancode == SDL_SCANCODE_D || e.key.keysym.scancode == SDL_SCANCODE_RIGHT)
+        interpreter.Do_keypress(EVENT_RIGHT, press, SDL_GetTicks());
+    else if (e.key.keysym.scancode == SDL_SCANCODE_GRAVE && press == true) {
+        set_console_mode(true);
+    }
+}
+
+
 
 bool Loop::on_idle (void)
 {

@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include "ResHandle.hpp"
+#include <cstring>
 
 using namespace std;
 // Given a vector that contains the data from a file from our resource pack,
@@ -17,6 +18,8 @@ ResHandle::ResHandle(unsigned int id, string name, vector<char>& data)
     // The parsing depends on the suffix of the filename.
     if (name.rfind(".png") != string::npos) {
         Extract_png_data(data);
+    } else if (name.rfind(".jsn") != string::npos) {
+        Extract_string_data(data);
     }
 }
 
@@ -52,6 +55,15 @@ void ResHandle::Extract_png_data(vector<char>& data)
         int stride = cairo_image_surface_get_stride(surf);
         m_size = height * stride;
     }
+}
+
+void ResHandle::Extract_string_data(vector<char>& data)
+{
+    string str {data.begin(), data.end()};
+    char *c_str = strdup(str.c_str());
+    size_t c_len = strlen(c_str);
+    m_buffer = static_cast<void *>(c_str);
+    m_size = c_len;
 }
 
 void* ResHandle::get()

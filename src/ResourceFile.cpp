@@ -143,9 +143,9 @@ vector<char> ResourceFile::Get_data(const string& resource_name)
 
     // Read the data from the buffer in 2K blocks
     for (size_t i = 0; i < block_length; i += ISO_BLOCKSIZE) {
-        long int bytes_read = iso_file.seek_read(buffer.data() + i,
-                                                 s->p_stat->lsn + (i / ISO_BLOCKSIZE));
-        // Assert something if bytes_read != ISO_BLOCKSIZE
+        iso_file.seek_read(buffer.data() + i,
+                           s->p_stat->lsn + (i / ISO_BLOCKSIZE));
+        // FIXME: maybe warn if bytes read != ISO_BLOCKSIZE
     }
 
     // The last block may need to be trimmed to the true file length.

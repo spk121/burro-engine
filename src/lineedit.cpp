@@ -83,13 +83,16 @@ void linenoiseClearScreen(void) {
 
 /* Beep, used for completion when there is nothing to complete or when all
  * the choices were already shown. */
+#if 0
 static void linenoiseBeep(void) {
     console_bell();
 }
+#endif
 
 /* ============================== Completion ================================ */
 
 /* Free a list of completion option populated by linenoiseAddCompletion(). */
+#if 0
 static void freeCompletions(linenoiseCompletions *lc) {
     size_t i;
     for (i = 0; i < lc->len; i++)
@@ -97,6 +100,7 @@ static void freeCompletions(linenoiseCompletions *lc) {
     if (lc->cvec != NULL)
         free(lc->cvec);
 }
+#endif
 
 /* This is an helper function for linenoiseEdit() and is called when the
  * user types the <tab> key in order to complete the string currently in the
@@ -499,6 +503,7 @@ void lineedit_finalize()
 
 /* Free the history, but does not reset it. Only used when we have to
 * exit() to avoid memory leaks are reported by valgrind & co. */
+#if 0
 static void freeHistory(void)
 {
     if (history) {
@@ -509,12 +514,15 @@ static void freeHistory(void)
         free(history);
     }
 }
+#endif
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
+#if 0
 static void linenoiseAtExit(void)
 {
     freeHistory();
 }
+#endif
 
 /* This is the API call to add a new entry in the linenoise history.
 * It uses a fixed array of char pointers that are shifted (memmoved)

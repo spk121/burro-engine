@@ -25,6 +25,13 @@
 
 using namespace std;
 
+enum Interpreter_event {
+    EVENT_UP,
+    EVENT_DOWN,
+    EVENT_LEFT,
+    EVENT_RIGHT
+};
+
 class Interpreter {
 private:
     JSClass global_class;
@@ -43,6 +50,7 @@ public:
     void Do_console_command (char *str);
     void Do_idle(uint32_t delta_t);
     void Do_after_draw_frame(uint32_t delta_t);
+    void Do_keypress (Interpreter_event event, bool begin, uint32_t ticks);
 };
 
 extern Interpreter interpreter;

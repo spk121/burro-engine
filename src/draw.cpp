@@ -9,9 +9,9 @@
 #include "Background.hpp"
 #include "draw.hpp"
 #include "eng.hpp"
-#include "obj.hpp"
 #include "console.hpp"
-
+#include "Object.hpp"
+#include "loop.hpp"
 
 void bg_draw_zlevel(cairo_t *screen, int priority);
 
@@ -57,8 +57,9 @@ void draw (void)
                     draw_obj (id);
             }
         }
-    }        
-    draw_console_layer();
+    }
+    if (loop.get_console_mode())
+        draw_console_layer();
 
     xcairo_surface_mark_dirty (main_screen_surface);
 }

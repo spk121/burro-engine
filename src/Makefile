@@ -22,8 +22,11 @@ SHELL = /bin/sh
 
 srcdir = .
 
-CC       = gcc --std=c11
-CXX      = g++ --std=c++11
+CC       = gcc --std=c11 -fdiagnostics-color -fmessage-length=78
+CXX      = g++ --std=c++11 -fdiagnostics-color -fmessage-length=78
+
+################################################################
+# FLAGS
 
 CPPFLAGS = \
 	-Wall \
@@ -38,50 +41,50 @@ CPPFLAGS = \
 	-I$(srcdir) \
 	-I$(srcdir)/tmxparser/src
 
-#	-pedantic \
-
-
 DEFS     = -DSDL_ASSERT_LEVEL=2
 
 CDEBUG   = -g3 -O0
 
 CWARN = \
     -Wall \
-    -Warray-bounds \
-    -Wcast-align \
-    -Wno-cast-qual \
-    -Wextra \
-    -Wmissing-declarations \
-    -Wpointer-arith \
-    -Wstrict-aliasing \
-    -Wstrict-overflow=5 \
-    -Wunreachable-code \
-    -Winvalid-pch
+	-Wpointer-arith \
+	-Wformat-nonliteral \
+	-Winit-self \
+	-Wignored-qualifiers \
+	-Wwrite-strings \
+	-Wconversion \
+	-Werror \
+	-Wno-error=conversion
 
-#    -Wundef \
+    # -Wcast-align \
+    # -Wmissing-declarations \
+    # -Wpointer-arith \
+    # -Warray-bounds -ftree-vrp \
+    # -Wstrict-aliasing -fstrict-aliasing \
+    # -Wstrict-overflow -fstrict-overflow \
+    # -Wunreachable-code \
+    # -Winvalid-pch \
+	#    -Wundef \
 
 
-CXXWARN = $(CWARN) -Weffc++ -Wsign-promo
+CXXWARN = $(CWARN) -Wsign-promo
+
+	# -Weffc++ 
 
 CFLAGS   = $(CPPFLAGS) $(CWARN) $(CDEBUG) $(DEFS) \
-    -fstrict-aliasing \
-    -fstrict-overflow \
-    -ftree-vrp \
-    -fvisibility=hidden \
-    -ffunction-sections \
-    -fdata-sections
+	-fvisibility=hidden
 
-CXXFLAGS = $(CFLAGS) $(CXXWARN)
+    # -fvisibility=hidden \
+    # -ffunction-sections \
+    # -fdata-sections
+
+CXXFLAGS = $(CFLAGS) $(CXXWARN) $(CDEBUG) $(DEFS)
 
 LDFLAGS  = -Xlinker --Map=burro.map \
 	-Wl,--gc-sections -Wl,--as-needed -Wl,--demangle
 
-LIBS     = `sdl2-config --libs` \
-	`pkg-config cairo --libs` \
-	`pkg-config tinyxml --libs` \
-	`pkg-config libiso9660++ --libs` \
-	`pkg-config mozjs-24 --libs `\
-	-L$(srcdir)/tmxparser/build -ltmxparser
+################################################################
+# TOP-LEVEL SOURCES
 
 SRCS_C   = \
 
@@ -89,14 +92,12 @@ SRCS_CPP = \
 	backdrop.cpp \
 	console.cpp \
 	draw.cpp \
-	ecma48.cpp \
 	ecma48_test.cpp \
 	eng.cpp \
 	lineedit.cpp \
 	loop.cpp \
 	main.cpp \
-	obj.cpp \
-	tga.cpp \
+	Object.cpp \
 	tmx.cpp \
 	utf.cpp \
 	xcairo.cpp \
@@ -108,57 +109,96 @@ SRCS_CPP = \
 	ResCache.cpp \
 	ResourceFile.cpp 
 
+SRCS_RL = \
+	ecma48.rl
+
 SRCS_JS  = \
 	main.js
 
-SRCS     = $(SRCS_C) $(SRCS_CPP)
-OBJS     = $(SRCS_C:.c=.o) \
-	$(SRCS_CPP:.cpp=.o) \
+MAPS_TMX = \
+	map1.tmx
 
-AUX      = const.h
+TILESHEETS_PNG = \
+	cave.png
 
-DATA = data/map1.tmx data/pics/cave.png
+SPRITES_ASE = \
+	man.ase face.ase
+
+CONSOLE_FONTS = \
+	tools/font/8x13.bdf
+################################################################
+# ALL
 
 .PHONY:  all
-all:     burro burro.iso ../tools/font/bdf-converter
+all:     burro burro.iso bdf-convert
 
-burro:   $(OBJS) burro.iso
+################################################################
+# GENERATED SOURCES
+
+ecma48.cpp : ecma48.rl
+	ragel -o $@ $<
+
+%.h : %.bdf
+	./bdf-convert $< $@
+
+console.cpp : 8x13.h
+
+sprites.png sprites.jsn: $(SPRITES_ASE)
+	 aseprite --batch --sheet sprites.png --data sprites.jsn $(SPRITES_ASE)
+
+################################################################
+# OBJECTS
+
+8x13.h: bdf-convert
+
+OBJS     = \
+	$(SRCS_C:.c=.o) \
+	$(SRCS_CPP:.cpp=.o) \
+	ecma48.o
+
+DEPENDS = ${OBJS:.o=.d}
+-include ${DEPENDS}
+
+%.o : %.c
+	$(CC) $(CFLAGS) -c $*.c -o $*.o
+	$(CC) $(CPPFLAGS) -M $*.c > $*.d
+
+%.o : %.cpp
+	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o
+	$(CXX) $(CPPFLAGS) -M  $*.cpp > $*.d
+
+burro.iso: $(SRCS_JS) $(MAPS_TMX) $(TILESHEETS_PNG) sprites.png sprites.jsn
+	genisoimage -o $@ $^
+
+
+################################################################
+# EXECUTABLES
+
+bdf-convert: bdf-convert.c
+	$(CC) $(CWARN) -Wno-error=conversion -o $@ bdf-convert.c
+
+LIBS     = \
+	`sdl2-config --libs` \
+	`pkg-config cairo --libs` \
+	`pkg-config tinyxml --libs` \
+	`pkg-config libiso9660++ --libs` \
+	`pkg-config mozjs-24 --libs `\
+	-L$(srcdir)/tmxparser/build -ltmxparser
+
+burro:   $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
 
-burro.iso: $(DATA) $(SRCS_JS)
-	genisoimage -o $@ data $(SRCS_JS)
-
-ecma48.cpp: ecma48.rl
-	ragel -o $@ ecma48.rl
-
-console.cpp : fixed8x13.h
-
-nxfonts_myfont.h: ../tools/font/bdf-converter ../tools/font/8x13.bdf
-	../tools/font/bdf-converter ../tools/font/8x13.bdf
-
-fixed8x13.h: nxfonts_myfont.h
-	cp nxfonts_myfont.h fixed8x13.h
-
-../tools/font/bdf-converter: ../tools/font/bdf-converter.o
-	$(CC) -o $@ ../tools/font/bdf-converter.o
-
-# %.o : %.js
-# 	ld -r -b binary -o $@ $^
-# 	objcopy --rename-section .data=.rodata,alloc,load,readonly,data,contents \
-# 		$@ $@
-
-# %.o : %.tga
-# 	ld -r -b binary -o $@ $^
-# 	objcopy --rename-section .data=.rodata,alloc,load,readonly,data,contents \
-# 		$@ $@
+################################################################
+# MINOR TARGETS
 
 .PHONY:  clean
 clean:
-	rm -f *.o burro core
+	-rm -f $(OBJS) $(DEPENDS) bdf-convert burro burro.iso core
 
 .PHONY: check-syntax
-
 check-syntax:
-	$(CXX) $(CXXFLAGS) -fsyntax-only $(SRCS_CPP)
+	$(CXX) $(CXXFLAGS) -fsyntax-only $(SRCS_CPP) ecma48.cpp
 
-#	$(CC) $(CFLAGS) -fsyntax-only $(SRCS_C)
+TAGS:
+	etags $(SRCS_C) $(SRCS_CPP)
+

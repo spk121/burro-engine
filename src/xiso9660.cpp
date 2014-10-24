@@ -80,9 +80,10 @@ vector<char> xiso9660_get_data(ISO9660::IFS& iso, const string& name)
 
     // Read the data from the buffer in 2K blocks
     for (size_t i = 0; i < block_length; i += ISO_BLOCKSIZE) {
-        long int bytes_read = iso.seek_read(buffer.data() + i,
+        iso.seek_read(buffer.data() + i,
                                             s->p_stat->lsn + (i / ISO_BLOCKSIZE));
-        // Assert something if bytes_read != ISO_BLOCKSIZE
+        
+        // FIXME: maybe warn if bytes read != ISO_BLOCKSIZE
     }
 
     // The last block may need to be trimmed to the true file length.

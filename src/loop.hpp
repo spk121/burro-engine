@@ -49,9 +49,11 @@ public:
 	Loop();
 	void go();
 	void set_console_mode (bool flag);
+    bool get_console_mode () {return console_flag;}
 
 private:
 	void do_console_event (SDL_Event e);
+	void do_keypress_event (SDL_Event e);
 	bool on_idle();
 };
 

@@ -610,9 +610,9 @@ static int codepoint_tables[4][96] =
 
   action do_dch {
     // DCH - DELETE CHARACTER.
-    if (hem == 0)
+    if (hem == HEM_FOLLOWING)
       console_delete_right(p1(1));
-    else if (hem == 1)
+    else if (hem == HEM_PRECEDING)
       console_delete_left(p1(1));
   }
     
@@ -795,11 +795,11 @@ static int codepoint_tables[4][96] =
 
   action do_ich {
     // ICH - INSERT CHARACTER.
-    if (hem == 0) {
+    if (hem == HEM_FOLLOWING) {
       console_insert_right(p1(1));
       console_move_to_column(line_home - 1); // ECMA-48 coords begin at 1
     }
-    else if (hem == 1) {
+    else if (hem == HEM_PRECEDING) {
       console_insert_left(p1(1));
       console_move_to_column(line_home - 1);
     }
@@ -1033,7 +1033,7 @@ static int codepoint_tables[4][96] =
       else if (P[i] == 7)
 	vem = 0;
       else if (P[i] == 10)
-	hem = 0;
+	hem = HEM_FOLLOWING;
       else if (P[i] == 21)
 	grcm = GRCM_COMBINING;
     }
@@ -1303,7 +1303,7 @@ static int codepoint_tables[4][96] =
       else if (P[i] == 7)
 	vem = 1;
       else if (P[i] == 10)
-	hem = 1;
+	hem = HEM_PRECEDING;
       else if (P[i] == 21)
 	grcm = GRCM_REPLACING;
     }
@@ -1721,9 +1721,9 @@ static int codepoint_tables[4][96] =
 
 %% write data;
 
-static char *p;
-static char *pe;
-static char *eof;
+static unsigned char *p;
+static unsigned char *pe;
+static unsigned char *eof;
 // static int cs;
 
 int ecma48_init(void)
@@ -1733,7 +1733,7 @@ int ecma48_init(void)
     // overwrite, not insert
     irm = IRM_REPLACE;
     // inserting moves write
-    hem = 0;
+    hem = HEM_FOLLOWING;
     // inserting lines moves down
     vem = 0;
     // graphics rendition combining
@@ -1753,10 +1753,10 @@ int ecma48_init(void)
     return 1;
 }
 
-int ecma48_execute(const char *data, int len)
+int ecma48_execute(const unsigned char *data, int len)
 {
-    p = (char *) data;
-    pe = (char *)data + len;
+    p = (unsigned char *) data;
+    pe = (unsigned char *)data + len;
     eof = pe;
 
     %% write exec;

@@ -25,6 +25,7 @@ private:
     unsigned int m_size;
 
     void Extract_png_data(vector<char>& data);
+    void Extract_string_data(vector<char>& data);
 
 public:    
     ResHandle(unsigned int id, string name, vector<char>& data);

@@ -29,12 +29,12 @@
 #include "bg.hpp"
 #include "console.hpp"
 #include "eng.hpp"
-#include "obj.hpp"
 #include "loop.hpp"
 #include "xsdl.hpp"
 #include "ecma48_test.hpp"
 #include "tmx.hpp"
 #include "Background.hpp"
+#include "Object.hpp"
 
 #ifdef JS_SCRIPT_IS_PACKED
 extern char _binary_script_js_start[];
@@ -153,6 +153,17 @@ void Interpreter::Do_after_draw_frame(uint32_t delta_t)
 {
     Do_uint32_func("DoAfterDrawFrame", delta_t);
 }
+
+void Interpreter::Do_keypress (Interpreter_event event, bool begin, uint32_t val)
+{
+    JS::Value argv[3], rval;
+    argv[0].setNumber((uint32_t) event);
+    argv[1].setBoolean(begin);
+    argv[2].setNumber(val);
+    JSAutoCompartment ac(cx, global);
+    JS_CallFunctionName(cx, global, "doEvent", 3, argv, &rval);
+}
+
 
 void Interpreter::Do_console_command (char *str)
 {

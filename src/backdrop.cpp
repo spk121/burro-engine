@@ -66,12 +66,12 @@ BackdropSetColorFunc(JSContext *cx, unsigned argc, jsval *vp)
 {
     jsval* argv {JS_ARGV(cx, vp)};
 
-    double r, g, b;
+    int r, g, b;
 
-	if(!JS_ConvertArguments(cx, argc, argv, "ddd", &r, &g, &b))
+	if(!JS_ConvertArguments(cx, argc, argv, "iii", &r, &g, &b))
 		return JS_FALSE;
 
-    backdrop.set_color(r, g, b);
+    backdrop.set_color(static_cast<uint8_t>(r), static_cast<uint8_t>(g), static_cast<uint8_t>(b));
 
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
 	return JS_TRUE;

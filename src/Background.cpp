@@ -51,6 +51,8 @@ static void paint_transformed_image (cairo_t *context,
     
     /* Now copy it to the screen */
     xcairo_set_source_surface (context, surface, 0, 0);
+    xcairo_set_antialias (context, CAIRO_ANTIALIAS_NONE);
+
     cairo_paint_with_alpha (context, alpha);
     
     /* Restore the coordinate system to normal */
