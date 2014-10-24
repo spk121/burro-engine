@@ -13,7 +13,7 @@
 #include "xcairo.hpp"
 #include "const.h"
 #include "console.hpp"
-#include "fixed8x13.h"
+#include "8x13.h"
 
 #define COMPOSE(render,codepoint) (((uint32_t)(render) << 16)|(codepoint))
 #define RENDERING(x) ((uint16_t)(((x) & 0xFFFF0000) >> 16))

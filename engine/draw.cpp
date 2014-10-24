@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <SDL.h>
 #include "const.h"
-#include "xcairo.h"
+#include "xcairo.hpp"
 #include "backdrop.hpp"
 #include "Background.hpp"
 #include "draw.hpp"

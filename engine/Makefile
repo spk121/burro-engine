@@ -90,24 +90,24 @@ SRCS_C   = \
 
 SRCS_CPP = \
 	backdrop.cpp \
+	Background.cpp \
 	console.cpp \
 	draw.cpp \
 	ecma48_test.cpp \
 	eng.cpp \
+	Interpreter.cpp \
 	lineedit.cpp \
 	loop.cpp \
 	main.cpp \
 	Object.cpp \
+	ResCache.cpp \
+	ResHandle.cpp \
+	ResourceFile.cpp \
 	tmx.cpp \
 	utf.cpp \
 	xcairo.cpp \
 	xiso9660.cpp \
-	xsdl.cpp \
-	Background.cpp \
-	Interpreter.cpp \
-	ResHandle.cpp \
-	ResCache.cpp \
-	ResourceFile.cpp 
+	xsdl.cpp
 
 SRCS_RL = \
 	ecma48.rl
@@ -199,6 +199,6 @@ clean:
 check-syntax:
 	$(CXX) $(CXXFLAGS) -fsyntax-only $(SRCS_CPP) ecma48.cpp
 
-TAGS:
+TAGS: $(SRCS_C) $(SRCS_CPP) ecma48.cpp
 	etags $(SRCS_C) $(SRCS_CPP)
 
