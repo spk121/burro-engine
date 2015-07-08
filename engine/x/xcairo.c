@@ -90,9 +90,8 @@ xcairo_image_surface_get_argb32_stride (cairo_surface_t *surface)
   stride = cairo_image_surface_get_stride (surface);
   if (stride <= 0)
     g_critical ("cairo_image_surface_get_stride returned invalid");
-  return stride / sizeof (uint32_t);
+  return stride / (int) sizeof (uint32_t);
 }
-
 
 void                
 xcairo_paint (cairo_t *cr)
