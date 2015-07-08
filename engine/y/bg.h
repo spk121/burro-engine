@@ -14,50 +14,39 @@
     the one most in the foreground and BG3 is the one most in the background.
 
     Each background can be one of 3 different forms:
-    - a 16-bit ARGB1555 bitmap
-    - an 8-bit indexed bitmap with a 15-bit RGB555 colormap where color #0 is
-      always transparent.
-    - an 8-bit map that points to 8 by 8 pixel tiles in a separate 8-bit indexed
-      bitmap with a 15-bit RGB555 colormap
+    - a 32-bit ARGB bitmap
+    - an map that points to tiles in an ARGB32 bitmap
 */
 
 #ifndef BURRO_BG_H
 #define BURRO_BG_H
 
-#include <glib.h>
-#include <cairo.h>
-#include "tga.h"
+#include "../x/x.h"
 
 //! The number of background layers for the main screen
 #define BG_MAIN_BACKGROUNDS_COUNT 4
 //! The number of background layers for the sub screen
 #define BG_SUB_BACKGROUNDS_COUNT 4
 //! The maximum height of the map background, in tiles
-#define BG_MAP_HEIGHT_MAX 512
+#define BG_MAP_HEIGHT_MAX 256
 //! The maximum width, in tiles, of the map background
-#define BG_MAP_WIDTH_MAX 512
+#define BG_MAP_WIDTH_MAX 256
 //! The maximum height, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT 256
+#define BG_TILESHEET_HEIGHT 1024
 //! The maximum width, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH 256
+#define BG_TILESHEET_WIDTH 1024
 //! The height of a map background's tile
-#define BG_TILE_HEIGHT 8
+#define BG_TILE_HEIGHT 16
 //! The width of a map background's tile
-#define BG_TILE_WIDTH 8
+#define BG_TILE_WIDTH 16
 //! The maximum height, in tiles, of a map background's tilesheet
 #define BG_TILESHEET_HEIGHT_IN_TILES (BG_TILESHEET_HEIGHT/BG_TILE_HEIGHT)
 //! The maximum width, in tiles, of a map background's tilesheet
 #define BG_TILESHEET_WIDTH_IN_TILES (BG_TILESHEET_WIDTH/BG_TILE_WIDTH)
-//! The number of colors for a map background's tilesheet or a BMP8 background
-#define BG_PALETTE_COLORS_COUNT_MAX 256
-//! The maximum height of a BMP8 background, in pixels
-#define BG_BMP8_HEIGHT_MAX 512
-//! The maximum width of a BMP8 background, in pixels
-#define BG_BMP8_WIDTH_MAX 512
-//! The maximum height of a BMP16 background, in pixels
-#define BG_BMP16_HEIGHT_MAX 512
-//! The maximum width of a BMP16 background, in pixels
-#define BG_BMP16_WIDTH_MAX 512
+//! The maximum height of a BMP background, in pixels
+#define BG_BMP_HEIGHT_MAX 512
+//! The maximum width of a BMP background, in pixels
+#define BG_BMP_WIDTH_MAX 512
 
 //! Enumeration of the 8 background layer IDs
 enum bg_index_tag {
@@ -75,9 +64,8 @@ typedef enum bg_index_tag bg_index_t;
 
 //! Allowed background types, used in bg_init
 enum bg_type_tag {
-    BG_TYPE_MAP, //!< 8bpp Tiled background with 16 bit tile indexes and no allowed rotation or scaling
-    BG_TYPE_BMP8, //!< Bitmap background with 8 bit color values which index into a 256-color RGB555 palette, where color #0 is transparent
-    BG_TYPE_BMP16, //!< Bitmap background with 16 bit color values of the form ABGR1555
+    BG_TYPE_MAP, //!< 32bpp Tiled background with 16 bit tile indexes and no allowed rotation or scaling
+    BG_TYPE_BMP, //!< 32bpp bitmap background
 };
 
 typedef enum bg_type_tag bg_type_t;
@@ -86,9 +74,8 @@ void bg_set_backdrop_color (guint16 c16);
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
 
 guint16 *bg_get_map_ptr (int id);
-guint8 *bg_get_tilesheet_ptr (int id);
-guint8 *bg_get_bmp8_ptr (int id);
-guint16 *bg_get_bmp16_ptr (int id);
+guint32 *bg_get_tilesheet_ptr (int id);
+guint32 *bg_get_bmp_ptr (int id);
 
 /*! \brief Gets the priority of the background layer.
     \param id
@@ -242,22 +229,14 @@ void bg_set_map_from_resource (int id, const char *resource);
 */
 void bg_set_tilesheet_from_resource (int id, const char *resource);
 
-/*! \brief Sets the a BG_TYPE_BMP8 background from a resource.
+/*! \brief Sets the a BG_TYPE_BMP background from a resource.
     \param id
         background layer ID, e.g. BG_MAIN_0
     \param
         name of image resource in the GResource bundle
 */
-void bg_set_bmp8_from_resource (int id, const char *resource);
+void bg_set_bmp_from_resource (int id, const char *resource);
 
-
-/*! \brief Sets the a BG_TYPE_BMP16 background from a resource.
-    \param id
-        background layer ID, e.g. BG_MAIN_0
-    \param
-        name of image resource in the GResource bundle
-*/
-void bg_set_bmp16_from_resource (int id, const char *resource);
 void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);
 		       

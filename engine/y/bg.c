@@ -1,4 +1,6 @@
-#include "../x/xcairo.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include "../x/x.h"
 #include "bg.h"
 #include "eng.h"
 #include "tga.h"
@@ -7,32 +9,21 @@ struct bg_map_data
 {
     int height;
     int width;
-    guint16 map[BG_MAP_HEIGHT_MAX][BG_MAP_WIDTH_MAX];
-    guint8 tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
-    guint16 palette[BG_PALETTE_COLORS_COUNT_MAX];
+    uint16_t map[BG_MAP_HEIGHT_MAX][BG_MAP_WIDTH_MAX];
+    uint32_t tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
 };
 
-
-struct bg_bmp8_data
+struct bg_bmp_data
 {
     int height;
     int width;
-    guint8 bmp[BG_BMP8_HEIGHT_MAX][BG_BMP8_WIDTH_MAX];
-    guint16 palette[BG_PALETTE_COLORS_COUNT_MAX];
+    uint32_t bmp[BG_BMP8_HEIGHT_MAX][BG_BMP8_WIDTH_MAX];
 };
-
-struct bg_bmp16_data
-{
-    int height;
-    int width;
-    guint16 bmp[BG_BMP16_HEIGHT_MAX][BG_BMP16_WIDTH_MAX];
-};
-
 
 typedef struct bg_entry
 {
     /* BG is display when true */
-    gboolean enable;
+    bool enable;
 
     /** tile and map, palette bmp, or true color bmp */
     bg_type_t type;
@@ -55,16 +46,19 @@ typedef struct bg_entry
     union
     {
         struct bg_map_data map;
-        struct bg_bmp8_data bmp8;
-        struct bg_bmp16_data bmp16;
+        struct bg_bmp_data bmp;
     };
 } bg_entry_t;
 
 typedef struct bg_tag
 {
     /* The RGBA color displayed below all backgrounds and sprites */
-    guint16 bg_color;
+    uint32_t bg_color;
 
+    bool colorswap;
+  
+    double brightness;
+  
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
 
@@ -73,80 +67,67 @@ bg_t bg;
 static cairo_surface_t *
 bg_render_map_to_cairo_surface (int id);
 static cairo_surface_t *
-bg_render_bmp8_to_cairo_surface (int id);
-static cairo_surface_t *
-bg_render_bmp16_to_cairo_surface (int id);
+bg_render_bmp_to_cairo_surface (int id);
 
-
-static guint32
-adjust_colorval (guint16 c16)
+static uint32_t
+adjust_colorval (uint32_t c32, bool colorswap, double brightness)
 {
-    guint32 a, r, g, b, c32;
+    g_assert_cmpfloat(brightness, >=, 0.0);
+    g_assert_cmpfloat(brightness, <=, 1.0);
 
-    a = (((guint32) c16 & 0b1000000000000000) >> 15);
-    r = (((guint32) c16 & 0b0111110000000000) >> 10);
-    g = (((guint32) c16 & 0b0000001111100000) >> 5);
-    b = ((guint32) c16 & 0b0000000000011111);
+    uint32_t a, r, g, b;
 
-    if (a == 1 || (r == 0x1f && g == 0x0 && b == 0x1f))
+    a = (((uint32_t) c32 & 0xff000000) >> 24);
+    r = (((uint32_t) c32 & 0x00ff0000) >> 16);
+    g = (((uint32_t) c32 & 0x0000ff00) >> 8);
+    b = ((uint32_t) c32 & 0x000000ff);
+
+    if (colorswap)
     {
-        /* Transparent */
-        return 0x0;
-    }
-
-    if (eng_is_colorswap ())
-    {
-        double temp = r;
+        uint32_t temp = r;
         r = b;
         b = temp;
     }
-    a = 0xff;
-    r = r * eng_get_brightness ();
-    g = g * eng_get_brightness ();
-    b = b * eng_get_brightness ();
-    /* Add 3 extra bits to promote the 5-bit val to 8-bit val */
-    c32 = (a << 24) + (r << 19) + (g << 11) + (b << 3);
+    r = r * brightness;
+    g = g * brightness;
+    b = b * brightness;
+    c32 = (a << 24) + (r << 16) + (g << 8) + b;
     return c32;
 }
 
-void bg_set_backdrop_color (guint16 c16)
+void bg_set_backdrop_color (uint16_t c16)
 {
     bg.bg_color = c16;
 }
 
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b)
 {
-    guint32 c32 = adjust_colorval (bg.bg_color);
+  uint32_t c32 = adjust_colorval (bg.bg_color);
     *r = ((double)((c32 & 0x00ff0000) >> 16)) / 255.0;
     *g = ((double)((c32 & 0x0000ff00) >> 8)) / 255.0;
     *b = ((double)((c32 & 0x000000ff))) / 255.0;
 }
 
 
-gboolean bg_is_shown (int id)
+bool bg_is_shown (int id)
 {
     return bg.bg[id].enable;
 }
 
 
-guint16 *bg_get_map_ptr (int id)
+uint16_t *bg_get_map_ptr (int id)
 {
     return &(bg.bg[id].map.map[0][0]);
 }
 
-guint8 *bg_get_tilesheet_ptr (int id)
+uint32_t *bg_get_tilesheet_ptr (int id)
 {
     return &(bg.bg[id].map.tilesheet[0][0]);
 }
 
-guint8 *bg_get_bmp8_ptr (int id)
+uint32_t *bg_get_bmp32_ptr (int id)
 {
-    return &(bg.bg[id].bmp8.bmp[0][0]);
-}
-
-guint16 *bg_get_bmp16_ptr (int id)
-{
-    return &(bg.bg[id].bmp16.bmp[0][0]);
+    return &(bg.bg[id].bmp.bmp[0][0]);
 }
 
 int bg_get_priority (int id)
@@ -159,7 +140,7 @@ void bg_hide (int id)
     bg.bg[id].enable = FALSE;
 }
 
-void bg_init (int id, bg_type_t type, guint width, guint height)
+void bg_init (int id, bg_type_t type, unsigned width, unsigned height)
 {
     bg.bg[id].type = type;
     bg.bg[id].scroll_x = 0.0;
@@ -175,13 +156,9 @@ void bg_init (int id, bg_type_t type, guint width, guint height)
         bg.bg[id].map.height = height;
         bg.bg[id].map.width = width;
         break;
-    case BG_TYPE_BMP8:
-        bg.bg[id].bmp8.height = height;
-        bg.bg[id].bmp8.width = width;
-        break;
-    case BG_TYPE_BMP16:
-        bg.bg[id].bmp16.height = height;
-        bg.bg[id].bmp16.width = width;
+    case BG_TYPE_BMP:
+        bg.bg[id].bmp.height = height;
+        bg.bg[id].bmp.width = width;
         break;
     }
 }
@@ -242,13 +219,13 @@ void bg_show (int id)
 
 static void bg_set_map_from_tga (int id, targa_image_t *t)
 {
-    guint width, height;
+    unsigned width, height;
     targa_get_image_dimensions (t, &width, &height);
     bg.bg[id].map.width = width;
     bg.bg[id].map.height = height;
-    for (guint j = 0; j < height; j ++)
+    for (unsigned j = 0; j < height; j ++)
     {
-        for (guint i = 0; i < width ; i ++)
+        for (unsigned i = 0; i < width ; i ++)
         {
             bg.bg[id].map.map[j][i] = tga_get_image_data_u16_ptr(t)[j * width + i];
         }
@@ -257,73 +234,29 @@ static void bg_set_map_from_tga (int id, targa_image_t *t)
 
 static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
 {
-    guint width, height;
+    unsigned width, height;
     int first = targa_get_color_map_first_index (t);
 
     targa_get_image_dimensions (t, &width, &height);
 
-    for (guint j = 0; j < height; j ++)
+    for (unsigned j = 0; j < height; j ++)
     {
-        for (guint i = 0; i < width ; i ++)
+        for (unsigned i = 0; i < width ; i ++)
         {
             bg.bg[id].map.tilesheet[j][i] = tga_get_image_data_u8_ptr(t)[j * width + i];
         }
     }
 
-    for (guint i = 0; i < targa_get_color_map_length (t) - first; i ++)
+    for (unsigned i = 0; i < targa_get_color_map_length (t) - first; i ++)
         bg.bg[id].map.palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
 }
 
-static void bg_set_bmp8_from_tga (int id, targa_image_t *t)
-{
-    guint width, height;
-    int first = targa_get_color_map_first_index (t);
-
-    targa_get_image_dimensions (t, &width, &height);
-    bg.bg[id].bmp8.width = width;
-    bg.bg[id].bmp8.height = height;
-    for (guint j = 0; j < height; j ++)
-    {
-        for (guint i = 0; i < width; i ++)
-        {
-            bg.bg[id].bmp8.bmp[j][i] = tga_get_image_data_u8_ptr(t)[j * width + i];
-        }
-    }
-
-    for (guint i = 0; i < targa_get_color_map_length (t) - first; i ++)
-        bg.bg[id].bmp8.palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
-}
-
-void bg_set_bmp8_from_resource (int id, const gchar *resource)
+void bg_set_bmp_from_resource (int id, const gchar *resource)
 {
     targa_image_t *t = tga_load_from_resource (resource);
-    bg_set_bmp8_from_tga (id, t);
+    bg_set_bmp_from_tga (id, t);
     tga_free (t);
 }
-
-static void bg_set_bmp16_from_tga (int id, targa_image_t *t)
-{
-    guint width, height;
-    targa_get_image_dimensions (t, &width, &height);
-    bg.bg[id].bmp16.width = width;
-    bg.bg[id].bmp16.height = height;
-    bg.bg[id].type = BG_TYPE_BMP16;
-    for (guint j = 0; j < height; j ++)
-    {
-        for (guint i = 0; i < width ; i ++)
-        {
-            bg.bg[id].bmp16.bmp[j][i] = tga_get_image_data_u16_ptr(t)[j * width + i];
-        }
-    }
-}
-
-void bg_set_bmp16_from_resource (int id, const gchar *resource)
-{
-    targa_image_t *t = tga_load_from_resource (resource);
-    bg_set_bmp16_from_tga (id, t);
-    tga_free (t);
-}
-
 
 cairo_surface_t *
 bg_render_to_cairo_surface (int id)
@@ -333,11 +266,8 @@ bg_render_to_cairo_surface (int id)
     case BG_TYPE_MAP:
         return bg_render_map_to_cairo_surface (id);
         break;
-    case BG_TYPE_BMP8:
-        return bg_render_bmp8_to_cairo_surface (id);
-        break;
-    case BG_TYPE_BMP16:
-        return bg_render_bmp16_to_cairo_surface (id);
+    case BG_TYPE_BMP:
+        return bg_render_bmp_to_cairo_surface (id);
         break;
     }
     g_return_val_if_reached (NULL);
@@ -347,12 +277,12 @@ static cairo_surface_t *
 bg_render_map_to_cairo_surface (int id)
 {
     cairo_surface_t *surf;
-    guint32 *data;
+    uint32_t *data;
     int stride;
     int tile_j, tile_i, delta_tile_i, delta_tile_j;
     int map_index;
-    guint32 index, c;
-    guint width, height;
+    uint32_t index, c;
+    unsigned width, height;
 
     width = bg.bg[id].map.width;
     height = bg.bg[id].map.height;
@@ -361,9 +291,9 @@ bg_render_map_to_cairo_surface (int id)
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
 
-    for (guint map_j = 0; map_j < height; map_j ++)
+    for (unsigned map_j = 0; map_j < height; map_j ++)
     {
-        for (guint map_i = 0; map_i < width; map_i ++)
+        for (unsigned map_i = 0; map_i < width; map_i ++)
         {
             /* Fill in the tile brush */
             map_index = bg.bg[id].map.map[map_j][map_i];
@@ -373,9 +303,10 @@ bg_render_map_to_cairo_surface (int id)
             {
                 for (tile_i = 0; tile_i < BG_TILE_WIDTH; tile_i ++)
                 {
-                    index = bg.bg[id].map.tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
+		  uint32_t c32;
+                    c32 = bg.bg[id].map.tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
 
-                    c = adjust_colorval (bg.bg[id].map.palette[index]);
+                    c = adjust_colorval (c32);
                     data[(map_j * BG_TILE_HEIGHT + tile_j) * stride + (map_i * BG_TILE_WIDTH + tile_i)] = c;
                 }
             }
@@ -386,53 +317,25 @@ bg_render_map_to_cairo_surface (int id)
 }
 
 static cairo_surface_t *
-bg_render_bmp8_to_cairo_surface (int id)
+bg_render_bmp_to_cairo_surface (int id)
 {
-    guint width, height, stride;
-    guint32 *data;
-    guint16 c16;
-    guint8 index;
+    unsigned width, height, stride;
+    uint32_t *data;
+    uint32_t c32;
     cairo_surface_t *surf;
-    width = bg.bg[id].bmp8.width;
-    height = bg.bg[id].bmp8.height;
+    width = bg.bg[id].bmp.width;
+    height = bg.bg[id].bmp.height;
 
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
-    for (guint j = 0; j < height; j++)
+    for (unsigned j = 0; j < height; j++)
     {
-        for (guint i = 0; i < width; i++)
+        for (unsigned i = 0; i < width; i++)
         {
-            index = bg.bg[id].bmp8.bmp[j][i];
-            c16 = bg.bg[id].bmp8.palette[index];
-            data[j * stride + i] = adjust_colorval (c16);
-        }
-    }
-    xcairo_surface_mark_dirty (surf);
-    return surf;
-}
-
-static cairo_surface_t *
-bg_render_bmp16_to_cairo_surface (int id)
-{
-    guint width, height, stride;
-    guint32 *data;
-    guint16 c16;
-    cairo_surface_t *surf;
-    width = bg.bg[id].bmp16.width;
-    height = bg.bg[id].bmp16.height;
-
-    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
-    data = xcairo_image_surface_get_argb32_data (surf);
-    stride = xcairo_image_surface_get_argb32_stride (surf);
-    xcairo_surface_flush (surf);
-    for (guint j = 0; j < height; j++)
-    {
-        for (guint i = 0; i < width; i++)
-        {
-            c16 = bg.bg[id].bmp16.bmp[j][i];
-            data[j * stride + i] = adjust_colorval (c16);
+            c32 = bg.bg[id].bmp.bmp[j][i];
+            data[j * stride + i] = adjust_colorval (c32);
         }
     }
     xcairo_surface_mark_dirty (surf);
