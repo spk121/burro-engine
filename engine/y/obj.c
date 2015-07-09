@@ -151,6 +151,7 @@ void obj_get_location (int id, double *x, double *y, double *rotation_center_x, 
     *expansion = obj[id].expansion;
 }
 
+#if 0
 void obj_set_tilesheet_from_tga (int sub_flag, targa_image_t *t)
 {
     guint width, height;
@@ -174,6 +175,7 @@ void obj_set_tilesheet_from_tga (int sub_flag, targa_image_t *t)
         osheet->palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
 
 }
+#endif
 
 cairo_surface_t *obj_render_to_cairo_surface (int id)
 {

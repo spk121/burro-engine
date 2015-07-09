@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "../x/x.h"
+#include "../x.h"
 #include "bg.h"
 #include "eng.h"
 #include "tga.h"
@@ -17,7 +17,7 @@ struct bg_bmp_data
 {
     int height;
     int width;
-    uint32_t bmp[BG_BMP8_HEIGHT_MAX][BG_BMP8_WIDTH_MAX];
+    uint32_t bmp[BG_BMP_HEIGHT_MAX][BG_BMP_WIDTH_MAX];
 };
 
 typedef struct bg_entry
@@ -70,11 +70,8 @@ static cairo_surface_t *
 bg_render_bmp_to_cairo_surface (int id);
 
 static uint32_t
-adjust_colorval (uint32_t c32, bool colorswap, double brightness)
+adjust_colorval (uint32_t c32)
 {
-    g_assert_cmpfloat(brightness, >=, 0.0);
-    g_assert_cmpfloat(brightness, <=, 1.0);
-
     uint32_t a, r, g, b;
 
     a = (((uint32_t) c32 & 0xff000000) >> 24);
@@ -82,15 +79,15 @@ adjust_colorval (uint32_t c32, bool colorswap, double brightness)
     g = (((uint32_t) c32 & 0x0000ff00) >> 8);
     b = ((uint32_t) c32 & 0x000000ff);
 
-    if (colorswap)
+    if (bg.colorswap)
     {
         uint32_t temp = r;
         r = b;
         b = temp;
     }
-    r = r * brightness;
-    g = g * brightness;
-    b = b * brightness;
+    r = r * bg.brightness;
+    g = g * bg.brightness;
+    b = b * bg.brightness;
     c32 = (a << 24) + (r << 16) + (g << 8) + b;
     return c32;
 }
@@ -109,7 +106,8 @@ void bg_get_backdrop_color_rgb (double *r, double *g, double *b)
 }
 
 
-bool bg_is_shown (int id)
+bool
+bg_is_shown (int id)
 {
     return bg.bg[id].enable;
 }
@@ -217,6 +215,7 @@ void bg_show (int id)
     bg.bg[id].enable = TRUE;
 }
 
+#if 0
 static void bg_set_map_from_tga (int id, targa_image_t *t)
 {
     unsigned width, height;
@@ -231,7 +230,9 @@ static void bg_set_map_from_tga (int id, targa_image_t *t)
         }
     }
 }
+#endif
 
+#if 0
 static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
 {
     unsigned width, height;
@@ -250,13 +251,16 @@ static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
     for (unsigned i = 0; i < targa_get_color_map_length (t) - first; i ++)
         bg.bg[id].map.palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
 }
+#endif
 
+#if 0
 void bg_set_bmp_from_resource (int id, const gchar *resource)
 {
     targa_image_t *t = tga_load_from_resource (resource);
     bg_set_bmp_from_tga (id, t);
     tga_free (t);
 }
+#endif
 
 cairo_surface_t *
 bg_render_to_cairo_surface (int id)

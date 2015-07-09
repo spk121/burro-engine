@@ -21,7 +21,8 @@
 #ifndef BURRO_BG_H
 #define BURRO_BG_H
 
-#include "../x/x.h"
+#include <stdbool.h>
+#include "../x.h"
 
 //! The number of background layers for the main screen
 #define BG_MAIN_BACKGROUNDS_COUNT 4
@@ -85,7 +86,7 @@ guint32 *bg_get_bmp_ptr (int id);
 */
 int bg_get_priority (int id);
 
-gboolean bg_is_shown (int id);
+bool bg_is_shown (int id);
 
 /*! \brief Hides the current background
     \param id

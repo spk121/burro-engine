@@ -2,6 +2,13 @@
 #include <gtk/gtk.h>
 #include "xgtk.h"
 
+GList *
+xgtk_application_get_windows (GtkApplication *application)
+{
+  g_assert (application != NULL);
+  gtk_application_get_windows (application);
+}
+
 void                
 xgtk_container_add (GtkContainer *container, GtkWidget *widget)
 {
@@ -89,6 +96,14 @@ xgtk_window_new (GtkWindowType type)
   if (w == NULL)
     g_critical ("gtk_widget_new returned NULL");
   return w;
+}
+
+void
+xgtk_window_set_application (GtkWindow *window, GtkApplication *application)
+{
+  g_assert (window != NULL);
+  g_assert (application  != NULL);
+  gtk_window_set_application (window, application);
 }
 
 void                

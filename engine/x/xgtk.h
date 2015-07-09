@@ -3,6 +3,7 @@
 
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
+GList *             xgtk_application_get_windows        (GtkApplication *application);
 void                xgtk_container_add                  (GtkContainer *container,
                                                          GtkWidget *widget);
 void                xgtk_container_set_border_width     (GtkContainer *container,
@@ -22,6 +23,8 @@ void                xgtk_widget_set_size_request        (GtkWidget *widget,
                                                          gint height);
 void                xgtk_widget_show_all                (GtkWidget *widget);
 GtkWidget *         xgtk_window_new                     (GtkWindowType type);
+void                xgtk_window_set_application         (GtkWindow *window,
+							 GtkApplication *application);
 void                xgtk_window_set_position            (GtkWindow *window,
                                                          GtkWindowPosition position);
 void                xgtk_window_set_title               (GtkWindow *window,

@@ -1,6 +1,6 @@
-# Makefile -- the makefile for the gui
+# Makefile -- the makefile for the libx
 
-# Copyright 2014, Michael L. Gran
+# Copyright 2015, Michael L. Gran
 
 # This file is part of the Project Burro game engine.
 
@@ -22,39 +22,35 @@ SHELL = /bin/sh
 
 srcdir = .
 
-CC       = gcc --std=c11 -fdiagnostics-color -fmessage-length=78
-CXX      = g++ --std=c++11 -fdiagnostics-color -fmessage-length=78
+CC       = gcc --std=c11 -fdiagnostics-color=auto -fmessage-length=78
+CXX      = g++ --std=c++11 -fdiagnostics-color=auto -fmessage-length=78
 
 ################################################################
 # FLAGS
 
 CPPFLAGS = \
-	-Wall \
-	-Wunused-macros \
-	-Wendif-labels \
-	-Wunknown-pragmas \
-	`sdl2-config --cflags` \
-	`pkg-config cairo --cflags` \
-	`pkg-config tinyxml --cflags` \
-	`pkg-config libiso9660++ --cflags` \
-	`pkg-config mozjs-24 --cflags `\
-	-I$(srcdir) \
-	-I$(srcdir)/tmxparser/src
+ -Wall \
+ -Wunused-macros \
+ -Wendif-labels \
+ -Wunknown-pragmas \
+ `pkg-config cairo --cflags` \
+ `pkg-config gtk+-3.0 --cflags` \
+ `pkg-config guile-2.0 --cflags` \
+ `pkg-config libpulse --cflags` \
+ -I .
 
 DEFS     = -DSDL_ASSERT_LEVEL=2
 
 CDEBUG   = -g3 -O0
 
 CWARN = \
-    -Wall \
-	-Wpointer-arith \
-	-Wformat-nonliteral \
-	-Winit-self \
-	-Wignored-qualifiers \
-	-Wwrite-strings \
-	-Wconversion \
-	-Werror \
-	-Wno-error=conversion
+ -Wall \
+ -Wpointer-arith \
+ -Wformat-nonliteral \
+ -Winit-self \
+ -Wignored-qualifiers \
+ -Wwrite-strings \
+ -Wconversion \
 
     # -Wcast-align \
     # -Wmissing-declarations \
@@ -66,95 +62,68 @@ CWARN = \
     # -Winvalid-pch \
 	#    -Wundef \
 
+CXXWARN = $(CWARN) -Wsign-promo -Weffc++
 
-CXXWARN = $(CWARN) -Wsign-promo
-
-	# -Weffc++ 
-
-CFLAGS   = $(CPPFLAGS) $(CWARN) $(CDEBUG) $(DEFS) \
-	-fvisibility=hidden
-
-    # -fvisibility=hidden \
-    # -ffunction-sections \
-    # -fdata-sections
+CFLAGS   = $(CPPFLAGS) $(CWARN) $(CDEBUG) $(DEFS) -fvisibility=hidden
 
 CXXFLAGS = $(CFLAGS) $(CXXWARN) $(CDEBUG) $(DEFS)
 
 LDFLAGS  = -Xlinker --Map=burro.map \
 	-Wl,--gc-sections -Wl,--as-needed -Wl,--demangle
 
+LIBS = \
+ `pkg-config cairo --libs` \
+ `pkg-config gtk+-3.0 --libs` \
+ `pkg-config guile-2.0 --libs` \
+ `pkg-config libpulse --libs` \
+ -lm
+
+
 ################################################################
 # TOP-LEVEL SOURCES
 
+SRCS_H = \
+ xcairo.h \
+ xgdk.h \
+ xgdk-pixbuf.h \
+ xgio.h \
+ xgtk.h \
+ xguile.h \
+ xpulseaudio.h
+
 SRCS_C   = \
+ x/xcairo.c \
+ x/xgdk.c \
+ x/xgdk-pixbuf.c \
+ x/xgio.c \
+ x/xglib.c \
+ x/xgtk.c \
+ x/xguile.c \
+ x/xpulseaudio.c \
+ y/bg.c \
+ y/draw.c \
+ y/eng.c \
+ y/loop.c \
+ y/obj.c \
+ y/rand.c \
+ main.c
 
-SRCS_CPP = \
-	backdrop.cpp \
-	Background.cpp \
-	console.cpp \
-	draw.cpp \
-	ecma48_test.cpp \
-	eng.cpp \
-	Interpreter.cpp \
-	lineedit.cpp \
-	loop.cpp \
-	main.cpp \
-	Object.cpp \
-	ResCache.cpp \
-	ResHandle.cpp \
-	ResourceFile.cpp \
-	tmx.cpp \
-	utf.cpp \
-	xcairo.cpp \
-	xiso9660.cpp \
-	xsdl.cpp
-
-SRCS_RL = \
-	ecma48.rl
-
-SRCS_JS  = \
-	main.js
-
-MAPS_TMX = \
-	map1.tmx
-
-TILESHEETS_PNG = \
-	cave.png
-
-SPRITES_ASE = \
-	man.ase face.ase
-
-CONSOLE_FONTS = \
-	tools/font/8x13.bdf
 ################################################################
 # ALL
 
 .PHONY:  all
-all:     burro burro.iso bdf-convert
+all: burro
 
 ################################################################
 # GENERATED SOURCES
 
-ecma48.cpp : ecma48.rl
-	ragel -o $@ $<
-
-%.h : %.bdf
-	./bdf-convert $< $@
-
-console.cpp : 8x13.h
-
-sprites.png sprites.jsn: $(SPRITES_ASE)
-	 aseprite --batch --sheet sprites.png --data sprites.jsn $(SPRITES_ASE)
 
 ################################################################
 # OBJECTS
 
-8x13.h: bdf-convert
-
 OBJS     = \
 	$(SRCS_C:.c=.o) \
-	$(SRCS_CPP:.cpp=.o) \
-	ecma48.o
+	$(SRCS_CPP:.cpp=.o)
 
 DEPENDS = ${OBJS:.o=.d}
 -include ${DEPENDS}
@@ -167,26 +136,16 @@ DEPENDS = ${OBJS:.o=.d}
 	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o
 	$(CXX) $(CPPFLAGS) -M  $*.cpp > $*.d
 
-burro.iso: $(SRCS_JS) $(MAPS_TMX) $(TILESHEETS_PNG) sprites.png sprites.jsn
-	genisoimage -o $@ $^
-
-
 ################################################################
-# EXECUTABLES
+# MAJOR TARGETS
 
-bdf-convert: bdf-convert.c
-	$(CC) $(CWARN) -Wno-error=conversion -o $@ bdf-convert.c
 
-LIBS     = \
-	`sdl2-config --libs` \
-	`pkg-config cairo --libs` \
-	`pkg-config tinyxml --libs` \
-	`pkg-config libiso9660++ --libs` \
-	`pkg-config mozjs-24 --libs `\
-	-L$(srcdir)/tmxparser/build -ltmxparser
 
-burro:   $(OBJS)
-	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+burro: $(OBJS)
+	$(CC) -o $@ $(OBJS) $(LIBS)
+
+# x.pch: x.h $(SRCS_H)
+# 	$(CC) -o $@ $(CFLAGS) $<
 
 ################################################################
 # MINOR TARGETS
@@ -197,8 +156,8 @@ clean:
 
 .PHONY: check-syntax
 check-syntax:
-	$(CXX) $(CXXFLAGS) -fsyntax-only $(SRCS_CPP) ecma48.cpp
+	$(CC) $(CFLAGS) -fsyntax-only $(SRCS_C)
 
-TAGS: $(SRCS_C) $(SRCS_CPP) ecma48.cpp
+TAGS: $(SRCS_C) $(SRCS_CPP)
 	etags $(SRCS_C) $(SRCS_CPP)
 

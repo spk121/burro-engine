@@ -1,4 +1,4 @@
-#include "../x/xglib.h"
+#include "../x.h"
 #include "draw.h"
 #include "eng.h"
 #include "loop.h"
@@ -89,14 +89,14 @@ static gboolean idle_state_event_cb (void *dummy)
       if (active_flag)
         {
           //audio_time_cur = cur_time;
-          pulse_update_audio();
+          // pulse_update_audio();
           if (run_full_speed_flag || ((cur_time - before_update_time) > UPDATE_RATE))
             {
               //if (do_idle != NULL)
               //  do_idle (cur_time - before_update_time);
-                gchar *cmd = g_strdup_printf("(update %f %u)", cur_time, get_keyinput());
-              xscm_c_eval_string(cmd);
-              g_free(cmd);
+	      // gchar *cmd = g_strdup_printf("(update %f %u)", cur_time, get_keyinput());
+              // xscm_c_eval_string(cmd);
+              // g_free(cmd);
 
               update_count ++;
               before_update_time = cur_time;

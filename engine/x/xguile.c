@@ -23,8 +23,8 @@ xscm_c_eval_string (const gchar *string)
 {
     g_return_val_if_fail (string != NULL && strlen (string) > 0, SCM_BOOL_F);
     return scm_c_catch (SCM_BOOL_T,
-                      scm_c_eval_string,
-                      string,
+                        scm_c_eval_string,
+                        string,
                         eval_string_catch_handler,
                         string,
                         NULL, NULL);
@@ -44,7 +44,24 @@ xscm_c_primitive_load (const gchar *filename)
                         NULL, NULL);
 }
 
+int
+xscm_val_to_int (SCM x)
+{
+    if (SCM_UNBNDP (x))
+        return 0;
+    else if (scm_is_bool (x))
+    {
+        if (scm_is_false(x))
+            return 0;
+        else
+            return 1;
+    }
+    else if (scm_is_integer (x))
+        return scm_to_int (x);
 
+    return 0;
+}
+        
 
 void
 xscm_init_guile (void)

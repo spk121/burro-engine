@@ -2,6 +2,9 @@
 #define BURRO_XGIO_H
 #include <glib.h>
 #include <gio/gio.h>
+int                 xg_application_run                  (GApplication *application,
+							 int argc,
+							 char **argv);
 void                xg_seekable_seek                    (GSeekable *seekable,
                                                          goffset offset,
                                                          GSeekType type);
