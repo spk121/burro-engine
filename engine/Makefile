@@ -128,9 +128,13 @@ OBJS     = \
 DEPENDS = ${OBJS:.o=.d}
 -include ${DEPENDS}
 
+# %.o : %.c
+# 	$(CC) $(CFLAGS) -c $*.c -o $*.o
+# 	$(CC) $(CPPFLAGS) -M $*.c > $*.d
+
 %.o : %.c
-	$(CC) $(CFLAGS) -c $*.c -o $*.o
-	$(CC) $(CPPFLAGS) -M $*.c > $*.d
+	$(CXX) $(CXXFLAGS) -x c++ -c $*.c -o $*.o
+	$(CXX) $(CPPFLAGS) -M $*.c > $*.d
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o

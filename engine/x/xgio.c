@@ -7,7 +7,12 @@ xg_application_run (GApplication *application, int argc, char **argv)
 {
     g_assert (application != NULL);
     g_assert (argc >= 1);
-    g_application_run (application, argc, argv);
+    int ret = g_application_run (application, argc, argv);
+
+    if (ret != 0)
+        g_warning ("g_application_run returns non-zero: %d\n", ret);
+
+    return ret;
 }
 
 void
@@ -54,9 +59,9 @@ xg_input_stream_close (GInputStream *stream)
     }
 }
 
-void
+static void
 xg_input_stream_read_all (GInputStream *stream,
-                          void *id_string,
+                          const void *id_string,
                           void *buffer,
                           size_t count,
                           size_t *bytes_read)
@@ -91,7 +96,7 @@ xg_resources_get_filesize (const gchar *path)
 
     g_return_val_if_fail (path != NULL && strlen (path) > 0, 0);
 
-    ret = g_resources_get_info (path, 0, &sz, &flags, &err);
+    ret = g_resources_get_info (path, G_RESOURCE_LOOKUP_FLAGS_NONE, &sz, &flags, &err);
     if (ret == FALSE)
     {
         g_critical ("g_resources_get_filesize(%s) returned FALSE: %s", path, err->message);
