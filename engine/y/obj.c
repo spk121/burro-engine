@@ -2,12 +2,13 @@
 #include "../x/xglib.h"
 #include "eng.h"
 #include "obj.h"
-#include "tga.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 typedef struct obj_entry
 {
     /** Sprite is visible if true */
-    gboolean enable;
+    bool enable;
 
     /** priority aka z-level. 0 to 3 where 0 is foreground */
     int priority;
@@ -30,65 +31,61 @@ typedef struct obj_entry
     /** the rotation angle of the sprite about its rotation center, in radians */
     double rotation;
 
-    gboolean hflip;
-    gboolean vflip;
-
-    /** The element of the palette that corresponds to this object's first color */
-    int palette_offset;
+    bool hflip;
+    bool vflip;
 } obj_entry_t;
 
 typedef struct obj_data
 {
-    guint8 bmp[OBJSHEET_HEIGHT][OBJSHEET_WIDTH];
-    guint32 palette[OBJSHEET_PALETTE_COLORS_COUNT];
+    uint32_t bmp[OBJSHEET_HEIGHT][OBJSHEET_WIDTH];
 } obj_data_t;
 
 obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
-obj_data_t objsheet[2];
+static bool colorswap = false;
+static double brightness = 1.0;
+static GdkPixbuf *main_pixbuf = NULL;
+static GdkPixbuf *sub_pixbuf = NULL;
+    
 
 /****************************************************************/
 
-static guint32
-adjust_colorval (guint16 c16)
+static uint32_t
+adjust_colorval (uint32_t c32)
 {
-    guint32 a, r, g, b, c32;
-    a = (((guint32) c16 & 0b1000000000000000) >> 15);
-    r = (((guint32) c16 & 0b0111110000000000) >> 10);
-    g = (((guint32) c16 & 0b0000001111100000) >> 5);
-    b = ((guint32) c16 & 0b0000000000011111);
-    if (eng_is_colorswap ())
+    uint32_t a, r, g, b, c32;
+    a = (((uint32_t) c32 & 0xFF000000) >> 24);
+    r = (((uint32_t) c32 & 0x00FF0000) >> 16);
+    g = (((uint32_t) c32 & 0x0000FF00) >> 8);
+    b = ((uint32_t) c32 & 0x000000FF);
+    if (colorswap)
     {
-        double temp = r;
+        uint32_t temp = r;
         r = b;
         b = temp;
     } 
-    if (a > 0)
-        a = 0xff;
-    r = r * eng_get_brightness ();
-    g = g * eng_get_brightness ();
-    b = b * eng_get_brightness ();
-    c32 = (a << 24) + (r << 16) + (g << 8) + b;
-    return c32;
+    r = r * brightness;
+    g = g * brightness;
+    b = b * brightness;
+    return (a << 24) + (r << 16) + (g << 8) + b;
 }
 
 void obj_hide (int id)
 {
-    obj[id].enable = TRUE;
+    obj[id].enable = true;
 }
 
 void obj_show (int id)
 {
-    obj[id].enable = FALSE;
+    obj[id].enable = false;
 }
 
-gboolean obj_is_shown (int id)
+bool obj_is_shown (int id)
 {
     return obj[id].enable;
 }
 
 void obj_init (int id, int spritesheet_i, int spritesheet_j, int sprite_width, int sprite_height,
-               double rotation_center_x, double rotation_center_y, gboolean hflip, gboolean vflip,
-               int palette_offset)
+               double rotation_center_x, double rotation_center_y, bool hflip, bool vflip)
 {
     obj[id].spritesheet_i = spritesheet_i;
     obj[id].spritesheet_j = spritesheet_j;
@@ -98,7 +95,6 @@ void obj_init (int id, int spritesheet_i, int spritesheet_j, int sprite_width, i
     obj[id].rotation_center_y = rotation_center_y;
     obj[id].hflip = hflip;
     obj[id].vflip = vflip;
-    obj[id].palette_offset = palette_offset;
 }
 
 void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j)
@@ -107,15 +103,13 @@ void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j)
     obj[id].spritesheet_j = spritesheet_j;
 }
 
-void obj_set (int id, int priority, double x, double y, double rotation, double expansion,
-              int palette_offset)
+void obj_set (int id, int priority, double x, double y, double rotation, double expansion)
 {
     obj[id].priority = priority;
     obj[id].x = x;
     obj[id].y = y;
     obj[id].rotation = rotation;
     obj[id].expansion = expansion;
-    obj[id].palette_offset = palette_offset;
 }
 
 int obj_get_priority (int id)
@@ -135,11 +129,6 @@ void obj_set_position (int id, double x, double y)
     obj[id].y = y;
 }
 
-void obj_set_palette_offset (int id, int offset)
-{
-    obj[id].palette_offset = offset;
-}
-
 void obj_get_location (int id, double *x, double *y, double *rotation_center_x, double *rotation_center_y,
                        double *rotation, double *expansion)
 {
@@ -149,6 +138,33 @@ void obj_get_location (int id, double *x, double *y, double *rotation_center_x, 
     *rotation_center_y = obj[id].rotation_center_y;
     *rotation = obj[id].rotation;
     *expansion = obj[id].expansion;
+}
+
+void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename)
+{
+    g_return_if_fail (tilesheet_id < 0 || tilesheet_id >= OBJSHEET_COUNT);
+    g_return_if_fail (filename == NULL);
+    char *path = xg_find_data_file (filename);
+    g_return_if_fail (path != NULL);
+    GdkPixbuf *pb = xgdk_pixbuf_new_from_file (filename);
+    g_return_if_fail (pb != NULL);
+    if (xgdk_pixbuf_is_argb32 (pb) == false)
+    {
+        g_pixbuf_unref (pb);
+        g_critical ("failed to load %s as an ARGB32 pixbuf", path);
+        g_free (path);
+    }
+    else
+    {
+        if (tilesheet_id == 0)
+            main_pixbuf = pb;
+        else if (tilesheet_id == 1)
+            sub_pixbuf = pb;
+        else
+            abort ();
+        g_debug ("loaded pixbuf %s as obj tilesheet %d", path, tilesheet_id);
+        g_free (path);
+    }
 }
 
 #if 0
@@ -180,13 +196,37 @@ void obj_set_tilesheet_from_tga (int sub_flag, targa_image_t *t)
 cairo_surface_t *obj_render_to_cairo_surface (int id)
 {
     guint width, height, stride;
-    guint32 *data;
-    guint16 c16;
-    guint8 index;
+    uint32_t *data;
+    uint16_t c16;
+    uint8_t index;
     cairo_surface_t *surf;
+    int spritesheet_width, spritesheet_height, spritesheet_stride;
+    GdkPixbuf *pb;
+    
+    g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT);
+    g_return_val_if_fail (obj[id].sprite_width > 0, NULL);
+    g_return_val_if_fail (obj[id].sprite_height > 0, NULL);
+    
     width = obj[id].sprite_width;
     height = obj[id].sprite_height;
 
+    if (id < MAIN_OBJ_COUNT)
+        pb = main_pixbuf;
+    else if (id >= MAIN_OBJ_COUNT && id < MAIN_OBJ_COUNT + SUB_OBJ_COUNT)
+        pb = sub_pixbuf;
+    else
+        abort ();
+
+    g_return_val_if_fail (pb != NULL, NULL);
+
+    xgdk_pixbuf_get_width_height_stride (pb, &spritesheet_width, &spritesheet_height, &spritesheet_stride);
+
+    g_return_val_if_fail (spritesheet_width > 0, NULL);
+    g_return_val_if_fail (spritesheet_height > 0, NULL);
+    g_return_val_if_fail (spritesheet_stride > 0, NULL);
+
+    uint32_t *spritesheet_data = xgdk_pixbuf_get_argb32_pixels (pb);
+    
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
@@ -202,19 +242,27 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
             si = i + obj[id].spritesheet_i;
             if (obj[id].hflip == TRUE)
                 si = width - si;
-            if (id < MAIN_OBJ_COUNT)
+
+            if (si >= spritesheet_width || sj >= spritesheet_height)
             {
-                index = objsheet[0].bmp[sj][si];
-                c16 = objsheet[0].palette[index + obj[id].palette_offset];
+                g_critical ("out of range on sprite sheet");
+                c32 = 0xff000000;
             }
             else
-            {
-                index = objsheet[1].bmp[sj][si];
-                c16 = objsheet[1].palette[index + obj[id].palette_offset];
-            }
-            data[j * stride + i] = adjust_colorval (c16);
+                c32 = spritesheeet_data[sj * spritesheet_stride + si];
+            data[j * stride + i] = adjust_colorval (c32);
         }
     }
     xcairo_surface_mark_dirty (surf);
     return surf;
 }
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

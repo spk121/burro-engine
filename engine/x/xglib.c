@@ -28,6 +28,37 @@ xg_file_get_contents (const gchar *filename, gchar **contents, gsize *length)
     }
 }
 
+/* Finds the data directory for a given filename.  Returns a string to
+ * be freed by the caller.  */
+char *
+xg_find_data_file (const char *filename)
+{
+    const char *user_dir = g_get_user_data_dir ();
+    const char **sys_dirs = g_get_system_data_dirs();
+
+    if (user_dir != NULL)
+    {
+        char *path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", filename);
+        if (g_file_test (path, G_FILE_TEST_IS_REGULAR) == TRUE)
+            return path;
+        else
+            g_free (path);
+    }
+
+    size_t i = 0;
+    while (sys_dirs[i] != NULL)
+    {
+        char *path = g_build_path (G_DIR_SEPARATOR_S, sys_dirs[i], "burro", filename);
+        if (g_file_test (path, G_FILE_TEST_IS_REGULAR) == TRUE)
+            return path;
+
+        g_free (path);
+        i++;
+    }
+
+    return NULL;
+}
+
 GHook *
 xg_hook_alloc (GHookList *hl)
 {
@@ -165,3 +196,12 @@ xg_usleep (gulong microseconds)
       
     
 
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

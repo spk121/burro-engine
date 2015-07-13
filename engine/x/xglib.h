@@ -8,6 +8,7 @@ GMainLoop *         xg_default_main_loop_new            (void);
 void                xg_file_get_contents                (const gchar *filename,
 							   gchar **contents,
                                                            gsize *length);
+char *              xg_find_data_file                   (const char *filename);
 GHook *             xg_hook_alloc                       (GHookList *hl);
 void                xg_hook_list_init                   (GHookList *hl);
 guint               xg_idle_add                         (GSourceFunc function,
