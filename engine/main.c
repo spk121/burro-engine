@@ -35,9 +35,10 @@ initialize (GtkApplication *app)
         rand_init_with_seed (seed);
 
     /* Load debugging options */
-    g_log_set_handler (NULL, G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
-    g_log_set_handler ("GLib", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
-    g_log_set_handler ("Gtk", G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION, log_handler, NULL);
+    const GLogLevelFlags debug_flags = (GLogLevelFlags) (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
+    g_log_set_handler (NULL, debug_flags, log_handler, NULL);
+    g_log_set_handler ("GLib", debug_flags, log_handler, NULL);
+    g_log_set_handler ("Gtk", debug_flags, log_handler, NULL);
 
     /* Initialize memory cache */
     /* Create the window */
@@ -92,7 +93,7 @@ int main (int argc, char **argv)
 
     xgtk_init_check (&argc, &argv);
 
-    app = gtk_application_new ("com.lonelycactu.projectburro",
+    app = gtk_application_new ("com.lonelycactus.projectburro",
                                G_APPLICATION_FLAGS_NONE);
 
     g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);

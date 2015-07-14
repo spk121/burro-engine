@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
+#include "../x/xcairo.h"
 #include "bg.h"
 #include "eng.h"
 #include "tga.h"

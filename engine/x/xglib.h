@@ -16,6 +16,8 @@ guint               xg_idle_add                         (GSourceFunc function,
 void                xg_main_loop_quit                   (GMainLoop *loop);
 void                xg_main_loop_run                    (GMainLoop *loop);
 void                xg_main_loop_unref                  (GMainLoop *loop);
+void                xg_object_unref                     (void *obj);
+
 GRand *             xg_rand_new                         (void);
 GRand *             xg_rand_new_with_seed               (guint32 seed);
 gint32              xg_rand_int_range                   (GRand *rand, gint32 begin, gint32 end);

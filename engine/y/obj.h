@@ -1,21 +1,24 @@
 #ifndef BURRO_OBJ_H
 #define BURRO_OBJ_H
 
+#include "../x/xguile.h"
+
 enum obj_const_tag
   {
     OBJSHEET_HEIGHT = 1024,
     OBJSHEET_WIDTH = 1024,
     MAIN_OBJ_COUNT = 4096,
     SUB_OBJ_COUNT = 4096,
+    OBJ_COUNT = MAIN_OBJ_COUNT + SUB_OBJ_COUNT,
     OBJSHEET_COUNT = 2
   };
 
 
 void obj_hide (int id);
 void obj_show (int id);
-gboolean obj_is_shown (int id);
+bool obj_is_shown (int id);
 void obj_init (int id, int spritesheet_i, int spritesheet_j, int sprite_width, int sprite_height,
-		 double rotation_center_x, double rotation_center_y, gboolean hflip, gboolean vflip,
+		 double rotation_center_x, double rotation_center_y, bool hflip, bool vflip,
 		 int palette_offset);
 void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j);
 
@@ -31,5 +34,8 @@ void obj_get_location (int id, double *x, double *y, double *rotation_center_x, 
 
 void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename);
 cairo_surface_t *obj_render_to_cairo_surface (int id);
+
+SCM G_obj_hide (SCM gid);
+SCM G_obj_show (SCM gid);
 
 #endif

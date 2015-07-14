@@ -1,6 +1,8 @@
 #include "../x/xcairo.h"
 #include "../x/xglib.h"
+#include "../x/xgdk-pixbuf.h"
 #include "eng.h"
+#include "guile.h"
 #include "obj.h"
 #include <stdint.h>
 #include <stdbool.h>
@@ -31,8 +33,15 @@ typedef struct obj_entry
     /** the rotation angle of the sprite about its rotation center, in radians */
     double rotation;
 
+    /** Flip object vertically or horizontally */
     bool hflip;
     bool vflip;
+
+    /* Invert color of object */
+    bool colorswap;
+
+    /** Adjust color of object: from  0.0 to 1.0 */
+    double brightness;
 } obj_entry_t;
 
 typedef struct obj_data
@@ -41,8 +50,10 @@ typedef struct obj_data
 } obj_data_t;
 
 obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
+
 static bool colorswap = false;
 static double brightness = 1.0;
+
 static GdkPixbuf *main_pixbuf = NULL;
 static GdkPixbuf *sub_pixbuf = NULL;
     
@@ -50,9 +61,9 @@ static GdkPixbuf *sub_pixbuf = NULL;
 /****************************************************************/
 
 static uint32_t
-adjust_colorval (uint32_t c32)
+adjust_colorval (uint32_t c32, bool colorswap, double brightness)
 {
-    uint32_t a, r, g, b, c32;
+    uint32_t a, r, g, b;
     a = (((uint32_t) c32 & 0xFF000000) >> 24);
     r = (((uint32_t) c32 & 0x00FF0000) >> 16);
     g = (((uint32_t) c32 & 0x0000FF00) >> 8);
@@ -71,12 +82,12 @@ adjust_colorval (uint32_t c32)
 
 void obj_hide (int id)
 {
-    obj[id].enable = true;
+    obj[id].enable = false;
 }
 
 void obj_show (int id)
 {
-    obj[id].enable = false;
+    obj[id].enable = true;
 }
 
 bool obj_is_shown (int id)
@@ -150,7 +161,7 @@ void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename)
     g_return_if_fail (pb != NULL);
     if (xgdk_pixbuf_is_argb32 (pb) == false)
     {
-        g_pixbuf_unref (pb);
+        xg_object_unref (pb);
         g_critical ("failed to load %s as an ARGB32 pixbuf", path);
         g_free (path);
     }
@@ -196,14 +207,12 @@ void obj_set_tilesheet_from_tga (int sub_flag, targa_image_t *t)
 cairo_surface_t *obj_render_to_cairo_surface (int id)
 {
     guint width, height, stride;
-    uint32_t *data;
-    uint16_t c16;
-    uint8_t index;
+    uint32_t *data, c32;
     cairo_surface_t *surf;
     int spritesheet_width, spritesheet_height, spritesheet_stride;
     GdkPixbuf *pb;
     
-    g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT);
+    g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT, NULL);
     g_return_val_if_fail (obj[id].sprite_width > 0, NULL);
     g_return_val_if_fail (obj[id].sprite_height > 0, NULL);
     
@@ -246,16 +255,42 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
             if (si >= spritesheet_width || sj >= spritesheet_height)
             {
                 g_critical ("out of range on sprite sheet");
-                c32 = 0xff000000;
+                c32 = 0xffff00ff;
             }
             else
-                c32 = spritesheeet_data[sj * spritesheet_stride + si];
-            data[j * stride + i] = adjust_colorval (c32);
+                c32 = spritesheet_data[sj * spritesheet_stride + si];
+            data[j * stride + i] = adjust_colorval (c32, obj[id].colorswap, obj[id].brightness);
         }
     }
     xcairo_surface_mark_dirty (surf);
     return surf;
 }
+
+SCM_DEFINE (G_obj_hide, "obj-hide", 1, 0, 0, (SCM gid), "\
+Set object to not draw.")
+{
+    unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
+    obj_hide (id);
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_show, "obj-show", 1, 0, 0, (SCM gid), "\
+Set object to draw.")
+{
+    unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
+    obj_hide (id);
+    return SCM_UNSPECIFIED;   
+}
+
+void
+init_guile_obj_procedures (void)
+{
+#include "obj.x"
+  scm_c_export ("obj-hide",
+                "obj-show",
+                NULL);
+}
+
 
 /*
   Local Variables:

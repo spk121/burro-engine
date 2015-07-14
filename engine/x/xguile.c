@@ -3,7 +3,7 @@
 #include "xguile.h"
 
 static SCM
-eval_string_catch_handler (const gchar *string, SCM key, SCM args)
+eval_string_catch_handler (const char *string, SCM key, SCM args)
 {
     scm_write(key, scm_current_error_port());
     scm_write(args, scm_current_error_port());
@@ -23,11 +23,12 @@ xscm_c_eval_string (const gchar *string)
 {
     g_return_val_if_fail (string != NULL && strlen (string) > 0, SCM_BOOL_F);
     return scm_c_catch (SCM_BOOL_T,
-                        scm_c_eval_string,
-                        string,
-                        eval_string_catch_handler,
-                        string,
-                        NULL, NULL);
+                        (scm_t_catch_body) scm_c_eval_string,
+                        (void *) string,
+                        (scm_t_catch_handler) eval_string_catch_handler,
+                        (void *) string,
+                        (scm_t_catch_handler) NULL,
+                        (void *) NULL);
 }
 
 SCM
@@ -37,11 +38,12 @@ xscm_c_primitive_load (const gchar *filename)
     
     /* FIXME: catch Guile errors here */
     return scm_c_catch (SCM_BOOL_T,
-                        scm_c_primitive_load,
-                        filename,
-                        primitive_load_catch_handler,
-                        filename,
-                        NULL, NULL);
+                        (scm_t_catch_body) scm_c_primitive_load,
+                        (void *) filename,
+                        (scm_t_catch_handler) primitive_load_catch_handler,
+                        (void *) filename,
+                        (scm_t_catch_handler) NULL,
+                        (void *) NULL);
 }
 
 int

@@ -2,6 +2,11 @@
 #define BURRO_XCAIRO_H
 #include <stdint.h>
 #include <cairo.h>
+
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 cairo_t *           xcairo_create                       (cairo_surface_t *target);
 void                xcairo_destroy                      (cairo_t *cr);
 void                xcairo_identity_matrix              (cairo_t *cr);
@@ -29,4 +34,10 @@ void                xcairo_set_source_surface           (cairo_t *cr,
 void                xcairo_surface_destroy              (cairo_surface_t *surface);
 void                xcairo_surface_flush                (cairo_surface_t *surface);
 void                xcairo_surface_mark_dirty           (cairo_surface_t *surface);
+
+#ifdef  __cplusplus
+}
+#endif
+
+  
 #endif

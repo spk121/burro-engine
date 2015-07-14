@@ -34,11 +34,11 @@ char *
 xg_find_data_file (const char *filename)
 {
     const char *user_dir = g_get_user_data_dir ();
-    const char **sys_dirs = g_get_system_data_dirs();
+    const char * const *sys_dirs = g_get_system_data_dirs();
 
     if (user_dir != NULL)
     {
-        char *path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", filename);
+        char *path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", filename, NULL);
         if (g_file_test (path, G_FILE_TEST_IS_REGULAR) == TRUE)
             return path;
         else
@@ -48,7 +48,7 @@ xg_find_data_file (const char *filename)
     size_t i = 0;
     while (sys_dirs[i] != NULL)
     {
-        char *path = g_build_path (G_DIR_SEPARATOR_S, sys_dirs[i], "burro", filename);
+        char *path = g_build_path (G_DIR_SEPARATOR_S, sys_dirs[i], "burro", filename, NULL);
         if (g_file_test (path, G_FILE_TEST_IS_REGULAR) == TRUE)
             return path;
 
@@ -108,6 +108,13 @@ xg_main_loop_unref (GMainLoop *loop)
 {
   g_return_if_fail (loop != NULL);
   g_main_loop_unref(loop);
+}
+
+void
+xg_object_unref (void *obj)
+{
+    g_return_if_fail (obj != NULL);
+    g_object_unref (obj);
 }
 
 GRand *
@@ -192,9 +199,6 @@ xg_usleep (gulong microseconds)
 {
   g_usleep (microseconds);
 }
-
-      
-    
 
 /*
   Local Variables:

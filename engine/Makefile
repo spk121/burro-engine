@@ -23,7 +23,7 @@ SHELL = /bin/sh
 srcdir = .
 
 CC       = gcc --std=c11 -fdiagnostics-color=auto -fmessage-length=78
-CXX      = g++ --std=c++11 -fdiagnostics-color=auto -fmessage-length=78
+CXX      = gcc --std=c++11 -fdiagnostics-color=auto -fmessage-length=78
 
 ################################################################
 # FLAGS
@@ -101,8 +101,10 @@ SRCS_C   = \
  x/xguile.c \
  x/xpulseaudio.c \
  y/bg.c \
+ y/console.c \
  y/draw.c \
  y/eng.c \
+ y/guile.c \
  y/loop.c \
  y/obj.c \
  y/rand.c \
@@ -132,9 +134,13 @@ DEPENDS = ${OBJS:.o=.d}
 # 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 # 	$(CC) $(CPPFLAGS) -M $*.c > $*.d
 
+# %.x : %.c
+# 	guile-snarf -o $*.x $*.c $(CPPFLAGS)
+
 %.o : %.c
-	$(CXX) $(CXXFLAGS) -x c++ -c $*.c -o $*.o
-	$(CXX) $(CPPFLAGS) -M $*.c > $*.d
+	guile-snarf -o $*.x $*.c $(CPPFLAGS)
+	$(CC) $(CPPFLAGS) -M $*.c > $*.d
+	$(CC) $(CXXFLAGS) -x c++ -c $*.c -o $*.o
 
 %.o : %.cpp
 	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o
@@ -146,7 +152,7 @@ DEPENDS = ${OBJS:.o=.d}
 
 
 burro: $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LIBS)
+	$(CXX) -o $@ $(OBJS) $(LIBS)
 
 # x.pch: x.h $(SRCS_H)
 # 	$(CC) -o $@ $(CFLAGS) $<

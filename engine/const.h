@@ -26,10 +26,6 @@
 extern "C" {
 #endif
 
-// Duh
-#define TRUE 1
-#define FALSE 0
-
 // Main screen
 #define MAIN_SCREEN_WIDTH 640
 #define MAIN_SCREEN_HEIGHT 312
