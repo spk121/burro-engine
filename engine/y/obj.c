@@ -269,7 +269,8 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
 SCM_DEFINE (G_obj_hide, "obj-hide", 1, 0, 0, (SCM gid), "\
 Set object to not draw.")
 {
-    unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
+    // unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
+    unsigned id = scm_to_int (gid);
     obj_hide (id);
     return SCM_UNSPECIFIED;
 }
@@ -277,7 +278,8 @@ Set object to not draw.")
 SCM_DEFINE (G_obj_show, "obj-show", 1, 0, 0, (SCM gid), "\
 Set object to draw.")
 {
-    unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
+    unsigned id = scm_to_int (gid);
+    // unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
     obj_hide (id);
     return SCM_UNSPECIFIED;   
 }

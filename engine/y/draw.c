@@ -1,5 +1,6 @@
-#include "../x/xcairo.h"
+#include "../x.h"
 #include "bg.h"
+#include "console.h"
 #include "draw.h"
 #include "eng.h"
 #include "obj.h"
@@ -12,6 +13,7 @@ static cairo_surface_t *sub_screen_surface;
 
 static void draw_backdrop_color (void);
 static void draw_background_layer (int layer);
+static void draw_console_layer (void);
 static void draw_obj (int id);
 
 cairo_surface_t *draw_get_main_screen_surface (void)
@@ -67,6 +69,9 @@ void draw ()
     }
     
  end_draw:
+
+    if (console_is_visible ())
+      draw_console_layer ();
     xcairo_surface_mark_dirty (main_screen_surface);
     xcairo_surface_mark_dirty (sub_screen_surface);
 }
@@ -162,3 +167,21 @@ static void draw_obj (int id)
         paint_transformed_image (sub_screen_context, &matrix, surf);
     xcairo_surface_destroy (surf);
 }
+
+static void draw_console_layer ()
+{
+    cairo_surface_t *surf;
+    cairo_matrix_t matrix;
+    double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
+    double rotation, expansion;
+    
+    surf = console_render_to_cairo_surface ();
+    xcairo_surface_mark_dirty (surf);
+
+    /* Now copy it to the screen */
+    xcairo_set_source_surface (sub_screen_context, surf, 0, 0);
+    xcairo_paint (sub_screen_context);
+
+    xcairo_surface_destroy (surf);
+}
+

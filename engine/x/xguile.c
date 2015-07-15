@@ -46,6 +46,44 @@ xscm_c_primitive_load (const gchar *filename)
                         (void *) NULL);
 }
 
+SCM
+xscm_from_latin1_symbol (const char *name)
+{
+    g_return_val_if_fail (name != NULL, SCM_BOOL_F);
+    return scm_from_latin1_symbol (name);
+}
+
+/* A simple error handler that returns false when an error occurs.  */
+static SCM
+_xscm_false_error_handler (void *data, SCM key, SCM exception)
+{
+    return SCM_BOOL_F;
+}
+
+
+static SCM
+_xscm_lookup_safe_body (void *data)
+{
+    return scm_lookup (SCM_PACK (data));
+}
+
+static SCM
+_xscm_c_resolve_module_safe_body (void *data)
+{
+    return scm_c_resolve_module ((const char *) data);
+}
+
+SCM
+xscm_c_resolve_module (const char *name)
+{
+    SCM ret = scm_c_catch (SCM_BOOL_T,
+                           _xscm_c_resolve_module_safe_body, (void *) name,
+                           _xscm_false_error_handler, (void *) name,
+                           NULL, NULL);
+    return ret;
+}
+
+
 int
 xscm_val_to_int (SCM x)
 {

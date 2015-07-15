@@ -6,6 +6,8 @@
 
 SCM                 xscm_c_eval_string                  (const gchar *string);
 SCM                 xscm_c_primitive_load               (const gchar *filename);
+SCM                 xscm_from_latin1_symbol             (const char *name);
 void                xscm_init_guile                     (void);
+SCM                 xscm_lookup                         (SCM name);
 
 #endif

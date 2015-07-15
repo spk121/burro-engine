@@ -29,6 +29,7 @@ gulong              xg_signal_connect                   (gpointer instance,
                                                          const gchar *detailed_signal,
                                                          GCallback c_handler,
                                                          gpointer data);
+char *              xg_strndup                          (const char *str, size_t n);
 gdouble             xg_timer_elapsed                    (GTimer *timer);
 GTimer *            xg_timer_new                        (void);
 void                xg_usleep                           (gulong microseconds);

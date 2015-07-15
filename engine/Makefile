@@ -104,7 +104,6 @@ SRCS_C   = \
  y/console.c \
  y/draw.c \
  y/eng.c \
- y/guile.c \
  y/loop.c \
  y/obj.c \
  y/rand.c \

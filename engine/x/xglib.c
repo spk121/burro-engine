@@ -174,6 +174,15 @@ xg_signal_connect (gpointer instance, const gchar *detailed_signal, GCallback c_
   return id;
 }
 
+char *
+xg_strndup (const char *str, size_t n)
+{
+    g_return_val_if_fail (str != NULL, NULL);
+    if (n == 0)
+        g_critical ("n == 0 in xg_strndup");
+    return g_strndup(str, n);
+}
+
 gdouble
 xg_timer_elapsed (GTimer *timer)
 {

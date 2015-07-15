@@ -4,7 +4,6 @@
 #include "../x/xguile.h"
 #include <stdbool.h>
 
-SCM                  guile_lookup_safe                        (SCM sym);
 bool                 guile_get_procedure_arity                (SCM proc,
 							       int *required,
 							       int *optional);

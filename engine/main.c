@@ -54,7 +54,9 @@ initialize (GtkApplication *app)
     draw_initialize();
 
     /* All other stuff */
-
+    console_reset ();
+    console_test_pattern ();
+    
     loop ();
     
 }

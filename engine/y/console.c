@@ -51,8 +51,26 @@ static int row, col;
 static uint16_t rendition;
 static uint32_t cells[CONSOLE_ROWS * CONSOLE_COLS];
 static bool cursor_visible = TRUE;
-static bool console_enabled = FALSE;
+static bool console_visible = TRUE;
 GTimer *console_timer = NULL;
+
+bool
+console_is_visible ()
+{
+    return console_visible;
+}
+
+void
+console_show ()
+{
+    console_visible = true;
+}
+
+void
+console_hide ()
+{
+    console_visible = false;
+}
 
 void
 console_reset (void)
@@ -927,7 +945,6 @@ console_write_utf8_string (const char *str)
     }
 }
 
-#if 0
 void
 console_test_pattern (void)
 {
@@ -943,6 +960,7 @@ console_test_pattern (void)
     row++;
     col = 0;
 
+#if 0
     console_write_utf8_string("¿Qué?");
     const wchar_t ws1[] = L"¿Qué?";
     console_write_wchar_string(ws1, wcslen(ws1));
@@ -955,7 +973,6 @@ console_test_pattern (void)
     //ecma48_execute(s2, strlen(s2));
     //ecma48_execute(s3, strlen(s3));
 
-#if 0
     row++;
     col = 0;
     console_set_bgcolor (COLOR_BG_DEFAULT);
@@ -1074,7 +1091,6 @@ console_test_pattern (void)
     console_scroll_down(2);
 #endif
 }
-#endif
 
 
 /*

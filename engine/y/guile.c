@@ -22,8 +22,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #define NAME_LEN_MAX (200)
-#include "../x/xguile.h"
-#include "../x/xcairo.h"
+#include "../x.h"
 #include "guile.h"
 
 scm_t_bits minibuf_port_type;
@@ -45,16 +44,16 @@ static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
 static SCM
 lookup_procedure (const char *name)
 {
-  SCM sym = scm_from_locale_symbol (name);
-  if (!scm_is_symbol (sym))
+  SCM sym = xscm_from_latin1_symbol (name);
+  if (!xscm_is_symbol (sym))
     return SCM_BOOL_F;
 
-  SCM var = guile_lookup_safe (sym);
-  if (!scm_is_true (scm_variable_p (var)))
+  SCM var = xscm_lookup (sym);
+  if (!xscm_is_variable (var)))
     return SCM_BOOL_F;
 
-  SCM ref = scm_variable_ref (var);
-  if (!scm_is_true (scm_procedure_p (ref)))
+  SCM ref = xscm_variable_ref (var);
+  if (!xscm_is_procedure (ref)))
     return SCM_BOOL_F;
 
   return ref;
@@ -114,22 +113,6 @@ guile_c_define_safe (const char *name, SCM value)
   SCM ret = scm_c_catch (SCM_BOOL_T,
 			 _guile_c_define_safe_body, &nv,
 			 _guile_false_error_handler, (void *) name,
-			 NULL, NULL);
-  return ret;
-}
-
-static SCM
-_guile_lookup_safe_body (void *data)
-{
-  return scm_lookup (SCM_PACK (data));
-}
-
-SCM
-guile_lookup_safe (SCM sym)
-{
-  SCM ret = scm_c_catch (SCM_BOOL_T,
-			 _guile_lookup_safe_body,  (void *) SCM_UNPACK (sym),
-			 _guile_false_error_handler, NULL,
 			 NULL, NULL);
   return ret;
 }
@@ -281,7 +264,7 @@ guile_get_procedure_documentation_by_name (const char *name)
   if (!guile_symbol_is_name_of_defined_function (sym))
     return NULL;
 
-  proc = guile_variable_ref_safe (guile_lookup_safe (sym));
+  proc = guile_variable_ref_safe (xscm_lookup (sym));
   doc = guile_procedure_documentation_safe (proc);
   if (!scm_is_true (doc))
     return NULL;
@@ -304,7 +287,7 @@ guile_get_procedure_interactive_by_name (const char *name)
   if (!guile_symbol_is_name_of_defined_function (sym))
     return NULL;
 
-  proc = guile_variable_ref_safe (guile_lookup_safe (sym));
+  proc = guile_variable_ref_safe (xscm_lookup (sym));
 
   guile_get_procedure_arity (proc, &required, &optional);
 
@@ -327,7 +310,7 @@ guile_get_procedure_name_by_name (const char *name)
   if (!guile_symbol_is_name_of_defined_function (sym))
     return NULL;
 
-  proc = guile_variable_ref_safe (guile_lookup_safe (sym));
+  proc = guile_variable_ref_safe (xscm_lookup (sym));
   if (!scm_is_true (proc))
     return NULL;
 
@@ -868,8 +851,7 @@ guile_call_procedure_with_boolean (SCM proc, bool uniarg)
 static SCM
 _guile_load_body (void *data)
 {
-  const char *filename = data;
-  return scm_c_primitive_load (data);
+  return scm_c_primitive_load ((char *) data);
 }
 
 void
@@ -900,7 +882,7 @@ guile_load (const char *filename)
 void
 guile_error_port_write (SCM port, const void *data, size_t size)
 {
-  char *buf = strndup (data, size + 1);
+  char *buf = xg_strndup ((char *) data, size + 1);
   char *cr;
 
   buf[size] = '\0';
@@ -945,7 +927,7 @@ guile_symbol_is_name_of_defined_function (SCM sym)
   if (!scm_is_symbol (sym))
     return 0;
 
-  SCM var = guile_lookup_safe (sym);
+  SCM var = xscm_lookup (sym);
   if (!scm_is_true (var) || !scm_is_true (scm_variable_p (var)))
     return 0;
 
@@ -1011,3 +993,13 @@ guile_get_procedure_arity (SCM proc, int *required, int *optional)
   *optional = scm_to_int (scm_cadr (arity));
   return 1;
 }
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

@@ -23,6 +23,10 @@
 
 #include <cairo.h>
 
+bool console_is_visible (void);
+void console_show (void);
+void console_hide (void);
+
 cairo_surface_t *console_render_to_cairo_surface(void);
 void console_bell(void);
 void console_delete_left(int n);
@@ -69,5 +73,6 @@ void console_write_char(uint16_t codepoint,int irm,int hem,int simd,int home,int
 void console_write_latin1_string(uint8_t *str);
 void console_write_utf8_string(const char *str);
 void console_write_wchar_string(const wchar_t *str,size_t len);
+void console_test_pattern (void);
 
 #endif
