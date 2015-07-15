@@ -1,8 +1,10 @@
 #include "../x/xgdk.h"
 #include "../x/xglib.h"
 #include "../x/xgtk.h"
+#include "console.h"
 #include "draw.h"
 #include "eng.h"
+#include "lineedit.h"
 #include "loop.h"
 #include <glib.h>
 #include <gtk/gtk.h>
@@ -27,106 +29,107 @@ static int key_up, key_down, key_left, key_right;
     
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy);
+static bool key_event_console (unsigned keysym, unsigned state);
 
 
 gboolean
 eng_is_blank ()
 {
-  return blank_flag;
+    return blank_flag;
 }
 
 void
 eng_blank ()
 {
-  blank_flag = TRUE;
+    blank_flag = TRUE;
 }
 
 void
 eng_unblank ()
 {
-  blank_flag = FALSE;
+    blank_flag = FALSE;
 }
 
 gboolean 
 eng_is_colorswap ()
 {
-  return colorswap_flag;
+    return colorswap_flag;
 }
 
 void
 eng_colorswap ()
 {
-  colorswap_flag = TRUE;
+    colorswap_flag = TRUE;
 }
 
 void
 eng_uncolorswap ()
 {
-  colorswap_flag = FALSE;
+    colorswap_flag = FALSE;
 }
 
 double
 eng_get_brightness ()
 {
-  return brightness;
+    return brightness;
 }
 
 void
 eng_set_brightness (gdouble b)
 {
-  brightness = b;
+    brightness = b;
 }
 
 GtkWidget *eng_initialize ()
 {
-  window = xgtk_window_new (GTK_WINDOW_TOPLEVEL);
-  xgtk_container_set_border_width (GTK_CONTAINER (window), 8);
-  xgtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
-  xgtk_window_set_title(GTK_WINDOW(window), "Project Burro Engine");
+    window = xgtk_window_new (GTK_WINDOW_TOPLEVEL);
+    xgtk_container_set_border_width (GTK_CONTAINER (window), 8);
+    xgtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+    xgtk_window_set_title(GTK_WINDOW(window), "Project Burro Engine");
   
-  /* Set GNOME properties that PulseAudio likes to have */
-  xg_set_application_name("APPLICATION NAME");
-  // gtk_window_set_default_icon_name(title);
-  xg_setenv("PULSE_PROP_media.role", "game", TRUE);
+    /* Set GNOME properties that PulseAudio likes to have */
+    xg_set_application_name("APPLICATION NAME");
+    // gtk_window_set_default_icon_name(title);
+    xg_setenv("PULSE_PROP_media.role", "game", TRUE);
   
-  xgtk_widget_realize (window);
+    xgtk_widget_realize (window);
   
-  fixed = xgtk_fixed_new ();
-  xgtk_container_add (GTK_CONTAINER (window), fixed);
+    fixed = xgtk_fixed_new ();
+    xgtk_container_add (GTK_CONTAINER (window), fixed);
   
-  sub_screen = xgtk_drawing_area_new();
-  xgtk_widget_set_size_request (sub_screen,
-				SUB_SCREEN_WIDTH * SUB_SCREEN_MAGNIFICATION,
-				SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION);
+    sub_screen = xgtk_drawing_area_new();
+    xgtk_widget_set_size_request (sub_screen,
+                                  SUB_SCREEN_WIDTH * SUB_SCREEN_MAGNIFICATION,
+                                  SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION);
   
-  xgtk_fixed_put(GTK_FIXED(fixed), sub_screen, 0, 0);
+    xgtk_fixed_put(GTK_FIXED(fixed), sub_screen, 0, 0);
   
-  main_screen = xgtk_drawing_area_new();
-  xgtk_widget_set_size_request(main_screen,
-			       MAIN_SCREEN_WIDTH * MAIN_SCREEN_MAGNIFICATION,
-			       MAIN_SCREEN_HEIGHT * MAIN_SCREEN_MAGNIFICATION);
+    main_screen = xgtk_drawing_area_new();
+    xgtk_widget_set_size_request(main_screen,
+                                 MAIN_SCREEN_WIDTH * MAIN_SCREEN_MAGNIFICATION,
+                                 MAIN_SCREEN_HEIGHT * MAIN_SCREEN_MAGNIFICATION);
   
-  xgtk_fixed_put(GTK_FIXED(fixed),
-		 main_screen,
-		 0,
-		 SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION + 10);
+    xgtk_fixed_put(GTK_FIXED(fixed),
+                   main_screen,
+                   0,
+                   SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION + 10);
   
-  g_mutex_init(&keymutex);
+    g_mutex_init(&keymutex);
   
-  destroy_signal_id =  
-      xg_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL); 
-  key_press_event_signal_id =
-      xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
-  key_release_event_signal_id =
-      xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
-  /* window_state_event_signal_id =  */
-  /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
-  return window;
+    destroy_signal_id =  
+        xg_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL); 
+    key_press_event_signal_id =
+        xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
+    key_release_event_signal_id =
+        xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    /* window_state_event_signal_id =  */
+    /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
+    return window;
 }
 
 static void destroy_cb (GtkWidget* widget, gpointer dummy)
 {
-  loop_quit ();
+    loop_quit ();
 }
 
 void eng_present()
@@ -156,6 +159,9 @@ void eng_present()
 
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy)
 {
+    if (console_is_visible () && (event->type == GDK_KEY_PRESS))
+        return key_event_console (event->keyval, event->state);
+
     g_mutex_lock(&keymutex);
 
     switch (gdk_keyval_to_upper(event->keyval))
@@ -208,6 +214,99 @@ static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer du
     return TRUE;
 }
 
+static bool
+key_event_console (unsigned keysym, unsigned state)
+{
+    // Here we process non-textual keys
+    if (keysym == GDK_KEY_BackSpace)
+        lineedit_backspace();
+    if (keysym == GDK_KEY_Tab)
+        lineedit_autocomplete();
+    if (state & GDK_CONTROL_MASK)
+    {
+        if (keysym == GDK_KEY_A)
+            lineedit_move_home();
+        if (keysym == GDK_KEY_B)
+            lineedit_move_left();
+        if (keysym == GDK_KEY_C)
+            lineedit_ctrl_c();
+        if (keysym == GDK_KEY_D)
+            lineedit_delete_or_eof();
+        if (keysym == GDK_KEY_E)
+            lineedit_move_end();
+        if (keysym == GDK_KEY_F)
+            lineedit_move_right();
+        if (keysym == GDK_KEY_H)
+            lineedit_backspace();
+        if (keysym == GDK_KEY_H)
+            lineedit_delete_to_end();
+        if (keysym == GDK_KEY_L)
+            lineedit_clear_screen();
+        if (keysym == GDK_KEY_N)
+            lineedit_history_next();
+        if (keysym == GDK_KEY_P)
+            lineedit_history_prev();
+        if (keysym == GDK_KEY_T)
+            lineedit_swap_chars();
+        if (keysym == GDK_KEY_Y)
+            lineedit_delete_line();
+        if (keysym == GDK_KEY_W)
+            lineedit_delete_word_prev();
+    }
+    if (keysym == GDK_KEY_Delete)
+        lineedit_delete();
+    if (keysym == GDK_KEY_Down)
+        lineedit_history_next();
+    if (keysym == GDK_KEY_End)
+        lineedit_move_end();
+    if (keysym == GDK_KEY_Home)
+        lineedit_move_home();
+    if (keysym == GDK_KEY_Left)
+        lineedit_move_left();
+    if (keysym == GDK_KEY_Right)
+        lineedit_move_right();
+    if (keysym == GDK_KEY_Up)
+        lineedit_history_prev();
+    else if (keysym == GDK_KEY_Tab)
+        ;
+    else if (keysym == GDK_KEY_Clear)
+        ;
+    else if (keysym == GDK_KEY_Pause)
+        ;
+    else if (keysym == GDK_KEY_Delete)
+    {
+    }
+    if (keysym == GDK_KEY_Return) {
+        // End this lineedit session
+        // Act on the string
+        // Maybe add the string to the history
+        lineedit_stop();
+        console_move_to_column(0);
+        console_move_down(1);
+        {
+            char *script = lineedit_get_text();
+            if (strlen(script) > 0) {
+                // lisp_do_console_command (script);
+            }
+        }
+        lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
+    }
+    if (keysym == GDK_KEY_grave) {
+        console_hide();
+        return TRUE;
+    }
+    if (keysym >= GDK_KEY_space && keysym <= GDK_KEY_ydiaeresis)
+    {
+        wchar_t input[2];
+        input[0] = keysym;
+        // if (autocomplete_flag)
+        //     lineedit_autocomplete_text_input(input);
+        // else
+        lineedit_text_input(input);
+    }
+    return true;
+}
+
 unsigned int
 get_keyinput()
 {
@@ -220,3 +319,15 @@ get_keyinput()
     // g_mutex_unlock(&keymutex);
 
 }
+
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/
+

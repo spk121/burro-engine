@@ -21,7 +21,8 @@
 #ifndef BURRO_CONSOLE_H
 #define BURRO_CONSOLE_H
 
-#include <cairo.h>
+#include "../x.h"
+#include <stdint.h>
 
 bool console_is_visible (void);
 void console_show (void);
