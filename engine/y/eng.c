@@ -283,13 +283,19 @@ key_event_console (unsigned keysym, unsigned state)
         lineedit_stop();
         console_move_to_column(0);
         console_move_down(1);
-        {
-            char *script = lineedit_get_text();
-            if (strlen(script) > 0) {
-                // lisp_do_console_command (script);
-            }
+
+        char *script = lineedit_get_text();
+        if (strlen(script) > 0) {
+            // Call script callback with the current string
+            SCM ret = xscm_c_eval_string (script);
+            g_free (script);
+            char *text = guile_any_to_c_string (ret);
+            console_write_utf8_string(text);
+            console_move_to_column(0);
+            console_move_down(1);
+            g_free(text);
+            lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
-        lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
     }
     if (keysym == GDK_KEY_grave) {
         console_hide();
@@ -299,6 +305,7 @@ key_event_console (unsigned keysym, unsigned state)
     {
         wchar_t input[2];
         input[0] = keysym;
+        input[1] = L'\0';
         // if (autocomplete_flag)
         //     lineedit_autocomplete_text_input(input);
         // else

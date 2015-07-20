@@ -754,7 +754,6 @@ void lineedit_swap_chars()
 
 void lineedit_return(int retval)
 {
-    // Call script callback with the current string
 }
 
 void lineedit_autocomplete_text_input(wchar_t *str)

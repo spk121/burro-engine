@@ -57,7 +57,8 @@ initialize (GtkApplication *app)
     console_reset ();
     console_test_pattern ();
     lineedit_initialize ();
-    
+    init_guile_guile_procedures();
+    // G_console();
     loop ();
     
 }

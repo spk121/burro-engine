@@ -83,6 +83,23 @@ xscm_c_resolve_module (const char *name)
     return ret;
 }
 
+bool
+xscm_is_symbol(SCM x)
+{
+    return scm_is_true (scm_symbol_p (x));
+}
+
+bool
+xscm_is_variable(SCM x)
+{
+    return scm_is_true (scm_variable_p (x));
+}
+
+bool
+xscm_is_procedure(SCM x)
+{
+    return scm_is_true (scm_procedure_p (x));
+}
 
 int
 xscm_val_to_int (SCM x)

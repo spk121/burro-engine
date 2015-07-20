@@ -28,15 +28,16 @@ CXX      = gcc --std=c++11 -fdiagnostics-color=auto -fmessage-length=78
 ################################################################
 # FLAGS
 
+# `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 libpulse --cflags` \
+
+
+PKG_CFLAGS = -pthread -D_REENTRANT -I/usr/include/gtk-3.0 -I/usr/include/at-spi2-atk/2.0 -I/usr/include/at-spi-2.0 -I/usr/include/dbus-1.0 -I/usr/lib/dbus-1.0/include -I/usr/include/atk-1.0 -I/usr/include/gtk-3.0 -I/usr/include/gio-unix-2.0/ -I/usr/include/cairo -I/usr/include/pango-1.0 -I/usr/include/harfbuzz -I/usr/include/pango-1.0 -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/libpng16 -I/usr/include/cairo -I/usr/include/pixman-1 -I/usr/include/freetype2 -I/usr/include/libpng16 -I/usr/include/freetype2 -I/usr/include/libdrm -I/usr/include/libpng16 -I/usr/include/guile/2.0 -I/usr/include/glib-2.0 -I/usr/lib/glib-2.0/include 
 CPPFLAGS = \
  -Wall \
  -Wunused-macros \
  -Wendif-labels \
  -Wunknown-pragmas \
- `pkg-config cairo --cflags` \
- `pkg-config gtk+-3.0 --cflags` \
- `pkg-config guile-2.0 --cflags` \
- `pkg-config libpulse --cflags` \
+  $(PKG_CFLAGS) \
  -I .
 
 DEFS     = -DSDL_ASSERT_LEVEL=2
@@ -50,7 +51,7 @@ CWARN = \
  -Winit-self \
  -Wignored-qualifiers \
  -Wwrite-strings \
- -Wconversion \
+ -Wconversion
 
     # -Wcast-align \
     # -Wmissing-declarations \
@@ -72,11 +73,12 @@ LDFLAGS  = -Xlinker --Map=burro.map \
 	-Wl,--gc-sections -Wl,--as-needed -Wl,--demangle
 
 LIBS = \
- `pkg-config cairo --libs` \
- `pkg-config gtk+-3.0 --libs` \
- `pkg-config guile-2.0 --libs` \
- `pkg-config libpulse --libs` \
+ -lgtk-3 -latk-1.0 -lgio-2.0 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -lgdk_pixbuf-2.0 -lcairo-gobject -lcairo -lgobject-2.0 -lguile-2.0 -lgc -lglib-2.0 -lpulse \
  -lm
+
+# LIBS = \
+#  `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 glib-2.0 libpulse --libs` \
+#  -lm
 
 
 ################################################################
@@ -103,8 +105,11 @@ SRCS_C   = \
  y/bg.c \
  y/console.c \
  y/draw.c \
+ y/ecma48.c \
  y/eng.c \
+ y/guile.c \
  y/lineedit.c \
+ y/lisp.c \
  y/loop.c \
  y/obj.c \
  y/rand.c \
@@ -140,11 +145,11 @@ DEPENDS = ${OBJS:.o=.d}
 %.o : %.c
 	guile-snarf -o $*.x $*.c $(CPPFLAGS)
 	$(CC) $(CPPFLAGS) -M $*.c > $*.d
-	$(CC) $(CXXFLAGS) -x c++ -c $*.c -o $*.o
+	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 %.o : %.cpp
+	$(CXX) $(CPPFLAGS) -M $*.cpp > $*.d
 	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o
-	$(CXX) $(CPPFLAGS) -M  $*.cpp > $*.d
 
 ################################################################
 # MAJOR TARGETS
@@ -152,7 +157,7 @@ DEPENDS = ${OBJS:.o=.d}
 
 
 burro: $(OBJS)
-	$(CXX) -o $@ $(OBJS) $(LIBS)
+	$(CC) -o $@ $(OBJS) $(LIBS)
 
 # x.pch: x.h $(SRCS_H)
 # 	$(CC) -o $@ $(CFLAGS) $<

@@ -1,3 +1,6 @@
+#include "../x.h"
+#include "console.h"
+#include <libguile.h>
 
 void
 init_lisp (void)
@@ -14,8 +17,8 @@ Suspend the editor and bring up the REPL for this buffer's module.")
   SCM var, func;
 
   /* Suspend the CRT screen handling.  */
-  interactive = false;
-  set_error_output_to_console ();
+  // interactive = false;
+  // set_error_output_to_console ();
 
   console_reset ();
 #define W console_write_latin1_string  
@@ -35,9 +38,9 @@ Suspend the editor and bring up the REPL for this buffer's module.")
 
   printf ("Press <ENTER> key to re-enter zile...\n");
   fflush (stdout);
-  set_error_output_to_minibuffer ();
-  scm_read_char (scm_current_input_port ());
-  interactive = true;
+  // set_error_output_to_minibuffer ();
+  // scm_read_char (scm_current_input_port ());
+  // interactive = true;
   return SCM_BOOL_T;
 }
 

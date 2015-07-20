@@ -27,10 +27,11 @@
 
 scm_t_bits minibuf_port_type;
 SCM minibuf_port;
-const size_t minibuf_buffer_size = 80;
-char minibuf_buffer[80];
+const size_t minibuf_buffer_size = 800;
+char minibuf_buffer[800];
 
 SCM stderr_port;
+SCM stdout_port;
 
 static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
 
@@ -41,24 +42,26 @@ static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
  * side of things.
  *
  ****************************************************************/
-static SCM
-lookup_procedure (const char *name)
+
+SCM
+guile_lookup_procedure (const char *name)
 {
   SCM sym = xscm_from_latin1_symbol (name);
   if (!xscm_is_symbol (sym))
     return SCM_BOOL_F;
 
-  SCM var = xscm_lookup (sym);
-  if (!xscm_is_variable (var)))
+  SCM var = scm_lookup (sym);
+  if (!xscm_is_variable (var))
     return SCM_BOOL_F;
 
-  SCM ref = xscm_variable_ref (var);
-  if (!xscm_is_procedure (ref)))
+  SCM ref = guile_variable_ref_safe (var);
+  if (!xscm_is_procedure (ref))
     return SCM_BOOL_F;
 
   return ref;
 }
 
+#if 0
 #define F_LOOKUP(x)				\
   do {						\
     static SCM proc = SCM_BOOL_F;		\
@@ -77,6 +80,8 @@ SCM F_process_use_modules ()
 {
   F_LOOKUP ("process-use-modules");
 }
+
+#endif
 
 /****************************************************************
  * SAFE FUNCTIONS -- versions of Guile functions that
@@ -253,6 +258,7 @@ guile_use_burro_module (void *unused)
 }
 
 #define MAX_DOCUMENTATION_LENGTH (80*24)
+#if 0
 const char *
 guile_get_procedure_documentation_by_name (const char *name)
 {
@@ -327,7 +333,7 @@ guile_get_procedure_name_by_name (const char *name)
   buf[len] = '\0';
   return buf;
 }
-
+#endif
 
 /****************************************************************
  * ELISP Types
@@ -667,7 +673,7 @@ guile_error_handler (void *data, SCM key, SCM exception)
 					   scm_from_locale_string ("Guile error: ~A"),
 					   scm_list_1 (message_args));
   c_message = scm_to_locale_string (formatted_message);
-  // minibuf_error (c_message);
+  ecma48_execute(c_message, strlen(c_message));
   g_critical (c_message);
   free (c_message);
   return SCM_UNSPECIFIED;
@@ -684,6 +690,18 @@ void
 set_guile_error_port_to_stderr (void)
 {
   scm_set_current_error_port (stderr_port);
+}
+
+void
+set_guile_output_port_to_minibuffer (void)
+{
+  scm_set_current_error_port (minibuf_port);
+}
+
+void
+set_guile_output_port_to_stdout (void)
+{
+  scm_set_current_error_port (stdout_port);
 }
 
 
@@ -890,18 +908,16 @@ guile_error_port_write (SCM port, const void *data, size_t size)
     {
       while ((cr = strchr (minibuf_buffer, '\n')) != NULL)
 	cr[0] = ' ';
-      //minibuf_error (minibuf_buffer);
-      g_critical (minibuf_buffer);
+      ecma48_execute(minibuf_buffer, strlen(minibuf_buffer));
       memset (minibuf_buffer, 0, 80);
     }
 
   strncat (minibuf_buffer, buf, minibuf_buffer_size - 1);
 
   while ((cr = strchr (minibuf_buffer, '\n')) != NULL)
-    cr[0] = ' ';
-  // minibuf_error (minibuf_buffer);
-  g_critical (minibuf_buffer);
-  memset (minibuf_buffer, 0, 80);
+      cr[0] = ' ';
+      ecma48_execute(minibuf_buffer, strlen(minibuf_buffer));
+      memset (minibuf_buffer, 0, 80);
 
   free (buf);
 }
@@ -920,7 +936,7 @@ guile_error_port_fill_input (SCM port)
  *
  * Used when writing Guile functions.
  ****************************************************************/
-
+#if 0
 bool
 guile_symbol_is_name_of_defined_function (SCM sym)
 {
@@ -937,6 +953,7 @@ guile_symbol_is_name_of_defined_function (SCM sym)
 
   return 1;
 }
+#endif
 
 unsigned
 guile_to_ranged_uint_or_error (const char *function_name, int position, unsigned max, SCM n)
@@ -979,6 +996,7 @@ init_guile_guile_procedures (void)
   SCM_SET_CELL_TYPE (minibuf_port, minibuf_port_type | SCM_OPN | SCM_WRTNG);
   stderr_port = scm_current_error_port ();
   scm_set_current_error_port (minibuf_port);
+  scm_set_current_output_port (minibuf_port);
   #include "guile.x"
 }
 
@@ -992,6 +1010,33 @@ guile_get_procedure_arity (SCM proc, int *required, int *optional)
   *required = scm_to_int (scm_car (arity));
   *optional = scm_to_int (scm_cadr (arity));
   return 1;
+}
+
+char *
+guile_any_to_c_string (SCM x)
+{
+    if (SCM_UNBNDP (x))
+        return (g_strdup ("(undefined)"));
+    else if (x == SCM_EOL)
+        return (g_strdup ("(eol)" ));
+    else if (x == SCM_EOF_VAL)
+        return (g_strdup ("(eof)"));
+    else if (x == SCM_UNSPECIFIED)
+        return (g_strdup ("(unspecified)"));
+    else if (scm_is_bool (x)) {
+        if (scm_is_true (x))
+            return g_strdup("#t");
+        else
+            return g_strdup("#f");
+    }
+    else {
+        SCM proc = guile_lookup_procedure ("write");
+        SCM outp = scm_open_output_string ();
+        scm_call_2 (proc, x, outp);
+        SCM ret = scm_get_output_string (outp);
+        scm_close (outp);
+        return scm_to_locale_string (ret);
+    }
 }
 
 /*
