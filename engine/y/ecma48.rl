@@ -14,10 +14,9 @@
 // they are one and the same.
 
 #include <stdint.h>
-#include <SDL.h>
-#include "const.h"
-//#include "codes.h"
-#include "console.hpp"
+// #include <SDL.h>
+#include "../const.h"
+#include "console.h"
 
 #define G0 0
 #define G1 1
