@@ -1,16 +1,25 @@
 #include "../x.h"
 #include "console.h"
+#include "guile.h"
 #include <libguile.h>
 
 void
 init_lisp (void)
 {
   /* Load Burro's Guile procedures into the burro environment. */
-  xscm_c_resolve_module ("burro");
+  SCM burro_module = scm_c_resolve_module ("burro");
+  SCM old_module = scm_set_current_module (burro_module);
+  init_guile_console_procedure ();
   init_guile_guile_procedures ();
   init_guile_obj_procedures ();
+
+  /* Now switch back to the REPL's module */
+  SCM use_module = scm_c_resolve_module ("guile-user");
+  scm_set_current_module (use_module);
+  scm_c_use_module ("burro");
 }
 
+#if 0
 SCM_DEFINE (G_console, "console", 0, 0, 0, (void), "\
 Suspend the editor and bring up the REPL for this buffer's module.")
 {
@@ -44,10 +53,10 @@ Suspend the editor and bring up the REPL for this buffer's module.")
   return SCM_BOOL_T;
 }
 
+#endif
+
 void
 init_guile_lisp_procedures (void)
 {
 #include "lisp.x"
-  scm_c_export ("console",
-		NULL);
 }

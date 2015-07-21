@@ -4,6 +4,11 @@
 #include "../x/xguile.h"
 #include <stdbool.h>
 
+char *               guile_any_to_c_string                    (SCM x);
+SCM                  guile_c_eval_string_safe                 (const char *string);
+SCM                  guile_error_handler                      (void *data,
+							       SCM key,
+							       SCM exception);
 bool                 guile_get_procedure_arity                (SCM proc,
 							       int *required,
 							       int *optional);
@@ -13,8 +18,6 @@ unsigned             guile_to_ranged_uint_or_error            (const char *funct
 							       int position,
 							       unsigned max,
 							       SCM n);
-char *               guile_any_to_c_string                    (SCM x);
+SCM                  guile_use_burro_module                   (void *unused);
 SCM                  guile_variable_ref_safe                  (SCM var);
-SCM                  guile_c_eval_string_safe                 (const char *string);
-
 #endif

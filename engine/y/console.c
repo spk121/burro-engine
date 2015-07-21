@@ -60,6 +60,12 @@ console_is_visible ()
     return console_visible;
 }
 
+SCM_DEFINE (G_console_visible_p, "console-visible?", 0, 0, 0, (void), "\
+Returns #t if the console is being drawn.")
+{
+    return scm_from_bool (console_is_visible);
+}
+
 void
 console_show ()
 {
@@ -1100,6 +1106,13 @@ console_test_pattern (void)
 #endif
 }
 
+void
+init_guile_console_procedure (void)
+{
+#include "console.x"
+  scm_c_export ("console-visible?",
+		NULL);
+}
 
 /*
   Local Variables:

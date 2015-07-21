@@ -4,6 +4,7 @@
 #include "y/eng.h"
 #include "y/draw.h"
 #include "y/lineedit.h"
+#include "y/lisp.h"
 #include "y/loop.h"
 #include "y/rand.h"
 #endif

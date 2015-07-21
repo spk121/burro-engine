@@ -48,8 +48,8 @@ PKG_CFLAGS = -pthread -D_REENTRANT \
 	-I/usr/include/libpng16 \
 	-I/usr/include/pango-1.0 \
 	-I/usr/include/pixman-1 \
-	-I/usr/lib/dbus-1.0/include \
-	-I/usr/lib/glib-2.0/include
+	-I/usr/lib64/dbus-1.0/include \
+	-I/usr/lib64/glib-2.0/include
 
 CPPFLAGS = \
  -Wall \
@@ -103,7 +103,7 @@ LIBS = \
  -lgobject-2.0 \
  -lgtk-3 \
  -lguile-2.0 \
- -lm
+ -lm \
  -lpango-1.0 \
  -lpangocairo-1.0 \
  -lpulse

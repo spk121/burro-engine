@@ -322,12 +322,7 @@ guile_c_eval_string_safe (const char *string)
 SCM
 guile_use_burro_module (void *unused)
 {
-  return scm_call_1 (scm_variable_ref (scm_c_lookup ("process-use-modules")),
-		     scm_list_1
-		     (scm_list_1
-		      (scm_list_1
-		       (scm_string_to_symbol
-			(scm_from_locale_string ("burro"))))));
+    scm_c_use_module ("burro");
 }
 
 #define MAX_DOCUMENTATION_LENGTH (80*24)
