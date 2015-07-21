@@ -48,8 +48,8 @@ PKG_CFLAGS = -pthread -D_REENTRANT \
 	-I/usr/include/libpng16 \
 	-I/usr/include/pango-1.0 \
 	-I/usr/include/pixman-1 \
-	-I/usr/lib64/dbus-1.0/include \
-	-I/usr/lib64/glib-2.0/include
+	-I/usr/lib/dbus-1.0/include \
+	-I/usr/lib/glib-2.0/include
 
 CPPFLAGS = \
  -Wall \
@@ -92,8 +92,21 @@ LDFLAGS  = -Xlinker --Map=burro.map \
 	-Wl,--gc-sections -Wl,--as-needed -Wl,--demangle
 
 LIBS = \
- -lgtk-3 -latk-1.0 -lgio-2.0 -lgdk-3 -lpangocairo-1.0 -lpango-1.0 -lgdk_pixbuf-2.0 -lcairo-gobject -lcairo -lgobject-2.0 -lguile-2.0 -lgc -lglib-2.0 -lpulse \
+ -latk-1.0 \
+ -lcairo \
+ -lcairo-gobject \
+ -lgc \
+ -lgdk-3 \
+ -lgdk_pixbuf-2.0 \
+ -lgio-2.0 \
+ -lglib-2.0 \
+ -lgobject-2.0 \
+ -lgtk-3 \
+ -lguile-2.0 \
  -lm
+ -lpango-1.0 \
+ -lpangocairo-1.0 \
+ -lpulse
 
 # LIBS = \
 #  `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 glib-2.0 libpulse --libs` \
@@ -176,7 +189,7 @@ DEPENDS = ${OBJS:.o=.d}
 
 
 burro: $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LIBS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 # x.pch: x.h $(SRCS_H)
 # 	$(CC) -o $@ $(CFLAGS) $<

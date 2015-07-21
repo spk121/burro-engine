@@ -1102,7 +1102,7 @@ guile_any_to_c_string (SCM x)
             return g_strdup("#f");
     }
     else {
-        SCM proc = guile_lookup_procedure ("write");
+        SCM proc = guile_lookup_procedure ("display");
         SCM outp = scm_open_output_string ();
         scm_call_2 (proc, x, outp);
         SCM ret = scm_get_output_string (outp);

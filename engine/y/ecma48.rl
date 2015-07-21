@@ -1766,5 +1766,3 @@ int ecma48_execute(const unsigned char *data, int len)
         return 1;
     return 0;
 }
-
-
