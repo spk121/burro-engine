@@ -21,15 +21,15 @@
 static const uint32_t fg_palette[CONSOLE_NUM_COLORS *
                                  CONSOLE_NUM_INTENSITIES] = {
     /*                   normal     faint        bold        */
-    /* default     */ 0xffeeee88, 0xff888888, 0xffffff88,
+    /* default     */ 0xffcccc88, 0xff888888, 0xffffff88,
     /* black       */ 0xff000000, 0xff000000, 0xff000000,
-    /* red         */ 0xffee0000, 0xff880000, 0xffff0000,
-    /* green       */ 0xff00ee00, 0xff008800, 0xff00ff00,
-    /* yellow      */ 0xffeeee00, 0xff888800, 0xffffff00,
-    /* blue        */ 0xff0000ee, 0xff000088, 0xff0000ff,
-    /* magenta     */ 0xffee00ee, 0xff880088, 0xffff00ff,
-    /* cyan        */ 0xff00eeee, 0xff008888, 0xff00ffff,
-    /* white       */ 0xffeeeeee, 0xff888888, 0xffffffff,
+    /* red         */ 0xffcc0000, 0xff880000, 0xffff0000,
+    /* green       */ 0xff00cc00, 0xff008800, 0xff00ff00,
+    /* yellow      */ 0xffcccc00, 0xff888800, 0xffffff00,
+    /* blue        */ 0xff0000cc, 0xff000088, 0xff0000ff,
+    /* magenta     */ 0xffcc00cc, 0xff880088, 0xffff00ff,
+    /* cyan        */ 0xff00cccc, 0xff008888, 0xff00ffff,
+    /* white       */ 0xffcccccc, 0xff888888, 0xffffffff,
     /* transparent */ 0x00000000, 0x00000000, 0x00000000,
 };
 
@@ -37,13 +37,13 @@ static const uint32_t bg_palette[CONSOLE_NUM_COLORS] = {
     /*                   background        */
     /* default     */ 0x00000000,
     /* black       */ 0xff000000,
-    /* red         */ 0xffee0000,
-    /* green       */ 0xff00ee00,
-    /* yellow      */ 0xffeeee00,
-    /* blue        */ 0xff0000ee,
-    /* magenta     */ 0xffee00ee,
-    /* cyan        */ 0xff00eeee,
-    /* white       */ 0xffeeeeee,
+    /* red         */ 0xffcc0000,
+    /* green       */ 0xff00cc00,
+    /* yellow      */ 0xffcccc00,
+    /* blue        */ 0xff0000cc,
+    /* magenta     */ 0xffcc00cc,
+    /* cyan        */ 0xff00cccc,
+    /* white       */ 0xffcccccc,
     /* transparent */ 0x00000000,
 };
 
@@ -807,6 +807,11 @@ console_render_to_cairo_surface ()
                         else if (glyph_bitmap
                                  && glyph_bitmap[j] & (1 << (glyph_width - i - 1)))
                             pixel_argb = fg_argb;
+                        else if (glyph_bitmap
+                                 && (i > 0)
+                                 && ((rendering & INTENSITY_MASK) == INTENSITY_BOLD)
+                                 && (glyph_bitmap[j] & (1 << (glyph_width - i - 2))))
+                            pixel_argb = fg_argb;
                         else
                             pixel_argb = bg_argb;
 						
@@ -972,7 +977,8 @@ console_test_pattern (void)
     //ecma48_execute(s1, strlen(s1));
     //ecma48_execute(s2, strlen(s2));
     //ecma48_execute(s3, strlen(s3));
-
+#endif
+    
     row++;
     col = 0;
     console_set_bgcolor (COLOR_BG_DEFAULT);
@@ -1064,6 +1070,8 @@ console_test_pattern (void)
     console_write_latin1_string ("NEGATIVE");
     console_set_polarity (POLARITY_POSITIVE);
 
+#if 0
+    
     row++;
     col = 0;
     console_write_latin1_string ("DELETE ->*<- LEFT");

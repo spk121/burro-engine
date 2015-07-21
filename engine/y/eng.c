@@ -4,6 +4,7 @@
 #include "console.h"
 #include "draw.h"
 #include "eng.h"
+#include "guile.h"
 #include "lineedit.h"
 #include "loop.h"
 #include <glib.h>
@@ -287,7 +288,7 @@ key_event_console (unsigned keysym, unsigned state)
         char *script = lineedit_get_text();
         if (strlen(script) > 0) {
             // Call script callback with the current string
-            SCM ret = xscm_c_eval_string (script);
+            SCM ret = guile_c_eval_string_safe (script);
             g_free (script);
             char *text = guile_any_to_c_string (ret);
             console_write_utf8_string(text);

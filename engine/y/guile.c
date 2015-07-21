@@ -33,6 +33,8 @@ char minibuf_buffer[800];
 SCM stderr_port;
 SCM stdout_port;
 
+SCM_SYMBOL (guile_quit_error_key, "burro-quit-error");
+
 static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
 
 /****************************************************************
@@ -245,6 +247,77 @@ guile_procedure_name_safe (SCM proc)
   return ret;
 }
 
+static SCM
+_guile_c_eval_string_handler (const char *string, SCM key, SCM exception)
+{
+  char *c_key;
+  SCM subr, message, args, rest;
+  SCM message_args, formatted_message;
+  char *c_message;
+
+  /* Key is the exception type, a symbol. */
+  /* exception is a list of 4 elements:
+     - subr: a subroutine name (symbol?) or #f
+     - message: a format string
+     - args: a list of arguments that are tokens for the message
+     - rest: the errno, if any */
+  if (scm_is_true (key))
+    c_key = scm_to_locale_string (scm_symbol_to_string (key));
+  else
+    c_key = NULL;
+
+  if (exception == SCM_EOL) {
+      return scm_from_latin1_string ("(exception)");
+  }
+  else {
+      subr = scm_list_ref (exception, scm_from_int (0));
+      message = scm_list_ref (exception, scm_from_int (1));
+      args = scm_list_ref (exception, scm_from_int (2));
+      rest = scm_list_ref (exception, scm_from_int (3));
+  }
+
+  if (scm_is_false (args))
+      message_args = scm_simple_format (SCM_BOOL_F, message, SCM_EOL);
+  else
+      message_args = scm_simple_format (SCM_BOOL_F, message, args);
+      
+
+  if (key == guile_quit_error_key)
+    formatted_message = scm_from_locale_string ("Quit\n");
+  else
+    {
+        if (scm_is_true (subr))
+            formatted_message = scm_simple_format (SCM_BOOL_F,
+                                                   scm_from_locale_string ("Error ~S: ~A~%"),
+                                                   scm_list_2 (subr, message_args));
+        else
+            formatted_message = scm_simple_format (SCM_BOOL_F,
+                                                   scm_from_locale_string ("Error: ~A~%"),
+                                                   scm_list_1 (message_args));
+    }
+  
+  /* BEGIN DEBUG BLOCK */
+  c_message = scm_to_locale_string (formatted_message);
+  free (c_message);
+  /* END DEBUG BLOCK */
+
+  return formatted_message;
+}
+
+SCM
+guile_c_eval_string_safe (const char *string)
+{
+    g_return_val_if_fail (string != NULL && strlen (string) > 0, SCM_BOOL_F);
+    return scm_c_catch (SCM_BOOL_T,
+                        (scm_t_catch_body) scm_c_eval_string,
+                        (void *) string,
+                        (scm_t_catch_handler) _guile_c_eval_string_handler,
+                        (void *) string,
+                        (scm_t_catch_handler) NULL,
+                        (void *) NULL);
+}
+
+
 
 SCM
 guile_use_burro_module (void *unused)
@@ -401,7 +474,6 @@ SCM_SYMBOL (guile_end_of_buffer_error_key, "burro-end-of-buffer-error");
 /* Number too big to be converted into a long.  */
 SCM_SYMBOL (guile_overflow_error_key, "burro-overflow-error");
 
-SCM_SYMBOL (guile_quit_error_key, "burro-quit-error");
 
 SCM_SYMBOL (guile_read_only_error_key, "burro-read-only-error");
 

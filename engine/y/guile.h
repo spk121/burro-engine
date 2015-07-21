@@ -15,5 +15,6 @@ unsigned             guile_to_ranged_uint_or_error            (const char *funct
 							       SCM n);
 char *               guile_any_to_c_string                    (SCM x);
 SCM                  guile_variable_ref_safe                  (SCM var);
+SCM                  guile_c_eval_string_safe                 (const char *string);
 
 #endif
