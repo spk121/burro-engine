@@ -1089,7 +1089,7 @@ guile_any_to_c_string (SCM x)
     else if (x == SCM_EOF_VAL)
         return (g_strdup ("(eof)"));
     else if (x == SCM_UNSPECIFIED)
-        return (g_strdup ("(unspecified)"));
+        return NULL;
     else if (scm_is_bool (x)) {
         if (scm_is_true (x))
             return g_strdup("#t");

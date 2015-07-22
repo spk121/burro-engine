@@ -291,10 +291,12 @@ key_event_console (unsigned keysym, unsigned state)
             SCM ret = guile_c_eval_string_safe (script);
             g_free (script);
             char *text = guile_any_to_c_string (ret);
-            console_write_utf8_string(text);
-            console_move_to_column(0);
-            console_move_down(1);
-            g_free(text);
+            if (text) {
+                console_write_utf8_string(text);
+                console_move_to_column(0);
+                console_move_down(1);
+                g_free(text);
+            }
             lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
     }
