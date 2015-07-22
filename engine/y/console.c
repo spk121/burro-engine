@@ -1,3 +1,23 @@
+/* console.c -- a text rendering widget
+
+   Copyright 2014, 2015 Michael L. Gran
+
+   This file is part of the Project Burro game engine.
+
+   Project Burro is free software: you can redistribute it and/or
+   modify it under the terms of the GNU General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
+
+   Project Burro is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with Project Burro.  If not, see
+   <http://www.gnu.org/licenses/>. */
+
 #include <memory.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -5,8 +25,7 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include "../x/xglib.h"
-#include "../x/xcairo.h"
+#include "../x.h"
 #include "const.h"
 #include "console.h"
 #include "8x13.h"
@@ -15,11 +34,15 @@
 #define RENDERING(x) ((uint16_t)(((x) & 0xFFFF0000) >> 16))
 #define CODEPOINT(x) ((uint16_t)((x) & 0x0000FFFF))
 
-#define CONSOLE_NUM_COLORS 10
-#define CONSOLE_NUM_INTENSITIES 3
+#define NUM_COLORS 10
+#define NUM_INTENSITIES 3
+#define FAST_BLINK_TIME 300	/* milliseconds */
+#define SLOW_BLINK_TIME 500	/* milliseconds */
+#define TAB 8		/* spaces per tab */
+#define VTAB 6		/* lines per vtab */
 
-static const uint32_t fg_palette[CONSOLE_NUM_COLORS *
-                                 CONSOLE_NUM_INTENSITIES] = {
+static const uint32_t fg_palette[NUM_COLORS *
+                                 NUM_INTENSITIES] = {
     /*                   normal     faint        bold        */
     /* default     */ 0xffcccc88, 0xff888888, 0xffffff88,
     /* black       */ 0xff000000, 0xff000000, 0xff000000,
@@ -33,7 +56,7 @@ static const uint32_t fg_palette[CONSOLE_NUM_COLORS *
     /* transparent */ 0x00000000, 0x00000000, 0x00000000,
 };
 
-static const uint32_t bg_palette[CONSOLE_NUM_COLORS] = {
+static const uint32_t bg_palette[NUM_COLORS] = {
     /*                   background        */
     /* default     */ 0x00000000,
     /* black       */ 0xff000000,
@@ -60,11 +83,6 @@ console_is_visible ()
     return console_visible;
 }
 
-SCM_DEFINE (G_console_visible_p, "console-visible?", 0, 0, 0, (void), "\
-Returns #t if the console is being drawn.")
-{
-    return scm_from_bool (console_is_visible);
-}
 
 void
 console_show ()
@@ -464,11 +482,11 @@ void console_move_tab_left(int n)
     g_assert (n > 0);
 
     int c = col;
-    int remainder = c % CONSOLE_TAB;
+    int remainder = c % TAB;
     if (remainder == 0)
-        c -= n * CONSOLE_TAB;
+        c -= n * TAB;
     else
-        c -= remainder + (n - 1) * CONSOLE_TAB;
+        c -= remainder + (n - 1) * TAB;
     if (c < 0)
         c = 0;
     col = c;
@@ -479,11 +497,11 @@ void console_move_tab_right(int n)
     g_assert (n > 0);
 
     int c = col;
-    int remainder = CONSOLE_TAB - (c % CONSOLE_TAB);
+    int remainder = TAB - (c % TAB);
     if (remainder == 0)
-        c += n * CONSOLE_TAB;
+        c += n * TAB;
     else
-        c += remainder + (n - 1) * CONSOLE_TAB;
+        c += remainder + (n - 1) * TAB;
     if (c >= CONSOLE_COLS)
         c = CONSOLE_COLS - 1;
     col = c;
@@ -494,11 +512,11 @@ void console_move_vertical_tab_up(int n)
     g_assert (n > 0);
 
     int r = row;
-    int remainder = r % CONSOLE_VTAB;
+    int remainder = r % VTAB;
     if (remainder == 0)
-        r -= n * CONSOLE_VTAB;
+        r -= n * VTAB;
     else
-        r -= remainder + (n - 1) * CONSOLE_VTAB;
+        r -= remainder + (n - 1) * VTAB;
     if (r < 0)
         r = 0;
     row = r;
@@ -509,11 +527,11 @@ void console_move_vertical_tab_down(int n)
     g_assert (n > 0);
 
     int r = row;
-    int remainder = CONSOLE_VTAB - (r % CONSOLE_VTAB);
+    int remainder = VTAB - (r % VTAB);
     if (remainder == 0)
-        r += n * CONSOLE_VTAB;
+        r += n * VTAB;
     else
-        r += remainder + (n - 1) * CONSOLE_VTAB;
+        r += remainder + (n - 1) * VTAB;
     if (r >= CONSOLE_ROWS)
         r = CONSOLE_ROWS - 1;
     row = r;
@@ -767,7 +785,7 @@ console_render_to_cairo_surface ()
             uint16_t underline = rendering & UNDERLINE_MASK;
             
             uint32_t fg_argb =
-                fg_palette[fg_color_index * CONSOLE_NUM_INTENSITIES +
+                fg_palette[fg_color_index * NUM_INTENSITIES +
                            intensity_index];
             uint32_t bg_argb = bg_palette[bg_color_index];
             
@@ -862,6 +880,48 @@ console_bell (void)
 }
 
 void
+console_write_ucs4_string (const uint32_t *str)
+{
+    size_t i = 0;
+    while (str[i] != 0)
+    {
+        if (col == CONSOLE_COLS - 1)
+        {
+            row ++;
+            col = 0;
+            if (row == CONSOLE_ROWS)
+            {
+                console_scroll_up (1);
+                row --;
+            }
+        }
+        console_write_char (str[i], 0, 0, 0, 0, CONSOLE_COLS - 1);
+        i = i + 1;
+    }
+}
+
+void
+console_write_latin1_string (const char * str)
+{
+    size_t i = 0;
+    while (str[i] != '\0')
+    {
+        if (col == CONSOLE_COLS - 1)
+        {
+            row ++;
+            col = 0;
+            if (row == CONSOLE_ROWS)
+            {
+                console_scroll_up (1);
+                row --;
+            }
+        }
+        console_write_char ((uint8_t)(str[i]), 0, 0, 0, 0, CONSOLE_COLS - 1);
+        i = i + 1;
+    }
+}
+
+void
 console_write_wchar_string (const wchar_t *str, size_t len)
 {
     for (size_t i = 0; i < len; i ++) {
@@ -877,83 +937,15 @@ console_write_wchar_string (const wchar_t *str, size_t len)
     }
 }
 
-
-void
-console_write_latin1_string (uint8_t * str)
-{
-    for (size_t i = 0; i < strlen ((const char *) str); i++)
-        console_write_char (str[i], 0, 0, 0, 0, CONSOLE_COLS - 1);
-}
-
-#define BUFSIZ (1024)
-
 void
 console_write_utf8_string (const char *str)
 {
-    char buffer[BUFSIZ + MB_LEN_MAX];
-    mbstate_t state;
-    int filled = 0;
-    int eof = 0;
+    g_return_if_fail (str != NULL);
+    
+    uint32_t *ucs4 = xg_utf8_to_ucs4 (str);
 
-    /* Initialize the state.  */
-    memset (&state, '\0', sizeof (state));
-
-    while (!eof)
-    {
-        ssize_t nread;
-        char *inp = buffer;
-        wchar_t outbuf[BUFSIZ];
-        wchar_t *outp = outbuf;
-
-        /* Fill up the buffer.  */
-        nread = strlen(str);
-        if (nread == 0)
-            eof = 1;
-        else if (nread >= BUFSIZ)
-            abort();
-        else
-            memcpy(buffer + filled, str, nread);
-
-        /* 'filled' is now the number of bytes in 'buffer'. */
-        filled += nread;
-
-        /* Convert those bytes to wide characters-as many as we can. */
-        while (1)
-        {
-            size_t thislen = mbrtowc (outp, inp, filled, &state);
-            /* Stop converting at invalid character;
-               this can mean we have read just the first part
-               of a valid character.  */
-            if (thislen == (size_t) -1)
-                break;
-            /* End at NULL */
-            if (thislen == 0)
-                break;
-            /* Advance past this character. */
-            inp += thislen;
-            filled -= thislen;
-            ++outp;
-        }
-      
-        /* Write the wide characters we just made.  */
-        for (int x = 0; x < (outp - outbuf); x ++)
-            console_write_char (outbuf[x], 0, 0, 0, 0, CONSOLE_COLS - 1);
-
-        /* See if we have a _real_ invalid character. */
-        if ((eof && filled > 0) || filled >= MB_CUR_MAX)
-        {
-            // error (0, 0, "invalid multibyte character");
-            eof = 1;
-            return;
-        }
-
-        /* If any characters must be carried forward,
-           put them at the beginning of 'buffer'. */
-        if (filled > 0)
-            memmove (buffer, inp, filled);
-        else
-            eof = 1;
-    }
+    console_write_ucs4_string (ucs4);
+    g_free (ucs4);
 }
 
 void
@@ -971,20 +963,6 @@ console_test_pattern (void)
     row++;
     col = 0;
 
-#if 0
-    console_write_utf8_string("¿Qué?");
-    const wchar_t ws1[] = L"¿Qué?";
-    console_write_wchar_string(ws1, wcslen(ws1));
-
-    //ecma48_init();
-    //const char s1[] = "hello\r\n";
-    //const char s2[] = "\tWhat's up!\r\n";
-    //const char s3[] = "\x1b[7mERR\x1b[0m \x1b[1mWARN\x1b[0m";
-    //ecma48_execute(s1, strlen(s1));
-    //ecma48_execute(s2, strlen(s2));
-    //ecma48_execute(s3, strlen(s3));
-#endif
-    
     row++;
     col = 0;
     console_set_bgcolor (COLOR_BG_DEFAULT);
@@ -1076,42 +1054,23 @@ console_test_pattern (void)
     console_write_latin1_string ("NEGATIVE");
     console_set_polarity (POLARITY_POSITIVE);
 
-#if 0
-    
-    row++;
-    col = 0;
-    console_write_latin1_string ("DELETE ->*<- LEFT");
-    col = 9;
-    console_delete_left (2);
-
-    row++;
-    col = 0;
-    console_write_latin1_string ("DELETE ->*<- RIGHT");
-    col = 9;
-    console_delete_right (2);
-
-    row ++;
-    col = 0;
-    console_write_latin1_string ("ERASE ->*<- LEFT");
-    col = 8;
-    console_erase_left (2);
-
-    row ++;
-    col = 0;
-    console_write_latin1_string ("ERASE ->*<- RIGHT");
-    col = 8;
-    console_erase_right (2);
-
-    console_scroll_down(2);
-#endif
 }
 
+////////////////////////////////////////////////////////////////
+
+SCM_DEFINE (G_console_visible_p, "console-visible?", 0, 0, 0, (void), "\
+Returns #t if the console is being drawn.")
+{
+    return scm_from_bool (console_is_visible());
+}
+
+
 void
-init_guile_console_procedure (void)
+console_init_guile_procedures (void)
 {
 #include "console.x"
-  scm_c_export ("console-visible?",
-		NULL);
+    scm_c_export ("console-visible?",
+                  NULL);
 }
 
 /*

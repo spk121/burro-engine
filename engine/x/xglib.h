@@ -3,16 +3,17 @@
 
 #include <glib.h>
 #include <glib-object.h>
+#include <stdint.h>
 
 GMainLoop *         xg_default_main_loop_new            (void);
 void                xg_file_get_contents                (const gchar *filename,
-							   gchar **contents,
+                                                         gchar **contents,
                                                            gsize *length);
 char *              xg_find_data_file                   (const char *filename);
 GHook *             xg_hook_alloc                       (GHookList *hl);
 void                xg_hook_list_init                   (GHookList *hl);
 guint               xg_idle_add                         (GSourceFunc function,
-							   gpointer data);
+                                                         gpointer data);
 void                xg_main_loop_quit                   (GMainLoop *loop);
 void                xg_main_loop_run                    (GMainLoop *loop);
 void                xg_main_loop_unref                  (GMainLoop *loop);
@@ -33,4 +34,6 @@ char *              xg_strndup                          (const char *str, size_t
 gdouble             xg_timer_elapsed                    (GTimer *timer);
 GTimer *            xg_timer_new                        (void);
 void                xg_usleep                           (gulong microseconds);
+uint32_t *          xg_utf8_to_ucs4                     (const char *u8);
+
 #endif

@@ -123,7 +123,7 @@ static gboolean idle_state_event_cb (void *dummy)
             }
 
           if (!run_full_speed_flag)
-            xg_usleep (20);
+            xg_usleep (1000);
         }
       else
         {

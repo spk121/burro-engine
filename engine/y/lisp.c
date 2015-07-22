@@ -3,20 +3,28 @@
 #include "guile.h"
 #include <libguile.h>
 
+// One route to defining C functions into a module is
+// scm_c_resolve_module to open and create if necessary a module
+// SCM val = scm_c_make_gsubr(subr args and such)  to make it
+// scm_c_module_define (module, c_name, val)
+// but are they public?
+
+// There is also scm_c_define_module where I could 
+
 void
 init_lisp (void)
 {
   /* Load Burro's Guile procedures into the burro environment. */
-  SCM burro_module = scm_c_resolve_module ("burro");
-  SCM old_module = scm_set_current_module (burro_module);
-  init_guile_console_procedure ();
-  init_guile_guile_procedures ();
-  init_guile_obj_procedures ();
+  // SCM burro_module = scm_c_resolve_module ("burro");
+  // SCM old_module = scm_set_current_module (burro_module);
+  console_init_guile_procedures ();
+  // init_guile_guile_procedures ();
+  // init_guile_obj_procedures ();
 
   /* Now switch back to the REPL's module */
-  SCM use_module = scm_c_resolve_module ("guile-user");
-  scm_set_current_module (use_module);
-  scm_c_use_module ("burro");
+  // SCM use_module = scm_c_resolve_module ("guile-user");
+  // scm_set_current_module (use_module);
+  // scm_c_use_module ("burro");
 }
 
 #if 0

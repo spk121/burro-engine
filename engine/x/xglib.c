@@ -209,6 +209,24 @@ xg_usleep (gulong microseconds)
   g_usleep (microseconds);
 }
 
+uint32_t *
+xg_utf8_to_ucs4 (const char *u8)
+{
+    GError *err = NULL;
+    long items_read, items_written;
+    uint32_t *ucs4;
+
+    g_return_val_if_fail (u8 != NULL, NULL);
+
+    ucs4 = g_utf8_to_ucs4 (u8, -1, &items_read, &items_written, &err);
+    if (ucs4 == NULL)
+    {
+        g_critical ("g_utf8_to_ucs4 failed: %s", err->message);
+        g_error_free (err);
+    }
+    return ucs4;
+}
+
 /*
   Local Variables:
   mode:C

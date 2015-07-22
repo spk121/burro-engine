@@ -57,7 +57,8 @@ initialize (GtkApplication *app)
     console_reset ();
     console_test_pattern ();
     lineedit_initialize ();
-    init_guile_guile_procedures();
+    // init_guile_guile_procedures();
+    init_lisp();
     // G_console();
     loop ();
     
@@ -101,7 +102,8 @@ int main (int argc, char **argv)
                                G_APPLICATION_FLAGS_NONE);
 
     g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-
+    g_application_set_inactivity_timeout (G_APPLICATION(app), 100000000);
+    g_application_set_flags (G_APPLICATION(app), G_APPLICATION_NON_UNIQUE);
     status = xg_application_run (G_APPLICATION (app), argc, argv);
 
     g_object_unref (app);
