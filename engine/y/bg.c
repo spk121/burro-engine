@@ -63,7 +63,7 @@ typedef struct bg_tag
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
 
-bg_t bg;
+bg_t bg = {0xff000000, false, 1.0};
 
 static cairo_surface_t *
 bg_render_map_to_cairo_surface (int id);
@@ -93,11 +93,6 @@ adjust_colorval (uint32_t c32)
     return c32;
 }
 
-void bg_set_backdrop_color (uint16_t c16)
-{
-    bg.bg_color = c16;
-}
-
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b)
 {
   uint32_t c32 = adjust_colorval (bg.bg_color);
@@ -112,7 +107,6 @@ bg_is_shown (int id)
 {
     return bg.bg[id].enable;
 }
-
 
 uint16_t *bg_get_map_ptr (int id)
 {
@@ -184,6 +178,11 @@ void bg_set (int id, double rotation, double expansion, double scroll_x, double 
     bg.bg[id].rotation_center_y = rotation_center_y;
 }
 
+void bg_set_backdrop_color (uint32_t c32)
+{
+    bg.bg_color = c32;
+}
+
 void bg_set_rotation_center (int id, double rotation_center_x, double rotation_center_y)
 {
     bg.bg[id].rotation_center_x = rotation_center_x;
@@ -253,6 +252,48 @@ static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
         bg.bg[id].map.palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
 }
 #endif
+
+void bg_set_bmp_from_file (int id, const char *filename)
+{
+    g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
+    g_return_if_fail (filename != NULL);
+    
+    char *path = xg_find_data_file (filename);
+    g_return_if_fail (path != NULL);
+    GdkPixbuf *pb = xgdk_pixbuf_new_from_file (path);
+    g_return_if_fail (pb != NULL);
+    if (xgdk_pixbuf_is_argb32 (pb) == false)
+    {
+        xg_object_unref (pb);
+        g_critical ("failed to load %s as an ARGB32 pixbuf", path);
+        g_free (path);
+    }
+    else
+    {
+        int width, height, stride;
+        xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
+        uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
+
+        if (width > BG_BMP_WIDTH_MAX)
+            width = BG_BMP_WIDTH_MAX;
+        if (height > BG_BMP_HEIGHT_MAX)
+            height = BG_BMP_HEIGHT_MAX;
+        bg.bg[id].bmp.height = height;
+        bg.bg[id].bmp.width = width;
+        bg.bg[id].type = BG_TYPE_BMP;
+        
+        for (unsigned j = 0; j < height; j ++)
+        {
+            for (unsigned i = 0; i < width ; i ++)
+            {
+                bg.bg[id].bmp.bmp[j][i] = c32[j * stride + i];
+            }
+        }
+        g_debug ("loaded pixbuf %s as bg bmp %d", path, id);
+        g_free (path);
+    }
+}
+
 
 #if 0
 void bg_set_bmp_from_resource (int id, const gchar *resource)
@@ -357,3 +398,38 @@ void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotat
     *rotation = bg.bg[id].rotation;
     *expansion = bg.bg[id].expansion;
 }
+
+SCM_DEFINE (G_bg_set_backdrop_color, "bg-set-backdrop-color", 1, 0, 0, (SCM color), "\
+Given COLOR, a 32-bit ARGB integer, set the color of the lowest layer of the background")
+{
+  bg_set_backdrop_color (scm_to_uint32 (color));
+  return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_bg_set_bmp_from_file, "bg-set-bmp-from-file", 2, 0, 0, (SCM id, SCM filename), "\
+Set BG to be a bitmap-type background using the data from FILE in the data directory")
+{
+    char *str = scm_to_locale_string (filename);
+    bg_set_bmp_from_file (scm_to_int (id), str);
+    free (str);
+    return SCM_UNSPECIFIED;
+}
+
+void
+bg_init_guile_procedures (void)
+{
+  #include "bg.x"
+  scm_c_export ("bg-set-backdrop-color",
+                "bg-set-bmp-from-file",
+                NULL);
+}
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

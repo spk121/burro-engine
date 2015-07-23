@@ -71,7 +71,7 @@ enum bg_type_tag {
 
 typedef enum bg_type_tag bg_type_t;
 
-void bg_set_backdrop_color (guint16 c16);
+void bg_set_backdrop_color (uint32_t c32);
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
 
 guint16 *bg_get_map_ptr (int id);
@@ -236,11 +236,14 @@ void bg_set_tilesheet_from_resource (int id, const char *resource);
     \param
         name of image resource in the GResource bundle
 */
+void bg_set_bmp_from_file (int id, const char *filename);
 void bg_set_bmp_from_resource (int id, const char *resource);
 
 void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);
 		       
 cairo_surface_t *bg_render_to_cairo_surface (int id);
+
+void bg_init_guile_procedures (void);
 
 #endif

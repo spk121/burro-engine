@@ -14,6 +14,7 @@
 void
 _burroscript_init (void *unused)
 {
+    bg_init_guile_procedures();
     console_init_guile_procedures();
 }
 

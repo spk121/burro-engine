@@ -33,8 +33,18 @@ xg_file_get_contents (const gchar *filename, gchar **contents, gsize *length)
 char *
 xg_find_data_file (const char *filename)
 {
+    const char *assets_dir = g_getenv("BURRO_DATA_DIR");
     const char *user_dir = g_get_user_data_dir ();
     const char * const *sys_dirs = g_get_system_data_dirs();
+
+    if (assets_dir != NULL)
+    {
+        char *path = g_build_path (G_DIR_SEPARATOR_S, assets_dir, filename, NULL);
+        if (g_file_test (path, G_FILE_TEST_IS_REGULAR) == TRUE)
+            return path;
+        else
+            g_free (path);
+    }
 
     if (user_dir != NULL)
     {
