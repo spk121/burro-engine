@@ -13,7 +13,7 @@ static GOptionEntry entries[] =
 };
 
 void
-log_handler (const char *log_domain,
+stdout_log_handler (const char *log_domain,
              GLogLevelFlags log_level,
              const char *message,
              void *user_data)
@@ -21,6 +21,27 @@ log_handler (const char *log_domain,
     fprintf (stdout, "%s\n", message);
     fflush (stdout);
 }
+
+static void
+console_log_handler (const char *log_domain,
+             GLogLevelFlags log_level,
+             const char *message,
+             void *user_data)
+{
+    if (console_is_visible()
+        && (log_level == G_LOG_LEVEL_ERROR
+            || log_level == G_LOG_LEVEL_CRITICAL
+            || log_level == G_LOG_LEVEL_WARNING)) {
+        console_write_latin1_string (message);
+        console_move_to_column(0);
+        console_move_down(1);
+    }
+    else {
+        fprintf (stdout, "%s\n", message);
+        fflush (stdout);
+    }
+}
+
 
 static void
 initialize (GtkApplication *app)
@@ -36,9 +57,9 @@ initialize (GtkApplication *app)
 
     /* Load debugging options */
     const GLogLevelFlags debug_flags = (GLogLevelFlags) (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
-    g_log_set_handler (NULL, debug_flags, log_handler, NULL);
-    g_log_set_handler ("GLib", debug_flags, log_handler, NULL);
-    g_log_set_handler ("Gtk", debug_flags, log_handler, NULL);
+    g_log_set_handler (NULL, debug_flags, console_log_handler, NULL);
+    g_log_set_handler ("GLib", debug_flags, console_log_handler, NULL);
+    g_log_set_handler ("Gtk", debug_flags, console_log_handler, NULL);
 
     /* Initialize memory cache */
     /* Create the window */
