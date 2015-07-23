@@ -176,7 +176,7 @@ DEPENDS = ${OBJS:.o=.d}
 
 %.o : %.c
 	guile-snarf -o $*.x $*.c $(CPPFLAGS)
-	$(CC) $(CPPFLAGS) -M $*.c > $*.d
+	$(CC) $(CPPFLAGS) -MM $*.c > $*.d
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 %.o : %.cpp
