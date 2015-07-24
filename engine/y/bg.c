@@ -11,7 +11,7 @@ struct bg_map_data
     bool map_initialized;
     int tilesheet_height, tilesheet_width;
     bool tilesheet_initialized;
-    uint16_t map[BG_MAP_HEIGHT_MAX][BG_MAP_WIDTH_MAX];
+    uint32_t map[BG_MAP_HEIGHT_MAX][BG_MAP_WIDTH_MAX];
     uint32_t tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
 };
 
@@ -111,7 +111,7 @@ bg_is_shown (int id)
     return bg.bg[id].enable;
 }
 
-uint16_t *bg_get_map_ptr (int id)
+uint32_t *bg_get_map_ptr (int id)
 {
     return &(bg.bg[id].map.map[0][0]);
 }

@@ -42,6 +42,8 @@ initialize (GtkApplication *app)
 
     /* Initialize memory cache */
     /* Create the window */
+    init_lisp();
+    ecma48_init ();
     mainwin = eng_initialize();
     xgtk_window_set_application (GTK_WINDOW (mainwin), app);
     gtk_widget_show_all (mainwin);
@@ -58,7 +60,6 @@ initialize (GtkApplication *app)
     console_reset ();
     lineedit_initialize ();
     // init_guile_guile_procedures();
-    init_lisp();
     // G_console();
     loop ();
     

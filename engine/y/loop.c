@@ -2,6 +2,7 @@
 #include "draw.h"
 #include "eng.h"
 #include "loop.h"
+#include "repl.h"
 #include "pulseaudio.h"
 
 const double UPDATE_RATE = 1.0 / 60.0;
@@ -106,7 +107,7 @@ void loop ()
     before_draw_time =  before_update_time;
     after_draw_time =  before_update_time;
     main_loop = xg_default_main_loop_new ();
-    idle_event_source_id = xg_idle_add (idle_state_event_cb, NULL);
+    idle_event_source_id = g_timeout_add (1, idle_state_event_cb, NULL);
     main_screen_tick_id = gtk_widget_add_tick_callback (GTK_WIDGET(main_screen), tick_cb, NULL, NULL);
 
     initialized_flag = TRUE;
@@ -142,6 +143,7 @@ static gboolean idle_state_event_cb (void *dummy)
             // pulse_update_audio();
             if (run_full_speed_flag || ((cur_time - before_update_time) > UPDATE_RATE))
             {
+                repl_tick ();
                 if (do_idle != SCM_UNSPECIFIED)
                     scm_call_1 (do_idle, scm_from_double (cur_time));
               
