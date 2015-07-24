@@ -51,6 +51,7 @@ initialize (GtkApplication *app)
     /* Load player's game options and saved game files */
     
     /* Create drawing surface */
+    bg_init();
     draw_initialize();
 
     /* All other stuff */

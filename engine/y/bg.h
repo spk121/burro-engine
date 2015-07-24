@@ -108,7 +108,8 @@ void bg_hide (int id);
     \param height
         height of the background in pixels. For BG_TYPE_MAP, must be divisible by 8.
 */
-void bg_init (int id, bg_type_t type, guint width, guint height);
+void bg_init (void);
+void bg_reset (int id, bg_type_t type);
 
 /*! \brief Performs a cumulative rotation of the background by the specified angle. 
     \param id
