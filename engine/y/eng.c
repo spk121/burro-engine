@@ -318,7 +318,7 @@ key_event_console (unsigned keysym, unsigned state)
 }
 
 unsigned int
-get_keyinput()
+eng_get_keyinput()
 {
     // g_mutex_lock(&keymutex);
 
@@ -330,6 +330,68 @@ get_keyinput()
 
 }
 
+////////////////////////////////////////////////////////////////
+
+SCM_DEFINE (G_eng_is_blank, "eng-blank?", 0, 0, 0, (void), "")
+{
+    return scm_from_bool (eng_is_blank());
+}
+
+SCM_DEFINE (G_eng_blank, "eng-blank", 0, 0, 0, (void), "")
+{
+    eng_blank ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_unblank, "eng-unblank", 0, 0, 0, (void), "")
+{
+    eng_unblank ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_colorswap_p, "eng-colorswap?", 0, 0, 0, (void), "")
+{
+    return scm_from_bool (eng_is_colorswap ());
+}
+
+SCM_DEFINE (G_eng_colorswap, "eng-colorswap", 0, 0, 0, (void), "")
+{
+    eng_colorswap ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_uncolorswap, "eng-uncolorswap", 0, 0, 0, (void), "")
+{
+    eng_uncolorswap ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_get_brightness, "eng-get-brightness", 0, 0, 0, (void), "")
+{
+    return scm_from_double (eng_get_brightness ());
+}
+
+SCM_DEFINE (G_eng_set_brightness, "eng-set-brightness", 1, 0, 0, (SCM brightness), "")
+{
+    eng_set_brightness (scm_to_double (brightness));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_get_keyinput, "eng-get-keyinput", 0, 0, 0, (void), "")
+{
+    return scm_from_int (eng_get_keyinput ());
+}
+
+void
+eng_init_guile_procedures ()
+{
+#include "eng.x"
+    scm_c_export ("eng-blank?", "eng-blank", "eng-unblank",
+                  "eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
+                  "eng-get-brightness", "eng-set-brightness",
+                  "eng-get-keyinput",
+                  NULL);
+}
 
 /*
   Local Variables:

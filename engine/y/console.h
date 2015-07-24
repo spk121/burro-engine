@@ -29,6 +29,16 @@
 #define CONSOLE_ROWS 24
 #define CONSOLE_COLS 80
 
+
+enum console_blink_index_tag
+{
+    CONSOLE_BLINK_NONE = 0,
+    CONSOLE_BLINK_SLOW = 1,
+    CONSOLE_BLINK_FAST = 2,
+};
+
+typedef enum console_blink_index_tag console_blink_index_t;
+
 enum console_color_index_tag
 {
     CONSOLE_COLOR_DEFAULT = 0,
@@ -39,7 +49,8 @@ enum console_color_index_tag
     CONSOLE_COLOR_BLUE = 5,
     CONSOLE_COLOR_MAGENTA = 6,
     CONSOLE_COLOR_CYAN = 7,
-    CONSOLE_COLOR_TRANSPARENT = 8
+    CONSOLE_COLOR_WHITE = 8,
+    CONSOLE_COLOR_TRANSPARENT = 9
 };
 
 typedef enum console_color_index_tag console_color_index_t;
@@ -53,57 +64,22 @@ enum console_intensity_index_tag
 
 typedef enum console_intensity_index_tag console_intensity_index_t;
 
-// COLOR takes 4 bits
-// Note that  DEFAULT has different meanings in the
-// foreground and background cases.
-#define COLOR_FG_DEFAULT        0b000000000000000
-#define COLOR_FG_BLACK          0b000000000000001
-#define COLOR_FG_RED            0b000000000000010
-#define COLOR_FG_GREEN          0b000000000000011
-#define COLOR_FG_YELLOW         0b000000000000100
-#define COLOR_FG_BLUE           0b000000000000101
-#define COLOR_FG_MAGENTA        0b000000000000110
-#define COLOR_FG_CYAN           0b000000000000111
-#define COLOR_FG_WHITE          0b000000000001000
-#define COLOR_FG_TRANSPARENT    0b000000000001001
-#define COLOR_FG_MASK           0b000000000001111
-#define COLOR_FG_OFFSET         0
+enum console_polarity_index_tag
+{
+    CONSOLE_POLARITY_POSITIVE = 0,
+    CONSOLE_POLARITY_NEGATIVE = 1,
+};
 
-#define COLOR_BG_DEFAULT        0b000000000000000
-#define COLOR_BG_BLACK          0b000000000010000
-#define COLOR_BG_RED            0b000000000100000
-#define COLOR_BG_GREEN          0b000000000110000
-#define COLOR_BG_YELLOW         0b000000001000000
-#define COLOR_BG_BLUE           0b000000001010000
-#define COLOR_BG_MAGENTA        0b000000001100000
-#define COLOR_BG_CYAN           0b000000001110000
-#define COLOR_BG_WHITE          0b000000010000000
-#define COLOR_BG_TRANSPARENT    0b000000010010000
-#define COLOR_BG_MASK           0b000000011110000
-#define COLOR_BG_OFFSET         4
+typedef enum console_polarity_index_tag console_polarity_index_t;
 
-#define INTENSITY_NORMAL        0b000000000000000
-#define INTENSITY_FAINT         0b000000100000000
-#define INTENSITY_BOLD          0b000001000000000
-#define INTENSITY_MASK          0b000001100000000
-#define INTENSITY_OFFSET        8
+enum console_underline_index_tag
+{
+    CONSOLE_UNDERLINE_NONE = 0,
+    CONSOLE_UNDERLINE_SINGLY = 1,
+    CONSOLE_UNDERLINE_DOUBLY = 2
+};
 
-#define POLARITY_POSITIVE       0b000000000000000
-#define POLARITY_NEGATIVE       0b000010000000000
-#define POLARITY_MASK           0b000010000000000
-#define POLARITY_OFFSET         10
-
-#define BLINK_NONE              0b000000000000000
-#define BLINK_SLOW              0b000100000000000
-#define BLINK_FAST              0b001000000000000
-#define BLINK_MASK              0b001100000000000
-#define BLINK_OFFSET            11
-
-#define UNDERLINE_NONE          0b000000000000000
-#define UNDERLINE_SINGLY        0b010000000000000
-#define UNDERLINE_DOUBLY        0b100000000000000
-#define UNDERLINE_MASK          0b110000000000000
-#define UNDERLINE_OFFSET        13 
+typedef enum console_underline_index_tag console_underline_index_t;
 
 bool console_is_visible (void);
 void console_show (void);
@@ -143,13 +119,13 @@ void console_scroll_down(int n);
 void console_scroll_left(int n);
 void console_scroll_right(int n);
 void console_scroll_up(int n);
-void console_set_bgcolor(uint32_t c);
-void console_set_blink(uint32_t c);
-void console_set_cursor_visiblity(bool flag);
+void console_set_bgcolor(console_color_index_t c);
+void console_set_blink(console_blink_index_t c);
+void console_set_cursor_visibility(bool flag);
 void console_set_default(void);
-void console_set_fgcolor(uint32_t c);
-void console_set_intensity(uint32_t c);
-void console_set_polarity(uint32_t c);
+void console_set_fgcolor(console_color_index_t c);
+void console_set_intensity(console_intensity_index_t c);
+void console_set_polarity(console_polarity_index_t c);
 void console_set_underline(uint32_t c);
 void console_write_char(uint16_t codepoint,int irm,int hem,int simd,int home,int limit);
 void console_write_latin1_string(const char *str);

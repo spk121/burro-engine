@@ -56,7 +56,6 @@ initialize (GtkApplication *app)
 
     /* All other stuff */
     console_reset ();
-    console_test_pattern ();
     lineedit_initialize ();
     // init_guile_guile_procedures();
     init_lisp();

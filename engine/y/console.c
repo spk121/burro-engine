@@ -30,6 +30,58 @@
 #include "console.h"
 #include "8x13.h"
 
+// COLOR takes 4 bits
+// Note that  DEFAULT has different meanings in the
+// foreground and background cases.
+#define COLOR_FG_DEFAULT        0b000000000000000
+#define COLOR_FG_BLACK          0b000000000000001
+#define COLOR_FG_RED            0b000000000000010
+#define COLOR_FG_GREEN          0b000000000000011
+#define COLOR_FG_YELLOW         0b000000000000100
+#define COLOR_FG_BLUE           0b000000000000101
+#define COLOR_FG_MAGENTA        0b000000000000110
+#define COLOR_FG_CYAN           0b000000000000111
+#define COLOR_FG_WHITE          0b000000000001000
+#define COLOR_FG_TRANSPARENT    0b000000000001001
+#define COLOR_FG_MASK           0b000000000001111
+#define COLOR_FG_OFFSET         0
+
+#define COLOR_BG_DEFAULT        0b000000000000000
+#define COLOR_BG_BLACK          0b000000000010000
+#define COLOR_BG_RED            0b000000000100000
+#define COLOR_BG_GREEN          0b000000000110000
+#define COLOR_BG_YELLOW         0b000000001000000
+#define COLOR_BG_BLUE           0b000000001010000
+#define COLOR_BG_MAGENTA        0b000000001100000
+#define COLOR_BG_CYAN           0b000000001110000
+#define COLOR_BG_WHITE          0b000000010000000
+#define COLOR_BG_TRANSPARENT    0b000000010010000
+#define COLOR_BG_MASK           0b000000011110000
+#define COLOR_BG_OFFSET         4
+
+#define INTENSITY_NORMAL        0b000000000000000
+#define INTENSITY_FAINT         0b000000100000000
+#define INTENSITY_BOLD          0b000001000000000
+#define INTENSITY_MASK          0b000001100000000
+#define INTENSITY_OFFSET        8
+
+#define POLARITY_POSITIVE       0b000000000000000
+#define POLARITY_NEGATIVE       0b000010000000000
+#define POLARITY_MASK           0b000010000000000
+#define POLARITY_OFFSET         10
+
+#define BLINK_NONE              0b000000000000000
+#define BLINK_SLOW              0b000100000000000
+#define BLINK_FAST              0b001000000000000
+#define BLINK_MASK              0b001100000000000
+#define BLINK_OFFSET            11
+
+#define UNDERLINE_NONE          0b000000000000000
+#define UNDERLINE_SINGLY        0b010000000000000
+#define UNDERLINE_DOUBLY        0b100000000000000
+#define UNDERLINE_MASK          0b110000000000000
+#define UNDERLINE_OFFSET        13 
+
 #define COMPOSE(render,codepoint) (((uint32_t)(render) << 16)|(codepoint))
 #define RENDERING(x) ((uint16_t)(((x) & 0xFFFF0000) >> 16))
 #define CODEPOINT(x) ((uint16_t)((x) & 0x0000FFFF))
@@ -144,6 +196,9 @@ console_set_bgcolor (console_color_index_t c)
     case CONSOLE_COLOR_CYAN:
         set_rendition (COLOR_BG_CYAN, COLOR_BG_MASK);
         break;
+    case CONSOLE_COLOR_WHITE:
+        set_rendition (COLOR_BG_WHITE, COLOR_BG_MASK);
+        break;
     case CONSOLE_COLOR_TRANSPARENT:
         set_rendition (COLOR_BG_TRANSPARENT, COLOR_BG_MASK);
         break;
@@ -151,15 +206,37 @@ console_set_bgcolor (console_color_index_t c)
 }
 
 void
-console_set_blink (uint32_t c)
+console_set_blink (console_blink_index_t c)
 {
-    set_rendition (c, BLINK_MASK);
+    switch (c)
+    {
+    case CONSOLE_BLINK_NONE:
+        set_rendition (BLINK_NONE, BLINK_MASK);
+        break;
+    case CONSOLE_BLINK_SLOW:
+        set_rendition (BLINK_SLOW, BLINK_MASK);
+        break;
+    case CONSOLE_BLINK_FAST:
+        set_rendition (BLINK_FAST, BLINK_MASK);
+        break;
+    }
 }
 
 void
-console_set_intensity (uint32_t c)
+console_set_intensity (console_intensity_index_t c)
 {
-    set_rendition (c, INTENSITY_MASK);
+    switch (c)
+    {
+    case CONSOLE_INTENSITY_NORMAL:
+        set_rendition (INTENSITY_NORMAL, INTENSITY_MASK);
+        break;
+    case CONSOLE_INTENSITY_FAINT:
+        set_rendition (INTENSITY_FAINT, INTENSITY_MASK);
+        break;
+    case CONSOLE_INTENSITY_BOLD:
+        set_rendition (INTENSITY_BOLD, INTENSITY_MASK);
+        break;
+    }
 }
 
 void
@@ -191,6 +268,9 @@ console_set_fgcolor (console_color_index_t c)
     case CONSOLE_COLOR_CYAN:
         set_rendition (COLOR_FG_CYAN, COLOR_FG_MASK);
         break;
+    case CONSOLE_COLOR_WHITE:
+        set_rendition (COLOR_FG_WHITE, COLOR_FG_MASK);
+        break;        
     case CONSOLE_COLOR_TRANSPARENT:
         set_rendition (COLOR_FG_TRANSPARENT, COLOR_FG_MASK);
         break;
@@ -198,15 +278,34 @@ console_set_fgcolor (console_color_index_t c)
 }
 
 void
-console_set_polarity (uint32_t c)
+console_set_polarity (console_polarity_index_t c)
 {
-    set_rendition (c, POLARITY_MASK);
+    switch (c)
+    {
+    case CONSOLE_POLARITY_POSITIVE:
+        set_rendition (c, POLARITY_POSITIVE);
+        break;
+    case CONSOLE_POLARITY_NEGATIVE:
+        set_rendition (c, POLARITY_NEGATIVE);
+        break;
+    }
 }
 
 void
-console_set_underline (uint32_t c)
+console_set_underline (console_underline_index_t c)
 {
-    set_rendition (c, UNDERLINE_MASK);
+    switch (c)
+    {
+    case CONSOLE_UNDERLINE_NONE:
+        set_rendition (UNDERLINE_NONE, UNDERLINE_MASK);
+        break;
+    case CONSOLE_UNDERLINE_SINGLY:
+        set_rendition (UNDERLINE_SINGLY, UNDERLINE_MASK);
+        break;
+    case CONSOLE_UNDERLINE_DOUBLY:
+        set_rendition (UNDERLINE_DOUBLY, UNDERLINE_MASK);
+        break;
+    }
 }
 
 void
@@ -216,7 +315,7 @@ console_set_default (void)
 }
 
 void
-console_set_cursor_visiblity (bool flag)
+console_set_cursor_visibility (bool flag)
 {
     cursor_visible = flag;
 }
@@ -1131,11 +1230,49 @@ SCM_DEFINE (G_console_reset, "console-reset", 0, 0, 0, (void), "")
 SCM_DEFINE (G_console_set_bgcolor, "console-set-bgcolor", 1, 0, 0, (SCM color), "")
 {
     console_set_bgcolor (scm_to_int (color));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_blink, "console-set-blink", 1, 0, 0, (SCM blink), "")
+{
+    console_set_blink (scm_to_int (blink));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_cursor_visibility, "console-set-cursor-visibility", 1, 0, 0, (SCM flag), "")
+{
+    console_set_cursor_visibility (scm_to_bool (flag));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_default, "console-set-default", 0, 0, 0, (void), "")
+{
+    console_set_default ();
+    return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_console_set_fgcolor, "console-set-fgcolor", 1, 0, 0, (SCM color), "")
 {
     console_set_fgcolor (scm_to_int (color));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_intensity, "console-set-intensity", 1, 0, 0, (SCM intensity), "")
+{
+    console_set_intensity (scm_to_int (intensity));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_polarity, "console-set-polarity", 1, 0, 0, (SCM polarity), "")
+{
+    console_set_polarity (scm_to_int (polarity));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_underline, "console-set-underline", 1, 0, 0, (SCM underline), "")
+{
+    console_set_underline (scm_to_int (underline));
+    return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_console_show, "console-show", 0, 0, 0, (void), "")
@@ -1150,6 +1287,14 @@ Returns #t if the console is being drawn.")
     return scm_from_bool (console_is_visible());
 }
 
+SCM_DEFINE (G_console_write_string, "console-write-string", 1, 0, 0, (SCM str), "")
+{
+    char *s = scm_to_utf8_string (str);
+    console_write_utf8_string(s);
+    free (s);
+    return SCM_UNSPECIFIED;
+}
+
 void
 console_init_guile_procedures (void)
 {
@@ -1157,9 +1302,16 @@ console_init_guile_procedures (void)
     scm_c_export ("console-hide",
                   "console-reset",
                   "console-set-bgcolor",
+                  "console-set-blink",
+                  "console-set-cursor-visibility",
+                  "console-set-default",
                   "console-set-fgcolor",
+                  "console-set-intensity",
+                  "console-set-polarity",
+                  "console-set-underline",
                   "console-show",
                   "console-visible?",
+                  "console-write-string",
                   NULL);
 }
 

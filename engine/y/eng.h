@@ -1,7 +1,7 @@
 #ifndef BURRO_ENG_H
 #define BURRO_ENG_H
 
-#include "../x/xgtk.h"
+#include "../x.h"
 
 #define BASE_WIDTH 256
 #define BASE_HEIGHT 192
@@ -34,6 +34,7 @@ void eng_present (void);
 gdouble eng_get_brightness (void);
 void eng_set_brightness (gdouble brightness);
 
-unsigned int get_keyinput(void); 
+unsigned int eng_get_keyinput(void);
+void eng_init_guile_procedures(void);
 
 #endif
