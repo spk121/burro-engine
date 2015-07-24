@@ -29,6 +29,30 @@
 #define CONSOLE_ROWS 24
 #define CONSOLE_COLS 80
 
+enum console_color_index_tag
+{
+    CONSOLE_COLOR_DEFAULT = 0,
+    CONSOLE_COLOR_BLACK = 1,
+    CONSOLE_COLOR_RED = 2,
+    CONSOLE_COLOR_GREEN = 3,
+    CONSOLE_COLOR_YELLOW = 4,
+    CONSOLE_COLOR_BLUE = 5,
+    CONSOLE_COLOR_MAGENTA = 6,
+    CONSOLE_COLOR_CYAN = 7,
+    CONSOLE_COLOR_TRANSPARENT = 8
+};
+
+typedef enum console_color_index_tag console_color_index_t;
+
+enum console_intensity_index_tag
+{
+    CONSOLE_INTENSITY_NORMAL = 0,
+    CONSOLE_INTENSITY_FAINT = 1,
+    CONSOLE_INTENSITY_BOLD = 2
+};
+
+typedef enum console_intensity_index_tag console_intensity_index_t;
+
 // COLOR takes 4 bits
 // Note that  DEFAULT has different meanings in the
 // foreground and background cases.

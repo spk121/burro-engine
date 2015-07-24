@@ -116,9 +116,38 @@ set_rendition (uint16_t val, uint16_t mask)
 }
 
 void
-console_set_bgcolor (uint32_t c)
+console_set_bgcolor (console_color_index_t c)
 {
-    set_rendition (c, COLOR_BG_MASK);
+    switch (c)
+    {
+    case CONSOLE_COLOR_DEFAULT:
+        set_rendition (COLOR_BG_DEFAULT, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_BLACK:
+        set_rendition (COLOR_BG_BLACK, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_RED:
+        set_rendition (COLOR_BG_RED, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_GREEN:
+        set_rendition (COLOR_BG_GREEN, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_YELLOW:
+        set_rendition (COLOR_BG_YELLOW, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_BLUE:
+        set_rendition (COLOR_BG_BLUE, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_MAGENTA:
+        set_rendition (COLOR_BG_MAGENTA, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_CYAN:
+        set_rendition (COLOR_BG_CYAN, COLOR_BG_MASK);
+        break;
+    case CONSOLE_COLOR_TRANSPARENT:
+        set_rendition (COLOR_BG_TRANSPARENT, COLOR_BG_MASK);
+        break;
+    }
 }
 
 void
@@ -134,9 +163,38 @@ console_set_intensity (uint32_t c)
 }
 
 void
-console_set_fgcolor (uint32_t c)
+console_set_fgcolor (console_color_index_t c)
 {
-    set_rendition (c, COLOR_FG_MASK);
+    switch (c)
+    {
+    case CONSOLE_COLOR_DEFAULT:
+        set_rendition (COLOR_FG_DEFAULT, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_BLACK:
+        set_rendition (COLOR_FG_BLACK, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_RED:
+        set_rendition (COLOR_FG_RED, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_GREEN:
+        set_rendition (COLOR_FG_GREEN, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_YELLOW:
+        set_rendition (COLOR_FG_YELLOW, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_BLUE:
+        set_rendition (COLOR_FG_BLUE, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_MAGENTA:
+        set_rendition (COLOR_FG_MAGENTA, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_CYAN:
+        set_rendition (COLOR_FG_CYAN, COLOR_FG_MASK);
+        break;
+    case CONSOLE_COLOR_TRANSPARENT:
+        set_rendition (COLOR_FG_TRANSPARENT, COLOR_FG_MASK);
+        break;
+    }
 }
 
 void
@@ -965,32 +1023,32 @@ console_test_pattern (void)
 
     row++;
     col = 0;
-    console_set_bgcolor (COLOR_BG_DEFAULT);
+    console_set_bgcolor (CONSOLE_COLOR_DEFAULT);
     console_write_latin1_string ("DEFAULT");
-    console_set_bgcolor (COLOR_BG_BLACK);
+    console_set_bgcolor (CONSOLE_COLOR_BLACK);
     console_write_latin1_string ("BLACK");
-    console_set_bgcolor (COLOR_BG_RED);
+    console_set_bgcolor (CONSOLE_COLOR_RED);
     console_write_latin1_string ("RED");
-    console_set_bgcolor (COLOR_BG_GREEN);
+    console_set_bgcolor (CONSOLE_COLOR_GREEN);
     console_write_latin1_string ("GREEN");
-    console_set_bgcolor (COLOR_BG_YELLOW);
+    console_set_bgcolor (CONSOLE_COLOR_YELLOW);
     console_write_latin1_string ("YELLOW");
-    console_set_bgcolor (COLOR_BG_BLUE);
+    console_set_bgcolor (CONSOLE_COLOR_BLUE);
     console_write_latin1_string ("BLUE");
-    console_set_bgcolor (COLOR_BG_MAGENTA);
+    console_set_bgcolor (CONSOLE_COLOR_MAGENTA);
     console_write_latin1_string ("MAGENTA");
-    console_set_bgcolor (COLOR_BG_CYAN);
+    console_set_bgcolor (CONSOLE_COLOR_CYAN);
     console_write_latin1_string ("CYAN");
-    console_set_bgcolor (COLOR_BG_WHITE);
+    console_set_bgcolor (CONSOLE_COLOR_WHITE);
     console_write_latin1_string ("WHITE");
-    console_set_bgcolor (COLOR_BG_TRANSPARENT);
+    console_set_bgcolor (CONSOLE_COLOR_TRANSPARENT);
     console_write_latin1_string ("CLEAR");
 
     for (int i = 0; i < 3; i++)
     {
         row++;
         col = 0;
-        console_set_fgcolor (COLOR_FG_DEFAULT);
+        console_set_fgcolor (CONSOLE_COLOR_DEFAULT);
         if (i == 0)
         {
             console_set_intensity (INTENSITY_BOLD);
@@ -1006,30 +1064,30 @@ console_test_pattern (void)
             console_set_intensity (INTENSITY_NORMAL);
             console_write_latin1_string ("NORMAL ");
         }
-        console_set_fgcolor (COLOR_FG_BLACK);
+        console_set_fgcolor (CONSOLE_COLOR_BLACK);
         console_write_latin1_string ("BLACK");
-        console_set_fgcolor (COLOR_FG_RED);
+        console_set_fgcolor (CONSOLE_COLOR_RED);
         console_write_latin1_string ("RED");
-        console_set_fgcolor (COLOR_FG_GREEN);
+        console_set_fgcolor (CONSOLE_COLOR_GREEN);
         console_write_latin1_string ("GREEN");
-        console_set_fgcolor (COLOR_FG_YELLOW);
+        console_set_fgcolor (CONSOLE_COLOR_YELLOW);
         console_write_latin1_string ("YELLOW");
-        console_set_fgcolor (COLOR_FG_BLUE);
+        console_set_fgcolor (CONSOLE_COLOR_BLUE);
         console_write_latin1_string ("BLUE");
-        console_set_fgcolor (COLOR_FG_MAGENTA);
+        console_set_fgcolor (CONSOLE_COLOR_MAGENTA);
         console_write_latin1_string ("MAGENTA");
-        console_set_fgcolor (COLOR_FG_CYAN);
+        console_set_fgcolor (CONSOLE_COLOR_CYAN);
         console_write_latin1_string ("CYAN");
-        console_set_fgcolor (COLOR_FG_WHITE);
+        console_set_fgcolor (CONSOLE_COLOR_WHITE);
         console_write_latin1_string ("WHITE");
-        console_set_fgcolor (COLOR_FG_TRANSPARENT);
+        console_set_fgcolor (CONSOLE_COLOR_TRANSPARENT);
         console_write_latin1_string ("CLEAR");
     }
 
     row++;
     col = 0;
-    console_set_fgcolor (COLOR_FG_DEFAULT);
-    console_set_bgcolor (COLOR_BG_DEFAULT);
+    console_set_fgcolor (CONSOLE_COLOR_DEFAULT);
+    console_set_bgcolor (CONSOLE_COLOR_DEFAULT);
     console_set_blink (BLINK_NONE);
     console_write_latin1_string ("STEADY");
     console_set_blink (BLINK_SLOW);
@@ -1058,18 +1116,50 @@ console_test_pattern (void)
 
 ////////////////////////////////////////////////////////////////
 
+SCM_DEFINE (G_console_hide, "console-hide", 0, 0, 0, (void), "")
+{
+    console_hide ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_reset, "console-reset", 0, 0, 0, (void), "")
+{
+    console_reset ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_set_bgcolor, "console-set-bgcolor", 1, 0, 0, (SCM color), "")
+{
+    console_set_bgcolor (scm_to_int (color));
+}
+
+SCM_DEFINE (G_console_set_fgcolor, "console-set-fgcolor", 1, 0, 0, (SCM color), "")
+{
+    console_set_fgcolor (scm_to_int (color));
+}
+
+SCM_DEFINE (G_console_show, "console-show", 0, 0, 0, (void), "")
+{
+    console_show ();
+    return SCM_UNSPECIFIED;
+}
+
 SCM_DEFINE (G_console_visible_p, "console-visible?", 0, 0, 0, (void), "\
 Returns #t if the console is being drawn.")
 {
     return scm_from_bool (console_is_visible());
 }
 
-
 void
 console_init_guile_procedures (void)
 {
 #include "console.x"
-    scm_c_export ("console-visible?",
+    scm_c_export ("console-hide",
+                  "console-reset",
+                  "console-set-bgcolor",
+                  "console-set-fgcolor",
+                  "console-show",
+                  "console-visible?",
                   NULL);
 }
 
