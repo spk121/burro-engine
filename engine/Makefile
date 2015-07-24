@@ -145,6 +145,7 @@ SRCS_C   = \
  y/loop.c \
  y/obj.c \
  y/rand.c \
+ y/repl.c \
  main.c
 
 ################################################################
@@ -180,19 +181,17 @@ DEPENDS = ${OBJS:.o=.d}
 	$(CC) $(CFLAGS) -c $*.c -o $*.o
 
 %.o : %.cpp
-	$(CXX) $(CPPFLAGS) -M $*.cpp > $*.d
+	$(CXX) $(CPPFLAGS) -MM $*.cpp > $*.d
 	$(CXX) $(CXXFLAGS) -c $*.cpp -o $*.o
 
 ################################################################
 # MAJOR TARGETS
 
-
-
-burro: $(OBJS)
+burro: $(OBJS) x.pch
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
-# x.pch: x.h $(SRCS_H)
-# 	$(CC) -o $@ $(CFLAGS) $<
+x.pch: x.h x/xcairo.h x/xgdk.h x/xgdk-pixbuf.h x/xgio.h x/xgtk.h x/xguile.h x/xpulseaudio.h
+	$(CC) -o $@ $(CFLAGS) $<
 
 ################################################################
 # MINOR TARGETS
