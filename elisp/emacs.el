@@ -1,5 +1,16 @@
+;;; Emacs is not a package manager, and here we load its package manager!
+(require 'package)
+(dolist (source '(("marmalade" . "http://marmalade-repo.org/packages/")
+                  ("elpa" . "http://tromey.com/elpa/")
+                  ;; TODO: Maybe, use this after emacs24 is released
+                  ;; (development versions of packages)
+                  ("melpa" . "http://melpa.milkbox.net/packages/")
+                  ))
+  (add-to-list 'package-archives source t))
+(package-initialize)
+
 ;; Autocomplete
-(setq load-path (cons "./auto-complete-1.3.1" (cons "." load-path)))
+;; (setq load-path (cons "./auto-complete-1.3.1" (cons "." load-path)))
 (require 'auto-complete-config)
 (ac-config-default)
 (require 'auto-complete-clang)
@@ -7,13 +18,7 @@
       (mapcar (lambda (item)(concat "-I" item))
               (split-string
                "
- /home/mike/burro-engine2/src
- /home/mike/burro-engine2/src/tmxparser/src
- /usr/include/c++/4.8.3
- /usr/include/c++/4.8.3/i686-redhat-linux
- /usr/include/c++/4.8.3/backward
- /usr/include/4.8.3/include
- /usr/local/include
+ /home/mike/Projects/burro-engine/engine
  /usr/include
 "
                )))
