@@ -266,12 +266,12 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     return surf;
 }
 
+////////////////////////////////////////////////////////////////
+
 SCM_DEFINE (G_obj_hide, "obj-hide", 1, 0, 0, (SCM gid), "\
 Set object to not draw.")
 {
-    // unsigned id = guile_to_ranged_uint_or_error ("obj-hide", SCM_ARG1, OBJ_COUNT, gid);
-    unsigned id = scm_to_int (gid);
-    obj_hide (id);
+    obj_hide (scm_to_int (gid));
     return SCM_UNSPECIFIED;
 }
 
@@ -284,12 +284,81 @@ Set object to draw.")
     return SCM_UNSPECIFIED;   
 }
 
+SCM_DEFINE (G_obj_shown_p, "obj-shown?", 1, 0, 0, (SCM gid), "")
+{
+    return scm_from_bool (obj_is_shown (scm_to_int (gid)));
+}
+
+SCM_DEFINE (G_obj_init, "obj-init", 9, 0, 0,
+            (SCM id, SCM spritesheet_i, SCM spritesheet_j, SCM sprite_width, SCM sprite_height,
+             SCM rot_center_x, SCM rot_center_y, SCM hflip, SCM vflip), "")
+{
+    obj_init (scm_to_int (id),
+              scm_to_int (spritesheet_i),
+              scm_to_int (spritesheet_j),
+              scm_to_int (sprite_width),
+              scm_to_int (sprite_height),
+              scm_to_double (rot_center_x),
+              scm_to_double (rot_center_y),
+              scm_to_bool (hflip),
+              scm_to_bool (vflip));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_set, "obj-set", 6, 0, 0, (SCM id, SCM priority, SCM x, SCM y, SCM rot, SCM exp),"")
+{
+    obj_set (scm_to_int (id),
+             scm_to_int (priority),
+             scm_to_double (x),
+             scm_to_double (y),
+             scm_to_double (rot),
+             scm_to_double (exp));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_set_rotation_expansion, "obj-set-rotation-expansion", 3, 0, 0, (SCM id, SCM rot, SCM exp), "")
+{
+    obj_set_rotation_expansion (scm_to_int (id),
+                                scm_to_double (rot),
+                                scm_to_double (exp));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_set_position, "obj-set-position", 3, 0, 0, (SCM id, SCM x, SCM y), "")
+{
+    obj_set_position (scm_to_int (id),
+                      scm_to_double (x),
+                      scm_to_double (y));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_set_spritesheet_origin, "obj-set-spritesheet-origin", 3, 0, 0, (SCM id, SCM i, SCM j), "")
+{
+    obj_set_spritesheet_origin (SCM_to_int (id), SCM_to_int (i), SCM_to_int (j));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_set_tilesheet_from_file, "obj-set-spritesheet-from-file", 2, 0, 0, (SCM sub, SCM filename),"")
+{
+    char *fname = scm_to_locale_string (filename);
+    obj_set_tileshet_from_file (scm_to_int (sub), fname);
+    free (fname);
+    return SCM_UNSPECIFIED;
+}
+
 void
 init_guile_obj_procedures (void)
 {
 #include "obj.x"
   scm_c_export ("obj-hide",
                 "obj-show",
+                "obj-shown?",
+                "obj-init",
+                "obj-set",
+                "obj-set-rotation-expansion",
+                "obj-set-position",
+                "obj-set-spritesheet-origin",
+                "obj-set-spritesheet-from-file",
                 NULL);
 }
 

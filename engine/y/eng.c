@@ -4,12 +4,16 @@
 #include "console.h"
 #include "draw.h"
 #include "eng.h"
+#include "ecma48.h"
 #include "guile.h"
 #include "lineedit.h"
 #include "loop.h"
+#include "repl.h"
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 GtkWidget *window;
 GtkWidget *fixed;
@@ -22,6 +26,10 @@ gulong window_state_event_signal_id;
 gboolean blank_flag = FALSE;
 gboolean colorswap_flag = FALSE;
 gdouble brightness = 1.0;
+
+int repl_socket = -1;
+struct sockaddr_in repl_sock_addr;
+GIOChannel *repl_io_channel;
 
 static GMutex keymutex;
 static int key_a, key_b, key_x, key_y;
@@ -81,6 +89,16 @@ eng_set_brightness (gdouble b)
     brightness = b;
 }
 
+static int
+repl_input_cb (GIOChannel *source, GIOChannel condition, void *unused)
+{
+    char buf[256];
+    size_t bytes_read;
+    g_io_channel_read_chars (source, buf, 255, &bytes_read, NULL);
+    if (bytes_read > 0)
+        ecma48_execute (buf, bytes_read);
+}
+
 GtkWidget *eng_initialize ()
 {
     window = xgtk_window_new (GTK_WINDOW_TOPLEVEL);
@@ -125,8 +143,23 @@ GtkWidget *eng_initialize ()
         xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
     /* window_state_event_signal_id =  */
     /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
+
+#if 0
+    repl_init ();
+    repl_socket = socket (AF_INET, SOCK_DGRAM, 0);
+    memset (&repl_sock_addr, 0, sizeof (repl_sock_addr));
+    repl_sock_addr.sin_family = AF_INET;
+    repl_sock_addr.sin_port = htons(37147);
+    inet_pton(AF_INET, "127.0.0.1", &repl_sock_addr.sin_addr);
+    connect (repl_socket, (struct sockaddr *) &repl_sock_addr, sizeof(repl_sock_addr));
+    repl_io_channel = g_io_channel_unix_new (repl_socket);
+    g_io_add_watch (repl_io_channel, G_IO_IN | G_IO_PRI, repl_input_cb, NULL);
+    g_io_channel_set_encoding (repl_io_channel, NULL, NULL);
+#endif
+    
     return window;
 }
+
 
 static void destroy_cb (GtkWidget* widget, gpointer dummy)
 {
@@ -288,6 +321,7 @@ key_event_console (unsigned keysym, unsigned state)
         char *script = lineedit_get_text();
         if (strlen(script) > 0) {
             // Call script callback with the current string
+#if 1            
             SCM ret = guile_c_eval_string_safe (script);
             g_free (script);
             char *text = guile_any_to_c_string (ret);
@@ -297,6 +331,11 @@ key_event_console (unsigned keysym, unsigned state)
                 console_move_down(1);
                 g_free(text);
             }
+#endif
+#if 0            
+            g_io_channel_write_chars (repl_io_channel, script, -1, NULL, NULL);
+            g_io_channel_write_chars (repl_io_channel, "\n", 1, NULL, NULL);
+#endif            
             lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
     }
@@ -318,7 +357,7 @@ key_event_console (unsigned keysym, unsigned state)
 }
 
 unsigned int
-get_keyinput()
+eng_get_keyinput()
 {
     // g_mutex_lock(&keymutex);
 
@@ -330,6 +369,68 @@ get_keyinput()
 
 }
 
+////////////////////////////////////////////////////////////////
+
+SCM_DEFINE (G_eng_is_blank, "eng-blank?", 0, 0, 0, (void), "")
+{
+    return scm_from_bool (eng_is_blank());
+}
+
+SCM_DEFINE (G_eng_blank, "eng-blank", 0, 0, 0, (void), "")
+{
+    eng_blank ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_unblank, "eng-unblank", 0, 0, 0, (void), "")
+{
+    eng_unblank ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_colorswap_p, "eng-colorswap?", 0, 0, 0, (void), "")
+{
+    return scm_from_bool (eng_is_colorswap ());
+}
+
+SCM_DEFINE (G_eng_colorswap, "eng-colorswap", 0, 0, 0, (void), "")
+{
+    eng_colorswap ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_uncolorswap, "eng-uncolorswap", 0, 0, 0, (void), "")
+{
+    eng_uncolorswap ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_get_brightness, "eng-get-brightness", 0, 0, 0, (void), "")
+{
+    return scm_from_double (eng_get_brightness ());
+}
+
+SCM_DEFINE (G_eng_set_brightness, "eng-set-brightness", 1, 0, 0, (SCM brightness), "")
+{
+    eng_set_brightness (scm_to_double (brightness));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_eng_get_keyinput, "eng-get-keyinput", 0, 0, 0, (void), "")
+{
+    return scm_from_int (eng_get_keyinput ());
+}
+
+void
+eng_init_guile_procedures ()
+{
+#include "eng.x"
+    scm_c_export ("eng-blank?", "eng-blank", "eng-unblank",
+                  "eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
+                  "eng-get-brightness", "eng-set-brightness",
+                  "eng-get-keyinput",
+                  NULL);
+}
 
 /*
   Local Variables:

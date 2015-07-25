@@ -1,6 +1,9 @@
 #include "../x.h"
+#include "bg.h"
 #include "console.h"
+#include "eng.h"
 #include "guile.h"
+#include "loop.h"
 #include <libguile.h>
 
 // One route to defining C functions into a module is
@@ -16,6 +19,8 @@ _burroscript_init (void *unused)
 {
     bg_init_guile_procedures();
     console_init_guile_procedures();
+    eng_init_guile_procedures();
+    loop_init_guile_procedures();
 }
 
 void
