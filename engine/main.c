@@ -49,6 +49,8 @@ initialize (GtkApplication *app)
     gtk_widget_show_all (mainwin);
 
     /* Initialize the audio system */
+    audio_model_initialize (0);
+    pulse_initialize_audio ();
 
     /* Load player's game options and saved game files */
     

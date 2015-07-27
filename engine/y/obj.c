@@ -334,14 +334,14 @@ SCM_DEFINE (G_obj_set_position, "obj-set-position", 3, 0, 0, (SCM id, SCM x, SCM
 
 SCM_DEFINE (G_obj_set_spritesheet_origin, "obj-set-spritesheet-origin", 3, 0, 0, (SCM id, SCM i, SCM j), "")
 {
-    obj_set_spritesheet_origin (SCM_to_int (id), SCM_to_int (i), SCM_to_int (j));
+    obj_set_spritesheet_origin (scm_to_int (id), scm_to_int (i), scm_to_int (j));
     return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_obj_set_tilesheet_from_file, "obj-set-spritesheet-from-file", 2, 0, 0, (SCM sub, SCM filename),"")
 {
     char *fname = scm_to_locale_string (filename);
-    obj_set_tileshet_from_file (scm_to_int (sub), fname);
+    obj_set_tilesheet_from_file (scm_to_int (sub), fname);
     free (fname);
     return SCM_UNSPECIFIED;
 }

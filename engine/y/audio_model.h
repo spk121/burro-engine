@@ -20,10 +20,12 @@
 #ifndef BURRO_AUDIO_H
 #define BURRO_AUDIO_H
 
+#include <stdint.h>
+
 //! Samples per seconds of the audio engine
-#define AUDIO_SAMPLE_RATE_IN_HZ (22050)
+#define AUDIO_SAMPLE_RATE_IN_HZ (22050u)
 //! The size of the audio buffer.  Consequently the maximum note length.
-#define AUDIO_BUFFER_DURATION_IN_MILLISECONDS (5000)
+#define AUDIO_BUFFER_DURATION_IN_MILLISECONDS (5000u)
 //! Number of samples in the audio buffer
 #define AUDIO_BUFFER_SIZE \
   ((AUDIO_BUFFER_DURATION_IN_MILLISECONDS * AUDIO_SAMPLE_RATE_IN_HZ) / 1000)
@@ -109,5 +111,7 @@ int16_t *audio_model_get_wave();
     \param n
         Number of samples to be removed
 */
-void audio_model_dequeue(int n);
+void audio_model_dequeue(unsigned n);
+
+void am_init_guile_procedures (void);
 #endif

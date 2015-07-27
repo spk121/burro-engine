@@ -1,4 +1,5 @@
 #include "../x.h"
+#include "audio_model.h"
 #include "bg.h"
 #include "console.h"
 #include "eng.h"
@@ -17,6 +18,7 @@
 void
 _burroscript_init (void *unused)
 {
+    am_init_guile_procedures ();
     bg_init_guile_procedures();
     console_init_guile_procedures();
     eng_init_guile_procedures();
