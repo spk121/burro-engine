@@ -22,6 +22,7 @@
 #define BURRO_BG_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "../x.h"
 
 //! The number of background layers for the main screen
@@ -74,7 +75,7 @@ typedef enum bg_type_tag bg_type_t;
 void bg_set_backdrop_color (uint32_t c32);
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
 
-guint16 *bg_get_map_ptr (int id);
+uint32_t *bg_get_map_ptr (int id);
 guint32 *bg_get_tilesheet_ptr (int id);
 guint32 *bg_get_bmp_ptr (int id);
 
