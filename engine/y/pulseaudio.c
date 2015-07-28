@@ -1,14 +1,19 @@
 /* This is audio engine's backend for using PulseAudio.
    Any pulseaudio specific calls go here. */
-#include <pulse/pulseaudio.h>
-#include <glib.h>
 #include <string.h>
 #include <math.h>
-#include "x/xpulseaudio.h"
-#include "y/rand.h"
-#include "y/loop.h"
+#include "../x.h"
+#include "audio_model.h"
+#include "rand.h"
+#include "loop.h"
 #include "pulseaudio.h"
-#include "engine.h"
+#include "eng.h"
+
+#define USE_GLIB_MAINLOOP
+
+#ifdef USE_GLIB_MAINLOOP
+#include <pulse/glib-mainloop.h>
+#endif
 
 #define BURRO_PROP_MEDIA_ROLE "game"
 #define BURRO_PROP_APPLICATION_ID "com.lonelycactus.projectburro"
@@ -16,8 +21,12 @@
 
 typedef struct pulse_priv_tag {
     pa_context_state_t state;
+#ifdef USE_GLIB_MAINLOOP
+    pa_glib_mainloop *loop;
+#else
     pa_mainloop *loop;
     //pa_threaded_mainloop *loop;
+#endif
     gboolean finalize;
     int samples_written;
 } pulse_priv_t;
@@ -78,7 +87,7 @@ static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     uint16_t *buf;
     int i;
     
-    g_debug("Pulseaudio requests %d bytes", nbytes);
+    // g_debug("Pulseaudio requests %d bytes", nbytes);
     n = nbytes / 2;
     if (n > AUDIO_BUFFER_SIZE)
     {
@@ -135,6 +144,10 @@ void pulse_initialize_audio()
     memset(&pulse, 0, sizeof(pulse));
 
     /* Allocate a new mainloop object to handle the audio polling */
+#ifdef USE_GLIB_MAINLOOP
+    pulse.loop = pa_glib_mainloop_new (g_main_context_default());
+    vtable = pa_glib_mainloop_get_api (pulse.loop);
+#else
     pulse.loop = xpa_mainloop_new();
     //pulse.loop = pa_threaded_mainloop_new();
 
@@ -142,7 +155,7 @@ void pulse_initialize_audio()
        directly to make a context.  We instead grab its vtable. */
     vtable = xpa_mainloop_get_api(pulse.loop);
     // vtable = pa_threaded_mainloop_get_api(pulse.loop);
-
+#endif
     
     /* A context is the basic object for a connection to a PulseAudio
        server. It multiplexes commands, data streams and events
@@ -166,7 +179,8 @@ void pulse_initialize_audio()
      * is good. The value e.priv.audio_state is set in
      * cb_audio_context_state().  */
     while(TRUE)
-    { 
+    {
+#ifndef USE_GLIB_MAINLOOP
         xpa_mainloop_blocking_iterate (pulse.loop);
         // pa_threaded_mainloop_blocking_iterate (pulse.loop);
         if (pulse.state == PA_CONTEXT_FAILED)
@@ -178,6 +192,9 @@ void pulse_initialize_audio()
             g_debug("Connection to PulseAudio daemon is ready");
             break;
         }
+#else
+        break;
+#endif
     }
     /* Now we need to add our mono audio channel to the connection */
 
@@ -222,7 +239,6 @@ void pulse_initialize_audio()
                                                    &buffer_attributes,
                                                    PA_STREAM_ADJUST_LATENCY);
     /* Finally done! */
-    audio_model_initialize(loop_time());
     g_debug("PulseAudio initialization complete");
 }
 
@@ -239,8 +255,10 @@ void pulse_finalize_audio()
 void pulse_update_audio()
 {
     pulse.samples_written = 0;
+#ifndef USE_GLIB_MAINLOOP
     while (xpa_mainloop_nonblocking_iterate(pulse.loop) > 0)
         ;
+#endif
 }
 
 void pulse_mainloop()

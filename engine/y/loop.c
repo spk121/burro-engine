@@ -140,7 +140,7 @@ static gboolean idle_state_event_cb (void *dummy)
         if (active_flag)
         {
             //audio_time_cur = cur_time;
-            // pulse_update_audio();
+            pulse_update_audio();
             if (run_full_speed_flag || ((cur_time - before_update_time) > UPDATE_RATE))
             {
                 repl_tick ();
@@ -165,8 +165,8 @@ static gboolean idle_state_event_cb (void *dummy)
             //audio_pause ();
             // Figure out a way to sleep until the next gtk event comes in
         }
-        if (!run_full_speed_flag)
-            xg_usleep(10);
+        /* if (!run_full_speed_flag) */
+        /*     xg_usleep(10); */
     }
 
     return TRUE;

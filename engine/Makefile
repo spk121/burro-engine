@@ -106,7 +106,8 @@ LIBS = \
  -lm \
  -lpango-1.0 \
  -lpangocairo-1.0 \
- -lpulse
+ -lpulse \
+ -lpulse-mainloop-glib
 
 # LIBS = \
 #  `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 glib-2.0 libpulse --libs` \
@@ -134,6 +135,7 @@ SRCS_C   = \
  x/xgtk.c \
  x/xguile.c \
  x/xpulseaudio.c \
+ y/audio_model.c \
  y/bg.c \
  y/console.c \
  y/draw.c \
@@ -144,6 +146,7 @@ SRCS_C   = \
  y/lisp.c \
  y/loop.c \
  y/obj.c \
+ y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
  main.c

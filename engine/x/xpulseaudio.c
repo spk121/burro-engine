@@ -16,10 +16,15 @@ is_valid_pa_context_state_t (pa_context_state_t c)
 void
 xpa_context_connect_to_default_server (pa_context *c)
 {
-  int ret;
-  ret = pa_context_connect (c, (const char *) NULL, PA_CONTEXT_NOFLAGS, (const pa_spawn_api *) NULL);
-  if (ret != 0)
-    g_critical ("pa_context_connect failed");
+    g_return_if_fail (c != NULL);
+    
+    int ret;
+    ret = pa_context_connect (c,
+                              (const char *) NULL,
+                              PA_CONTEXT_NOFLAGS,
+                              (const pa_spawn_api *) NULL);
+    if (ret != 0)
+        g_critical ("pa_context_connect failed");
 }
 
 pa_context_state_t
@@ -33,13 +38,19 @@ xpa_context_get_state (pa_context *c)
 }
 
 pa_context *
-xpa_context_new_with_proplist (pa_mainloop_api *mainloop, const char *name, pa_proplist *proplist)
+xpa_context_new_with_proplist (pa_mainloop_api *mainloop,
+                               const char *name,
+                               pa_proplist *proplist)
 {
-  pa_context *c;
-  c = pa_context_new_with_proplist (mainloop, name, proplist);
-  if (c == NULL)
-    g_critical ("pa_context_new_with_proplist returned NULL");
-  return c;
+    g_return_val_if_fail (mainloop != NULL, NULL);
+    g_return_val_if_fail (name != NULL, NULL);
+    g_return_val_if_fail (proplist != NULL, NULL);
+    
+    pa_context *c;
+    c = pa_context_new_with_proplist (mainloop, name, proplist);
+    if (c == NULL)
+        g_critical ("pa_context_new_with_proplist returned NULL");
+    return c;
 }
 
 void
@@ -170,6 +181,10 @@ xpa_stream_set_write_callback (pa_stream *p, pa_stream_request_cb_t cb, void *us
 void
 xpa_stream_write (pa_stream *p, const void *data, size_t nbytes)
 {
+    g_return_if_fail (p != NULL);
+    g_return_if_fail (data != NULL);
+    g_return_if_fail (nbytes > 0);
+    
   int ret;
   ret = pa_stream_write (p, data, nbytes, NULL, 0, PA_SEEK_RELATIVE);
   if (ret != 0)
