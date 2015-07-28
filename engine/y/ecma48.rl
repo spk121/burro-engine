@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 // #include <SDL.h>
-#include "../const.h"
+#include "eng.h"
 #include "console.h"
 
 #define G0 0
@@ -1101,25 +1101,25 @@ static int codepoint_tables[4][96] =
 	  console_set_default();
 	  break;
 	case 1:
-	  console_set_intensity(INTENSITY_BOLD);
+	  console_set_intensity(CONSOLE_INTENSITY_BOLD);
 	  break;
 	case 2:
-	  console_set_intensity(INTENSITY_FAINT);
+	  console_set_intensity(CONSOLE_INTENSITY_FAINT);
 	  break;
 	case 3:
 	  // Italicized
 	  break;
 	case 4:
-	  console_set_underline(UNDERLINE_SINGLY);
+	  console_set_underline(CONSOLE_UNDERLINE_SINGLY);
 	  break;
 	case 5:
-	  console_set_blink(BLINK_SLOW);
+	  console_set_blink(CONSOLE_BLINK_SLOW);
 	  break;
 	case 6:
-	  console_set_blink(BLINK_FAST);
+	  console_set_blink(CONSOLE_BLINK_FAST);
 	  break;
 	case 7:
-	  console_set_polarity(POLARITY_NEGATIVE);
+	  console_set_polarity(CONSOLE_POLARITY_NEGATIVE);
 	  break;
 	case 8:
 	  // Concealed.
@@ -1143,27 +1143,27 @@ static int codepoint_tables[4][96] =
 	  // Fraktur
 	  break;
 	case 21:
-	  console_set_underline(UNDERLINE_DOUBLY);
+	  console_set_underline(CONSOLE_UNDERLINE_DOUBLY);
 	  break;
 	case 22:
-	  console_set_intensity(INTENSITY_NORMAL);
-	  console_set_fgcolor(COLOR_FG_DEFAULT);
-	  console_set_bgcolor(COLOR_BG_DEFAULT);
+	  console_set_intensity(CONSOLE_INTENSITY_NORMAL);
+	  console_set_fgcolor(CONSOLE_COLOR_DEFAULT);
+	  console_set_bgcolor(CONSOLE_COLOR_DEFAULT);
 	  break;
 	case 23:
 	  // Turn off italicization and fraktur.
 	  break;
 	case 24:
-	  console_set_underline(UNDERLINE_NONE);
+	  console_set_underline(CONSOLE_UNDERLINE_NONE);
 	  break;
 	case 25:
-	  console_set_blink (BLINK_NONE);
+	  console_set_blink (CONSOLE_BLINK_NONE);
 	  break;
 	case 26:
 	  // Reserved
 	  break;
 	case 27:
-	  console_set_polarity(POLARITY_POSITIVE);
+	  console_set_polarity(CONSOLE_POLARITY_POSITIVE);
 	  break;
 	case 28:
 	  // Turn off concealed
@@ -1172,66 +1172,66 @@ static int codepoint_tables[4][96] =
 	  // Turn off strike-through
 	  break;
 	case 30:
-	  console_set_fgcolor(COLOR_FG_BLACK);
+	  console_set_fgcolor(CONSOLE_COLOR_BLACK);
 	  break;
 	case 31:
-	  console_set_fgcolor(COLOR_FG_RED);
+	  console_set_fgcolor(CONSOLE_COLOR_RED);
 	  break;
 	case 32:
-	  console_set_fgcolor(COLOR_FG_GREEN);
+	  console_set_fgcolor(CONSOLE_COLOR_GREEN);
 	  break;
 	case 33:
-	  console_set_fgcolor(COLOR_FG_YELLOW);
+	  console_set_fgcolor(CONSOLE_COLOR_YELLOW);
 	  break;
 	case 34:
-	  console_set_fgcolor(COLOR_FG_BLUE);
+	  console_set_fgcolor(CONSOLE_COLOR_BLUE);
 	  break;
 	case 35:
-	  console_set_fgcolor(COLOR_FG_MAGENTA);
+	  console_set_fgcolor(CONSOLE_COLOR_MAGENTA);
 	  break;
 	case 36:
-	  console_set_fgcolor(COLOR_FG_CYAN);
+	  console_set_fgcolor(CONSOLE_COLOR_CYAN);
 	  break;
 	case 37:
-	  console_set_fgcolor(COLOR_FG_WHITE);
+	  console_set_fgcolor(CONSOLE_COLOR_WHITE);
 	  break;
 	case 38:
-	  console_set_fgcolor(COLOR_FG_TRANSPARENT);
+	  console_set_fgcolor(CONSOLE_COLOR_TRANSPARENT);
 	  break;
 	case 39:
 	  // white is default
-	  console_set_fgcolor(COLOR_FG_DEFAULT);
+	  console_set_fgcolor(CONSOLE_COLOR_DEFAULT);
 	  break;
 	case 40:
-	  console_set_bgcolor(COLOR_BG_BLACK);
+	  console_set_bgcolor(CONSOLE_COLOR_BLACK);
 	  break;
 	case 41:
-	  console_set_bgcolor(COLOR_BG_RED);
+	  console_set_bgcolor(CONSOLE_COLOR_RED);
 	  break;
 	case 42:
-	  console_set_bgcolor(COLOR_BG_GREEN);
+	  console_set_bgcolor(CONSOLE_COLOR_GREEN);
 	  break;
 	case 43:
-	  console_set_bgcolor(COLOR_BG_YELLOW);
+	  console_set_bgcolor(CONSOLE_COLOR_YELLOW);
 	  break;
 	case 44:
-	  console_set_bgcolor(COLOR_BG_BLUE);
+	  console_set_bgcolor(CONSOLE_COLOR_BLUE);
 	  break;
 	case 45:
-	  console_set_bgcolor(COLOR_BG_MAGENTA);
+	  console_set_bgcolor(CONSOLE_COLOR_MAGENTA);
 	  break;
 	case 46:
-	  console_set_bgcolor(COLOR_BG_CYAN);
+	  console_set_bgcolor(CONSOLE_COLOR_CYAN);
 	  break;
 	case 47:
-	  console_set_bgcolor(COLOR_BG_WHITE);
+	  console_set_bgcolor(CONSOLE_COLOR_WHITE);
 	  break;
 	case 48:
-	  console_set_bgcolor(COLOR_BG_TRANSPARENT);
+	  console_set_bgcolor(CONSOLE_COLOR_TRANSPARENT);
 	  break;
 	case 49:
 	  // Default BG color
-	  console_set_bgcolor(COLOR_BG_DEFAULT);
+	  console_set_bgcolor(CONSOLE_COLOR_DEFAULT);
 	  break;
 	case 50:
 	  // Reserved

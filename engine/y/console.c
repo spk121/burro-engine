@@ -26,9 +26,25 @@
 #include <limits.h>
 
 #include "../x.h"
-#include "const.h"
+#include "eng.h"
 #include "console.h"
-#include "8x13.h"
+
+#define SMALL_FONT (1)
+#ifdef SMALL_FONT
+# include "6x9.h"
+typedef glyph_fixed6x9_row_t glyph_row_t;
+#define FIXED_COUNT (FIXED6x9_COUNT)
+#define fixed_glyphs (fixed6x9_glyphs)
+#define FIXED_MAXWIDTH (FIXED6x9_MAXWIDTH)
+#define FIXED_MAXHEIGHT (FIXED6x9_MAXHEIGHT)
+#else
+# include "8x13.h"
+typedef glyph_fixed8x13_row_t glyph_row_t;
+#define FIXED_COUNT (FIXED8x13_COUNT)
+#define FIXED_MAXWIDTH (FIXED8x13_MAXWIDTH)
+#define FIXED_MAXHEIGHT (FIXED8x13_MAXHEIGHT)
+#define fixed_glyphs (fixed8x13_glyphs)
+#endif
 
 // COLOR takes 4 bits
 // Note that  DEFAULT has different meanings in the
@@ -857,7 +873,7 @@ console_write_char (uint16_t codepoint, int irm, int hem, int simd, int home, in
     }
 }
 
-static glyph_fixed8x13_row_t *
+static glyph_row_t *
 get_narrow_glyph (int glyph_set, int codepoint,
                   int *bpd,	/* bits per dot: 1, 2, 3, 4 */
                   int *stride,		/* width of one font row in bytes */
@@ -874,12 +890,12 @@ get_narrow_glyph (int glyph_set, int codepoint,
     /* FIXME: do a more efficient search */
     if (glyph_set == 0)
     {
-        count = FIXED8x13_COUNT;
+        count = FIXED_COUNT;
         bits = 1;
         
         while (i < count)
         {
-            if (fixed8x13_glyphs[i].encoding == codepoint)
+            if (fixed_glyphs[i].encoding == codepoint)
                 break;
             i++;
         }
@@ -887,12 +903,12 @@ get_narrow_glyph (int glyph_set, int codepoint,
             return NULL;
         
         *bpd = bits;
-        *stride = fixed8x13_glyphs[i].data.stride;
-        *width = fixed8x13_glyphs[i].data.width;
-        *height = fixed8x13_glyphs[i].data.height;
-        *xoffset = fixed8x13_glyphs[i].data.xoffset;
-        *yoffset = fixed8x13_glyphs[i].data.yoffset;
-        return fixed8x13_glyphs[i].bitmap;
+        *stride = fixed_glyphs[i].data.stride;
+        *width = fixed_glyphs[i].data.width;
+        *height = fixed_glyphs[i].data.height;
+        *xoffset = fixed_glyphs[i].data.xoffset;
+        *yoffset = fixed_glyphs[i].data.yoffset;
+        return &(fixed_glyphs[i].bitmap[0]);
     }
     
     return NULL;
@@ -918,8 +934,8 @@ console_render_to_cairo_surface ()
     width = CONSOLE_COLS;
     height = CONSOLE_ROWS;
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-                                        width * FIXED8x13_MAXWIDTH,
-                                        height * FIXED8x13_MAXHEIGHT);
+                                        width * FIXED_MAXWIDTH,
+                                        height * FIXED_MAXHEIGHT);
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
@@ -986,26 +1002,28 @@ console_render_to_cairo_surface ()
                                  (j == glyph_height - 2))
                             pixel_argb = fg_argb;
                         else if (glyph_bitmap
-                                 && glyph_bitmap[j] & (1 << (glyph_width - i - 1)))
+                                 && glyph_bitmap[j] & (1 << (8 - i - 1)))
+                            // FIXME: that '8' should be the number of bits in row type
                             pixel_argb = fg_argb;
                         else if (glyph_bitmap
                                  && (i > 0)
                                  && ((rendering & INTENSITY_MASK) == INTENSITY_BOLD)
-                                 && (glyph_bitmap[j] & (1 << (glyph_width - i - 2))))
+                                 && (glyph_bitmap[j] & (1 << (8 - i - 2))))
+                            // FIXME: that '8' should be the number of bits in row type
                             pixel_argb = fg_argb;
                         else
                             pixel_argb = bg_argb;
 						
-                        data[(r * FIXED8x13_MAXHEIGHT + j) * stride
-                             + c * FIXED8x13_MAXWIDTH + i] = pixel_argb;
+                        data[(r * FIXED_MAXHEIGHT + j) * stride
+                             + c * FIXED_MAXWIDTH + i] = pixel_argb;
                     }
                 }
             }
             else {
 				
-                for (int j = 0; j < FIXED8x13_MAXHEIGHT; j++)
+                for (int j = 0; j < FIXED_MAXHEIGHT; j++)
                 {
-                    for (int i = 0; i < FIXED8x13_MAXWIDTH; i++)
+                    for (int i = 0; i < FIXED_MAXWIDTH; i++)
                     {
                         uint32_t pixel_argb;
 						
@@ -1019,8 +1037,8 @@ console_render_to_cairo_surface ()
                         else
                             pixel_argb = bg_argb;
 						
-                        data[(r * FIXED8x13_MAXHEIGHT + j) * stride
-                             + c * FIXED8x13_MAXWIDTH + i] = pixel_argb;
+                        data[(r * FIXED_MAXHEIGHT + j) * stride
+                             + c * FIXED_MAXWIDTH + i] = pixel_argb;
                     }
                 }
             }
@@ -1108,9 +1126,9 @@ console_write_utf8_string (const char *str)
 void
 console_test_pattern (void)
 {
-    for (int i = 0; i < FIXED8x13_COUNT; i++)
+    for (int i = 0; i < FIXED_COUNT; i++)
     {
-        console_write_char (fixed8x13_glyphs[i].encoding, 0, 0, 0, 0, CONSOLE_COLS - 1);
+        console_write_char (fixed_glyphs[i].encoding, 0, 0, 0, 0, CONSOLE_COLS - 1);
         if (col == CONSOLE_COLS - 1)
         {
             row ++;

@@ -5,12 +5,12 @@
 
 enum obj_const_tag
   {
-    OBJSHEET_HEIGHT = 1024,
-    OBJSHEET_WIDTH = 1024,
+    SPRITESHEET_HEIGHT = 1024,
+    SPRITESHEET_WIDTH = 1024,
     MAIN_OBJ_COUNT = 4096,
     SUB_OBJ_COUNT = 4096,
     OBJ_COUNT = MAIN_OBJ_COUNT + SUB_OBJ_COUNT,
-    OBJSHEET_COUNT = 2
+    SPRITESHEET_COUNT = 2
   };
 
 
@@ -30,7 +30,7 @@ void obj_set_palette_offset (int id, int offset);
 void obj_get_location (int id, double *x, double *y, double *rotation_center_x, double *rotation_center_y,
 			 double *rotation, double *expansion);
 
-void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename);
+void obj_set_spritesheet_from_file (int tilesheet_id, const char *filename);
 cairo_surface_t *obj_render_to_cairo_surface (int id);
 
 SCM G_obj_hide (SCM gid);

@@ -48,7 +48,7 @@
 #include <wchar.h>
 #include "lineedit.h"
 #include "console.h"
-#include "const.h"
+#include "eng.h"
 
 #define LINENOISE_DEFAULT_HISTORY_MAX_LEN 100
 

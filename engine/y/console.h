@@ -26,9 +26,6 @@
 #include "../x.h"
 
 // Console
-#define CONSOLE_ROWS 24
-#define CONSOLE_COLS 80
-
 
 enum console_blink_index_tag
 {

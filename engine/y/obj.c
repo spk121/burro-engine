@@ -1,6 +1,4 @@
-#include "../x/xcairo.h"
-#include "../x/xglib.h"
-#include "../x/xgdk-pixbuf.h"
+#include "../x.h"
 #include "eng.h"
 #include "guile.h"
 #include "obj.h"
@@ -44,12 +42,15 @@ typedef struct obj_entry
     double brightness;
 } obj_entry_t;
 
-typedef struct obj_data
+typedef struct spritesheet_tag
 {
-    uint32_t bmp[OBJSHEET_HEIGHT][OBJSHEET_WIDTH];
-} obj_data_t;
+    uint32_t bmp[SPRITESHEET_HEIGHT][SPRITESHEET_WIDTH];
+    int width, height;
+    bool initialized;
+} spritesheet_t;
 
 obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
+spritesheet_t spritesheets[SPRITESHEET_COUNT];
 
 static bool colorswap = false;
 static double brightness = 1.0;
@@ -151,9 +152,9 @@ void obj_get_location (int id, double *x, double *y, double *rotation_center_x, 
     *expansion = obj[id].expansion;
 }
 
-void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename)
+void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
 {
-    g_return_if_fail (tilesheet_id < 0 || tilesheet_id >= OBJSHEET_COUNT);
+    g_return_if_fail (spritesheet_id < 0 || spritesheet_id >= SPRITESHEET_COUNT);
     g_return_if_fail (filename == NULL);
     char *path = xg_find_data_file (filename);
     g_return_if_fail (path != NULL);
@@ -167,14 +168,30 @@ void obj_set_tilesheet_from_file (int tilesheet_id, const char *filename)
     }
     else
     {
-        if (tilesheet_id == 0)
-            main_pixbuf = pb;
-        else if (tilesheet_id == 1)
-            sub_pixbuf = pb;
-        else
-            abort ();
-        g_debug ("loaded pixbuf %s as obj tilesheet %d", path, tilesheet_id);
+        int width, height, stride;
+        xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
+        uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
+        
+
+        if (width > SPRITESHEET_WIDTH)
+            width = SPRITESHEET_WIDTH;
+        if (height > SPRITESHEET_HEIGHT)
+            height = SPRITESHEET_HEIGHT;
+        
+        spritesheets[spritesheet_id].height = height;
+        spritesheets[spritesheet_id].width = height;
+        spritesheets[spritesheet_id].initialized = true;
+        
+        for (unsigned j = 0; j < height; j ++)
+        {
+            for (unsigned i = 0; i < width ; i ++)
+            {
+                spritesheets[spritesheet_id].bmp[j][i] = c32[j * stride + i];
+            }
+        }
+        g_debug ("loaded pixbuf %s as spritesheet %d", path, spritesheet_id);
         g_free (path);
+        g_object_unref (pb);
     }
 }
 
@@ -210,7 +227,7 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     uint32_t *data, c32;
     cairo_surface_t *surf;
     int spritesheet_width, spritesheet_height, spritesheet_stride;
-    GdkPixbuf *pb;
+    int spritesheet_id;
     
     g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT, NULL);
     g_return_val_if_fail (obj[id].sprite_width > 0, NULL);
@@ -220,22 +237,12 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     height = obj[id].sprite_height;
 
     if (id < MAIN_OBJ_COUNT)
-        pb = main_pixbuf;
+        spritesheet_id = 0;
     else if (id >= MAIN_OBJ_COUNT && id < MAIN_OBJ_COUNT + SUB_OBJ_COUNT)
-        pb = sub_pixbuf;
+        spritesheet_id = 1;
     else
         abort ();
 
-    g_return_val_if_fail (pb != NULL, NULL);
-
-    xgdk_pixbuf_get_width_height_stride (pb, &spritesheet_width, &spritesheet_height, &spritesheet_stride);
-
-    g_return_val_if_fail (spritesheet_width > 0, NULL);
-    g_return_val_if_fail (spritesheet_height > 0, NULL);
-    g_return_val_if_fail (spritesheet_stride > 0, NULL);
-
-    uint32_t *spritesheet_data = xgdk_pixbuf_get_argb32_pixels (pb);
-    
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
@@ -252,13 +259,13 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
             if (obj[id].hflip == TRUE)
                 si = width - si;
 
-            if (si >= spritesheet_width || sj >= spritesheet_height)
+            if (si >= spritesheets[spritesheet_id].width || sj >= spritesheets[spritesheet_id].height)
             {
                 g_critical ("out of range on sprite sheet");
                 c32 = 0xffff00ff;
             }
             else
-                c32 = spritesheet_data[sj * spritesheet_stride + si];
+                c32 = spritesheets[spritesheet_id].bmp[sj][si];
             data[j * stride + i] = adjust_colorval (c32, obj[id].colorswap, obj[id].brightness);
         }
     }
@@ -334,14 +341,14 @@ SCM_DEFINE (G_obj_set_position, "obj-set-position", 3, 0, 0, (SCM id, SCM x, SCM
 
 SCM_DEFINE (G_obj_set_spritesheet_origin, "obj-set-spritesheet-origin", 3, 0, 0, (SCM id, SCM i, SCM j), "")
 {
-    obj_set_spritesheet_origin (SCM_to_int (id), SCM_to_int (i), SCM_to_int (j));
+    obj_set_spritesheet_origin (scm_to_int (id), scm_to_int (i), scm_to_int (j));
     return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_obj_set_tilesheet_from_file, "obj-set-spritesheet-from-file", 2, 0, 0, (SCM sub, SCM filename),"")
 {
     char *fname = scm_to_locale_string (filename);
-    obj_set_tileshet_from_file (scm_to_int (sub), fname);
+    obj_set_spritesheet_from_file (scm_to_int (sub), fname);
     free (fname);
     return SCM_UNSPECIFIED;
 }
