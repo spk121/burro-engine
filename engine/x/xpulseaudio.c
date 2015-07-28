@@ -136,14 +136,16 @@ xpa_proplist_sets (pa_proplist *p, const char *key, const char *value)
     g_critical ("pa_proplist_sets failed");
 }
 
-void xpa_stream_connect_playback_to_default_device (pa_stream *s, const pa_buffer_attr *attr, 
-						    pa_stream_flags_t flags)
+void xpa_stream_connect_playback_to_default_device (pa_stream *s, pa_context *c,
+                                                    const pa_buffer_attr *attr, 
+                                                    pa_stream_flags_t flags)
 {
   int ret;
   g_return_if_fail (s != NULL);
   ret = pa_stream_connect_playback (s, NULL, attr, flags, NULL, NULL);
   if (ret != 0)
-    g_critical ("pa_stream_connect_playback failed");
+      g_critical ("pa_stream_connect_playback failed: %s",
+                  pa_strerror (pa_context_errno(c)));
 }
 
 pa_stream *
@@ -158,7 +160,8 @@ xpa_stream_new_with_proplist (pa_context *c, const char *name, const pa_sample_s
   g_return_val_if_fail (p != NULL, NULL);
   s = pa_stream_new_with_proplist (c, name, ss, map, p);
   if (s == NULL)
-    g_critical ("pa_stream_new_with_proplist returned NULL");
+      g_critical ("pa_stream_new_with_proplist returned NULL: %s",
+                  pa_strerror (pa_context_errno(c)));
   return s;
 }
 

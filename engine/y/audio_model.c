@@ -304,11 +304,11 @@ SCM_DEFINE (G_beep, "beep", 0, 0, 0, (void), "")
     audio_model_add_tone (0,
                           0.0,
                           // D_attack, D_decay, D_sustain, D_release
-                          0.01, 0.1, 0.1, 0.1,
+                          0.00, 0.1, 0.1, 0.1,
                           //F_initial, F_attack, F_sustain, F_release
                           440.0, 430.0, 420.0, 410.0,
                           // A_attack, A_sustain
-                          1.0, 0.5,
+                          1.0, 0.8,
                           // Duty
                           0.5,
                           // noise, waveform

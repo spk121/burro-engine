@@ -140,7 +140,6 @@ static gboolean idle_state_event_cb (void *dummy)
         if (active_flag)
         {
             //audio_time_cur = cur_time;
-            pulse_update_audio();
             if (run_full_speed_flag || ((cur_time - before_update_time) > UPDATE_RATE))
             {
                 repl_tick ();
@@ -156,7 +155,7 @@ static gboolean idle_state_event_cb (void *dummy)
                     measured_updates_rate 
                         = 1000.0 / (after_update_time - thousand_updates_time);
                     thousand_updates_time = after_update_time;
-                    g_debug ("Update Rate: %f\n", measured_updates_rate);
+                    g_debug ("Update Rate: %f", measured_updates_rate);
                 }
             }
         }
@@ -202,7 +201,7 @@ tick_cb (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
                     measured_frame_rate 
                         = 1000.0 / (after_draw_time - thousand_frames_draw_time);
                     thousand_frames_draw_time = after_draw_time;
-                    g_debug ("Frame Rate: %f\n", measured_frame_rate);
+                    g_debug ("Frame Rate: %f", measured_frame_rate);
                 }
             }
             if (!run_full_speed_flag)

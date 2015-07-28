@@ -21,6 +21,7 @@ void                xpa_proplist_sets                  (pa_proplist *p,
                                                         const char *key,
                                                         const char *value);
 void                xpa_stream_connect_playback_to_default_device (pa_stream *s,
+                                                                   pa_context *c,
                                                                    const pa_buffer_attr *attr,
                                                                    pa_stream_flags_t flags);
 pa_stream *         xpa_stream_new_with_proplist       (pa_context *c,

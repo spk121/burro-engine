@@ -71,7 +71,7 @@ initialize (GtkApplication *app)
 
     /* Initialize the audio system */
     audio_model_initialize (0);
-    pulse_initialize_audio ();
+    pulse_initialize_audio_step_1 ();
 
     /* Load player's game options and saved game files */
     
