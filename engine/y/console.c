@@ -29,7 +29,6 @@
 #include "eng.h"
 #include "console.h"
 
-#define SMALL_FONT (1)
 #ifdef SMALL_FONT
 # include "6x9.h"
 typedef glyph_fixed6x9_row_t glyph_row_t;

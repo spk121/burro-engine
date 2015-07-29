@@ -23,7 +23,8 @@
 #define GAME_BOY_WIDTH 160
 #define GAME_BOY_HEIGHT 144
 
-#define SMALL_FONT
+//#define SMALL_FONT
+#undef SMALL_FONT
 #ifdef SMALL_FONT
 #define FONT_WIDTH 6
 #define FONT_HEIGHT 9

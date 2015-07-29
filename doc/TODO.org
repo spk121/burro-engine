@@ -38,28 +38,28 @@ The current sub-task
 ** DONE Write text drawing primitives in Cairo
 ** DONE Write ECMA-48 parser
 ** DONE Make a font
-* Console: JS
-  Express a JS console with command line editing, command-line history,
+* Console: Guile
+  Express a Guile console with command line editing, command-line history,
   and maybe even some tab completion.
-** DONE Hook console IO into SpiderMonkey command requests
-** DONE Make readline-like functionality work
+** DONE Hook console IO into Guile command requests
+** TODO Make readline-like functionality work
 ** TODO Tab Completion
 
 * Resource File
-  I'm using libiso9660++
-** DONE Functions to extract subfiles from ISO
+  I'm using libiso9660
+** TODO Functions to extract subfiles from ISO
 ** TODO Scripts to assemble the ISO files from TMX, PNG, WAV, and JS
-** DONE Write a Filename-to-ID map class.
-** DONE Populate a Filename-to-ID class from the contents of the reasource file
+** TODO Write a Filename-to-ID map class.
+** TODO Populate a Filename-to-ID class from the contents of the reasource file
    
 * Resource Cache
   The resource cache loads TMX, PNG, JS, and WAV from the PAK file.
   It stores them in their intermediate forms, TmxMap classes, Cairo
   surfaces, JS text, and SDL_Mixer chuncks respectively
 ** DONE Use Filename-to-ID map
-** TODO Loader for WAV -> SDL_Mixer chunk
-** TODO Loader for JS
-** DONE Loader for PNG -> Cairo surface
+** TODO Loader for WAV -> audio store
+** TODO Loader for Guile scripts
+** DONE Loader for PNG -> 
 ** TODO Loader for TMX -> TmxMap
 ** TODO JS Binding for loader
 
