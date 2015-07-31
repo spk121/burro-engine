@@ -4,24 +4,66 @@
 #include "bg.h"
 #include "eng.h"
 #include "tga.h"
+#include "vram.h"
 
-struct bg_map_data
+struct bg_matrix
 {
-    int map_height, map_width;
-    bool map_initialized;
-    int tilesheet_height, tilesheet_width;
-    bool tilesheet_initialized;
-    uint32_t map[BG_MAP_HEIGHT_MAX][BG_MAP_WIDTH_MAX];
-    uint32_t tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
+    int width, height;
+    uint32_t *storage;
+    uint32_t **data;
 };
 
-struct bg_bmp_data
-{
-    int height;
-    int width;
-    bool initialized;
-    uint32_t bmp[BG_BMP_HEIGHT_MAX][BG_BMP_WIDTH_MAX];
+size_t bg_matrix_width[9] = {
+    [BG_SIZE_16x16] = 16,
+    [BG_SIZE_32x16] = 32,
+    [BG_SIZE_16x32] = 16,
+    [BG_SIZE_32x32] = 32,
+    [BG_SIZE_128x128] = 128,
+    [BG_SIZE_256x256] = 256,
+    [BG_SIZE_512x256] = 512,
+    [BG_SIZE_256x512] = 256,
+    [BG_SIZE_512x512] = 512,
 };
+
+size_t bg_matrix_height[9] = {
+    [BG_SIZE_16x16] = 16,
+    [BG_SIZE_32x16] = 16,
+    [BG_SIZE_16x32] = 32,
+    [BG_SIZE_32x32] = 32,
+    [BG_SIZE_128x128] = 128,
+    [BG_SIZE_256x256] = 256,
+    [BG_SIZE_512x256] = 256,
+    [BG_SIZE_256x512] = 512,
+    [BG_SIZE_512x512] = 512,
+};
+
+size_t bg_matrix_size[9] = {
+    [BG_SIZE_16x16] = 16*16,
+    [BG_SIZE_32x16] = 32*16,
+    [BG_SIZE_16x32] = 16*32,
+    [BG_SIZE_32x32] = 32*32,
+    [BG_SIZE_128x128] = 128*128,
+    [BG_SIZE_256x256] = 256*256,
+    [BG_SIZE_512x256] = 512*256,
+    [BG_SIZE_256x512] = 256*512,
+    [BG_SIZE_512x512] = 512*512,
+};
+
+static void
+_bg_allocate_matrix (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
+{
+    g_assert (x != NULL);
+    
+    g_free (x->data);
+
+    g_assert_cmpuint (bg_matrix_get_u32_size(size), >=,  vram_get_u32_size(bank));
+    
+    vram_zero_bank(bank);
+    x->storage = vram_get_ptr(bank);
+    x->data = g_new0(uint32_t *, bg_matrix_get_height(size));
+    for (size_t i = 0; i < bg_matrix_height[size]; i ++)
+        x->data[i] = x->storage + i * bg_matrix_width[size];
+}
 
 typedef struct bg_entry
 {
@@ -48,11 +90,13 @@ typedef struct bg_entry
      * center, in radians */
     double rotation;
 
-    union
-    {
-        struct bg_map_data map;
-        struct bg_bmp_data bmp;
-    };
+    /** The width, height, and data of either the map or the bitmap.
+     *  If this is a map, data contains indices.  If this is a bitmap,
+     *  data contains colorrefs.
+     *  FIXME: replace this with VRAM to save space */
+    int width;
+    int height;
+    uint32_t data[BG_DATA_WIDTH][BG_DATA_HEIGHT];
 } bg_entry_t;
 
 typedef struct bg_tag
@@ -63,7 +107,10 @@ typedef struct bg_tag
     bool colorswap;
   
     double brightness;
-  
+
+    uint32_t main_tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
+    uint32_t sub_tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
+    
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
 
@@ -111,19 +158,17 @@ bg_is_shown (int id)
     return bg.bg[id].enable;
 }
 
-uint32_t *bg_get_map_ptr (int id)
+uint32_t *bg_get_data_ptr (int id)
 {
-    return &(bg.bg[id].map.map[0][0]);
+    return &(bg.bg[id].data[0][0]);
 }
 
 uint32_t *bg_get_tilesheet_ptr (int id)
 {
-    return &(bg.bg[id].map.tilesheet[0][0]);
-}
-
-uint32_t *bg_get_bmp32_ptr (int id)
-{
-    return &(bg.bg[id].bmp.bmp[0][0]);
+    if (id >= BG_SUB_0 && id <= BG_SUB_3)
+        return &(bg.sub_tilesheet[0][0]);
+    return &(bg.main_tilesheet[0][0]);
+    
 }
 
 int bg_get_priority (int id)
@@ -152,9 +197,8 @@ void bg_init()
         bg.bg[i].rotation_center_y = 0.0;
         bg.bg[i].expansion = 1.0;
         bg.bg[i].rotation = 0.0;
-        bg.bg[i].bmp.height = 0;
-        bg.bg[i].bmp.width = 0;
-        bg.bg[i].bmp.initialized = false;
+        bg.bg[i].height = 0;
+        bg.bg[i].width = 0;
     }
 }
 
@@ -168,22 +212,8 @@ void bg_reset (int id, bg_type_t type)
     bg.bg[id].expansion = 1.0;
     bg.bg[id].rotation = 0.0;
     bg.bg[id].priority = id % 4;
-    switch (type)
-    {
-    case BG_TYPE_MAP:
-        bg.bg[id].map.map_height = 0;
-        bg.bg[id].map.map_width = 0;
-        bg.bg[id].map.map_initialized = false;
-        bg.bg[id].map.tilesheet_width = 0;
-        bg.bg[id].map.tilesheet_height = 0;
-        bg.bg[id].map.tilesheet_initialized = false;
-        break;
-    case BG_TYPE_BMP:
-        bg.bg[id].bmp.height = 0;
-        bg.bg[id].bmp.width = 0;
-        bg.bg[id].bmp.initialized = false;
-        break;
-    }
+    bg.bg[id].height = 0;
+    bg.bg[id].width = 0;
 }
 
 void bg_rotate (int id, double angle)
@@ -197,7 +227,8 @@ void bg_scroll (int id, double dx, double dy)
     bg.bg[id].scroll_y += dy;
 }
 
-void bg_set (int id, double rotation, double expansion, double scroll_x, double scroll_y,
+void bg_set (int id, double rotation, double expansion,
+             double scroll_x, double scroll_y,
              double rotation_center_x, double rotation_center_y)
 {
     bg.bg[id].rotation = rotation;
@@ -228,7 +259,8 @@ void bg_set_rotation (int id, double rotation)
     bg.bg[id].rotation = rotation;
 }
 
-void bg_set_rotation_center (int id, double rotation_center_x, double rotation_center_y)
+void bg_set_rotation_center (int id,
+                             double rotation_center_x, double rotation_center_y)
 {
     bg.bg[id].rotation_center_x = rotation_center_x;
     bg.bg[id].rotation_center_y = rotation_center_y;
@@ -283,11 +315,8 @@ static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
 }
 #endif
 
-void bg_set_bmp_from_file (int id, const char *filename)
+static void set_from_image_file (int id, bg_type_t type, const char *filename)
 {
-    g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
-    g_return_if_fail (filename != NULL);
-    
     char *path = xg_find_data_file (filename);
     g_return_if_fail (path != NULL);
     GdkPixbuf *pb = xgdk_pixbuf_new_from_file (path);
@@ -303,29 +332,61 @@ void bg_set_bmp_from_file (int id, const char *filename)
         int width, height, stride;
         xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
-        
-        if (width > BG_BMP_WIDTH_MAX)
-            width = BG_BMP_WIDTH_MAX;
-        if (height > BG_BMP_HEIGHT_MAX)
-            height = BG_BMP_HEIGHT_MAX;
-        bg.bg[id].bmp.height = height;
-        bg.bg[id].bmp.width = width;
-        bg.bg[id].bmp.initialized = true;
-        bg.bg[id].type = BG_TYPE_BMP;
+
+        if (id == -2 || id == -1)
+        {
+            if (width > BG_TILESHEET_WIDTH)
+                width = BG_TILESHEET_WIDTH;
+            if (height > BG_TILESHEET_HEIGHT)
+                height = BG_TILESHEET_HEIGHT;
+        }
+        else
+        {
+            if (width > BG_DATA_WIDTH)
+                width = BG_DATA_WIDTH;
+            if (height > BG_DATA_HEIGHT)
+                height = BG_DATA_HEIGHT;
+            bg.bg[id].height = height;
+            bg.bg[id].width = width;
+            bg.bg[id].type = type;
+        }
         
         for (unsigned j = 0; j < height; j ++)
         {
             for (unsigned i = 0; i < width ; i ++)
             {
-                bg.bg[id].bmp.bmp[j][i] = c32[j * stride + i];
+                if (id == -2)
+                    bg.sub_tilesheet[j][i] = c32[j * stride + i];
+                else if (id == -1)
+                    bg.main_tilesheet[j][i] = c32[j * stride + i];
+                else
+                    bg.bg[id].data[j][i] = c32[j * stride + i];
             }
         }
-        g_debug ("loaded pixbuf %s as bg bmp %d", path, id);
+        if (id == -2)
+            g_debug ("loaded pixbuf %s as bg sub tilesheet", path);
+        else if (id == -1)
+            g_debug ("loaded pixbuf %s as bg main tilesheet", path);
+        else
+            g_debug ("loaded pixbuf %s as bg %d", path, id);
         g_free (path);
         g_object_unref (pb);
     }
 }
 
+
+void bg_set_data_from_image_file (int id, bg_type_t type, const char *filename)
+{
+    set_from_image_file (id, type, filename);
+}
+
+void bg_set_tilesheet_from_image_file (int id, const char *filename)
+{
+    if (id == 0)
+        set_from_image_file (-1, 0, filename);
+    else if (id == 1)
+        set_from_image_file (-2, 0, filename);
+}
 
 #if 0
 void bg_set_bmp_from_resource (int id, const gchar *resource)
@@ -339,6 +400,8 @@ void bg_set_bmp_from_resource (int id, const gchar *resource)
 cairo_surface_t *
 bg_render_to_cairo_surface (int id)
 {
+    g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
+    
     switch (bg.bg[id].type)
     {
     case BG_TYPE_MAP:
@@ -362,12 +425,11 @@ bg_render_map_to_cairo_surface (int id)
     uint32_t c;
     int width, height;
 
-    if (bg.bg[id].map.map_initialized == false
-        || bg.bg[id].map.tilesheet_initialized == false)
-        return NULL;
+    width = bg.bg[id].width;
+    height = bg.bg[id].height;
+
+    g_return_val_if_fail (width > 0 && height > 0, NULL);
     
-    width = bg.bg[id].map.map_width;
-    height = bg.bg[id].map.map_height;
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
                                         width * BG_TILE_WIDTH,
                                         height * BG_TILE_HEIGHT);
@@ -380,18 +442,24 @@ bg_render_map_to_cairo_surface (int id)
         for (unsigned map_i = 0; map_i < width; map_i ++)
         {
             /* Fill in the tile brush */
-            map_index = bg.bg[id].map.map[map_j][map_i];
+            map_index = bg.bg[id].data[map_j][map_i];
             delta_tile_j = (map_index / BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_HEIGHT;
             delta_tile_i = (map_index % BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_WIDTH;
             for (tile_j = 0; tile_j < BG_TILE_HEIGHT; tile_j ++)
             {
                 for (tile_i = 0; tile_i < BG_TILE_WIDTH; tile_i ++)
                 {
-		  uint32_t c32;
-                    c32 = bg.bg[id].map.tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                    uint32_t c32;
+                    if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
+                        c32 = bg.main_tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                    else if (id >= BG_SUB_0 && id <= BG_SUB_3)
+                        c32 = bg.sub_tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                    else
+                        g_return_val_if_reached (NULL);
 
                     c = adjust_colorval (c32);
-                    data[(map_j * BG_TILE_HEIGHT + tile_j) * stride + (map_i * BG_TILE_WIDTH + tile_i)] = c;
+                    data[(map_j * BG_TILE_HEIGHT + tile_j) * stride
+                         + (map_i * BG_TILE_WIDTH + tile_i)] = c;
                 }
             }
         }
@@ -407,8 +475,11 @@ bg_render_bmp_to_cairo_surface (int id)
     uint32_t *data;
     uint32_t c32;
     cairo_surface_t *surf;
-    width = bg.bg[id].bmp.width;
-    height = bg.bg[id].bmp.height;
+
+    width = bg.bg[id].width;
+    height = bg.bg[id].height;
+
+    g_return_val_if_fail (width > 0 && height > 0, NULL);
 
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32, width, height);
     data = xcairo_image_surface_get_argb32_data (surf);
@@ -418,7 +489,7 @@ bg_render_bmp_to_cairo_surface (int id)
     {
         for (unsigned i = 0; i < width; i++)
         {
-            c32 = bg.bg[id].bmp.bmp[j][i];
+            c32 = bg.bg[id].data[j][i];
             data[j * stride + i] = adjust_colorval (c32);
         }
     }

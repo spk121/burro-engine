@@ -29,26 +29,22 @@
 #define BG_MAIN_BACKGROUNDS_COUNT 4
 //! The number of background layers for the sub screen
 #define BG_SUB_BACKGROUNDS_COUNT 4
-//! The maximum height of the map background, in tiles
-#define BG_MAP_HEIGHT_MAX 256
-//! The maximum width, in tiles, of the map background
-#define BG_MAP_WIDTH_MAX 256
-//! The maximum height, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT 1024
-//! The maximum width, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH 1024
+//! The maximum height of the map background in tiles, or bmp background in pixels
+#define BG_DATA_HEIGHT 256
+//! The maximum width of the map background in tiles, or bmp background in pixels
+#define BG_DATA_WIDTH 256
+//! The maximum height, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT_IN_TILES 64
+//! The maximum width, in tiles, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH_IN_TILES 64
 //! The height of a map background's tile
 #define BG_TILE_HEIGHT 16
 //! The width of a map background's tile
 #define BG_TILE_WIDTH 16
-//! The maximum height, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT_IN_TILES (BG_TILESHEET_HEIGHT/BG_TILE_HEIGHT)
-//! The maximum width, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH_IN_TILES (BG_TILESHEET_WIDTH/BG_TILE_WIDTH)
-//! The maximum height of a BMP background, in pixels
-#define BG_BMP_HEIGHT_MAX 512
-//! The maximum width of a BMP background, in pixels
-#define BG_BMP_WIDTH_MAX 512
+//! The maximum height, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_HEIGHT (BG_TILESHEET_HEIGHT_IN_TILES * BG_TILE_HEIGHT)
+//! The maximum width, in pixels, of a map background's tilesheet
+#define BG_TILESHEET_WIDTH (BG_TILESHEET_WIDTH_IN_TILES * BG_TILE_WIDTH)
 
 //! Enumeration of the 8 background layer IDs
 enum bg_index_tag {
@@ -66,18 +62,37 @@ typedef enum bg_index_tag bg_index_t;
 
 //! Allowed background types, used in bg_init
 enum bg_type_tag {
-    BG_TYPE_MAP, //!< 32bpp Tiled background with 16 bit tile indexes and no allowed rotation or scaling
-    BG_TYPE_BMP, //!< 32bpp bitmap background
+    BG_TYPE_MAP, 
+    BG_TYPE_BMP,
 };
 
 typedef enum bg_type_tag bg_type_t;
 
-void bg_set_backdrop_color (uint32_t c32);
-void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
+enum bg_size_tag {
+    BG_SIZE_16x16,              /* 1k VRAM */
+    BG_SIZE_32x16,              /* 2k VRAM */
+    BG_SIZE_16x32,              /* 2k VRAM */
+    BG_SIZE_32x32,              /* 4k VRAM */
+    BG_SIZE_128x128,            /* 64k VRAM */
+    BG_SIZE_256x256,            /* 256k VRAM */
+    BG_SIZE_512x256,            /* 512k VRAM */
+    BG_SIZE_256x512,            /* 512k VRAM */
+    BG_SIZE_512x512,            /* 1024k VRAM */
+};
 
-uint32_t *bg_get_map_ptr (int id);
-guint32 *bg_get_tilesheet_ptr (int id);
-guint32 *bg_get_bmp_ptr (int id);
+typedef enum bg_size_tag bg_size_t;
+    
+/*! \brief Returns the pointer to the map or bmp data
+ */
+uint32_t *bg_get_data_ptr (bg_index_t id);
+
+/*! \brief Returns the pointer to tilesheeet data
+ */
+uint32_t *bg_get_main_tilesheet_ptr (int id);
+
+/*! \brief Returns the pointer to tilesheeet data
+ */
+uint32_t *bg_get_sub_tilesheet_ptr (int id);
 
 /*! \brief Gets the priority of the background layer.
     \param id
@@ -86,8 +101,6 @@ guint32 *bg_get_bmp_ptr (int id);
         priority 0, 1, 2, or 3
 */
 int bg_get_priority (int id);
-
-bool bg_is_shown (int id);
 
 /*! \brief Hides the current background
     \param id
@@ -103,14 +116,11 @@ void bg_hide (int id);
     \param id
         background layer to init. Must be BG_MAIN_0 , 1, 2, 3 or BG_SUB_0, 1, 2, 3
     \param type
-        the type of background to init: BG_TYPE_MAP, BG_TYPE_BMP8 or BG_TYPE_BMP16
-    \param width
-        width of the background in pixels. For BG_TYPE_MAP, must be divisible by 8.
-    \param height
-        height of the background in pixels. For BG_TYPE_MAP, must be divisible by 8.
+        the type of background to init: BG_TYPE_MAP, BG_TYPE_BMP
+    \param size
+        size of the BG, BG_SIZE_16x16, etc...
 */
-void bg_init (void);
-void bg_reset (int id, bg_type_t type);
+void bg_init (bg_index_t id, bg_type_t, bg_size_t);
 
 /*! \brief Performs a cumulative rotation of the background by the specified angle. 
     \param id
@@ -211,6 +221,20 @@ void bg_set_expansion (int id, double expansion);
         background layer ID. e.g. BG_MAIN_0
 */ 
 void bg_show (int id);
+
+void bg_set_backdrop_color (uint32_t c32);
+void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
+
+
+
+bool bg_is_shown (int id);
+
+void bg_reset (int id, bg_type_t type);
+
+
+
+
+
 
 /*! \brief Sets the map part of a BG_TYPE_MAP map-and-tile background from a resource.
         Each pixel in the map image will be interpreted as the index to an 8x8 pixel
