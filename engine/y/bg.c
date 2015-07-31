@@ -722,7 +722,7 @@ bg_init_guile_procedures (void)
 {
 #include "bg.x"
     scm_c_export ("bg-get-priority",
-                  "bg-hide",
+                  "bg-hide", 
                   "bg-reset",
                   "bg-rotate",
                   "bg-scroll",
