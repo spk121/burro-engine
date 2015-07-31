@@ -62,6 +62,7 @@ typedef enum bg_index_tag bg_index_t;
 
 //! Allowed background types, used in bg_init
 enum bg_type_tag {
+    BG_TYPE_NONE,
     BG_TYPE_MAP, 
     BG_TYPE_BMP,
 };
@@ -88,11 +89,11 @@ uint32_t *bg_get_data_ptr (bg_index_t id);
 
 /*! \brief Returns the pointer to tilesheeet data
  */
-uint32_t *bg_get_main_tilesheet_ptr (int id);
+uint32_t *bg_get_main_tilesheet_ptr (void);
 
 /*! \brief Returns the pointer to tilesheeet data
  */
-uint32_t *bg_get_sub_tilesheet_ptr (int id);
+uint32_t *bg_get_sub_tilesheet_ptr (void);
 
 /*! \brief Gets the priority of the background layer.
     \param id
@@ -119,8 +120,12 @@ void bg_hide (int id);
         the type of background to init: BG_TYPE_MAP, BG_TYPE_BMP
     \param size
         size of the BG, BG_SIZE_16x16, etc...
+    \param bank
+        storage location for this background: VRAM_A, VRAM_B, etc
 */
-void bg_init (bg_index_t id, bg_type_t, bg_size_t);
+void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank);
+
+void bg_init_all_to_default ();
 
 /*! \brief Performs a cumulative rotation of the background by the specified angle. 
     \param id

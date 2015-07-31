@@ -95,6 +95,7 @@ const uint32_t *vram_I = vram_EFGHI + VRAM_I_U32_OFFSET;
 
 ////////////////////////////////////////////////////////////////
 size_t vram_get_u32_size (vram_bank_t bank);
+uint32_t *vram_get_u32_ptr (vram_bank_t bank);
 void vram_zero_bank (vram_bank_t bank);
 
 

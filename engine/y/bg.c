@@ -8,7 +8,7 @@
 
 struct bg_matrix
 {
-    int width, height;
+    bg_size_t size;
     uint32_t *storage;
     uint32_t **data;
 };
@@ -49,8 +49,20 @@ size_t bg_matrix_size[9] = {
     [BG_SIZE_512x512] = 512*512,
 };
 
+static size_t
+bg_matrix_get_height (bg_size_t size)
+{
+    return bg_matrix_height[size];
+}
+
+static size_t
+bg_matrix_get_u32_size (bg_size_t size)
+{
+    return bg_matrix_size[size];
+} 
+
 static void
-_bg_allocate_matrix (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
+bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
 {
     g_assert (x != NULL);
     
@@ -59,7 +71,7 @@ _bg_allocate_matrix (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
     g_assert_cmpuint (bg_matrix_get_u32_size(size), >=,  vram_get_u32_size(bank));
     
     vram_zero_bank(bank);
-    x->storage = vram_get_ptr(bank);
+    x->storage = vram_get_u32_ptr(bank);
     x->data = g_new0(uint32_t *, bg_matrix_get_height(size));
     for (size_t i = 0; i < bg_matrix_height[size]; i ++)
         x->data[i] = x->storage + i * bg_matrix_width[size];
@@ -94,9 +106,8 @@ typedef struct bg_entry
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
      *  FIXME: replace this with VRAM to save space */
-    int width;
-    int height;
-    uint32_t data[BG_DATA_WIDTH][BG_DATA_HEIGHT];
+    struct bg_matrix matrix;
+
 } bg_entry_t;
 
 typedef struct bg_tag
@@ -108,10 +119,11 @@ typedef struct bg_tag
   
     double brightness;
 
-    uint32_t main_tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
-    uint32_t sub_tilesheet[BG_TILESHEET_HEIGHT][BG_TILESHEET_WIDTH];
+    struct bg_matrix main_tilesheet;
+    struct bg_matrix sub_tilesheet;
     
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
+    cairo_surface_t *surf[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
 
 bg_t bg;
@@ -158,20 +170,22 @@ bg_is_shown (int id)
     return bg.bg[id].enable;
 }
 
-uint32_t *bg_get_data_ptr (int id)
+uint32_t *bg_get_data_ptr (bg_index_t id)
 {
-    return &(bg.bg[id].data[0][0]);
+    return bg.bg[id].matrix.storage;
 }
 
-uint32_t *bg_get_tilesheet_ptr (int id)
+uint32_t *bg_get_main_tilesheet_ptr ()
 {
-    if (id >= BG_SUB_0 && id <= BG_SUB_3)
-        return &(bg.sub_tilesheet[0][0]);
-    return &(bg.main_tilesheet[0][0]);
-    
+    return bg.main_tilesheet.storage;    
 }
 
-int bg_get_priority (int id)
+uint32_t *bg_get_sub_tilesheet_ptr ()
+{
+    return bg.sub_tilesheet.storage;
+}
+
+int bg_get_priority (bg_index_t id)
 {
     return bg.bg[id].priority;
 }
@@ -181,15 +195,31 @@ void bg_hide (int id)
     bg.bg[id].enable = FALSE;
 }
 
-void bg_init()
+void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank)
+{
+    bg.bg[i].enable = false;
+    bg.bg[i].type = type;
+    bg.bg[i].priority = i % 4;
+    bg.bg[i].scroll_x = 0.0;
+    bg.bg[i].scroll_y = 0.0;
+    bg.bg[i].rotation_center_x = 0.0;
+    bg.bg[i].rotation_center_y = 0.0;
+    bg.bg[i].expansion = 1.0;
+    bg.bg[i].rotation = 0.0;
+    bg_matrix_allocate (&(bg.bg[i].matrix), siz, bank);
+}
+
+void bg_init_all_to_default ()
 {
     bg.bg_color = 0xff000000;
     bg.colorswap = false;
     bg.brightness = 1.0;
+    bg_matrix_allocate (&(bg.main_tilesheet), BG_SIZE_512x512, VRAM_0);
+    bg_matrix_allocate (&(bg.sub_tilesheet), BG_SIZE_512x512, VRAM_1);
     for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT; i ++)
     {
         bg.bg[i].enable = false;
-        bg.bg[i].type = BG_TYPE_BMP;
+        bg.bg[i].type = BG_TYPE_NONE;
         bg.bg[i].priority = i % 4;
         bg.bg[i].scroll_x = 0.0;
         bg.bg[i].scroll_y = 0.0;
@@ -197,14 +227,12 @@ void bg_init()
         bg.bg[i].rotation_center_y = 0.0;
         bg.bg[i].expansion = 1.0;
         bg.bg[i].rotation = 0.0;
-        bg.bg[i].height = 0;
-        bg.bg[i].width = 0;
     }
 }
 
-void bg_reset (int id, bg_type_t type)
+void bg_reset (int id)
 {
-    bg.bg[id].type = type;
+    bg.bg[id].type = BG_TYPE_NONE;
     bg.bg[id].scroll_x = 0.0;
     bg.bg[id].scroll_y = 0.0;
     bg.bg[id].rotation_center_x = 0.0;
@@ -212,8 +240,6 @@ void bg_reset (int id, bg_type_t type)
     bg.bg[id].expansion = 1.0;
     bg.bg[id].rotation = 0.0;
     bg.bg[id].priority = id % 4;
-    bg.bg[id].height = 0;
-    bg.bg[id].width = 0;
 }
 
 void bg_rotate (int id, double angle)
@@ -239,9 +265,14 @@ void bg_set (int id, double rotation, double expansion,
     bg.bg[id].rotation_center_y = rotation_center_y;
 }
 
-void bg_set_backdrop_color (uint32_t c32)
+void bg_set_main_backdrop_color (uint32_t c32)
 {
-    bg.bg_color = c32;
+    bg.bg_main_backdrop_color = c32;
+}
+
+void bg_set_sub_backdrop_color (uint32_t c32)
+{
+    bg.bg_sub_backdrop_color = c32;
 }
 
 void bg_set_expansion (int id, double expansion)
@@ -274,6 +305,8 @@ void bg_set_rotation_expansion (int id, double rotation, double expansion)
 
 void bg_show (int id)
 {
+    g_assert (bg.bg[id].type != BG_TYPE_NONE);
+    
     bg.bg[id].enable = TRUE;
 }
 
@@ -374,7 +407,6 @@ static void set_from_image_file (int id, bg_type_t type, const char *filename)
     }
 }
 
-
 void bg_set_data_from_image_file (int id, bg_type_t type, const char *filename)
 {
     set_from_image_file (id, type, filename);
@@ -396,6 +428,23 @@ void bg_set_bmp_from_resource (int id, const gchar *resource)
     tga_free (t);
 }
 #endif
+
+cairo_surface_t *
+bg_get_cairo_surface (int id)
+{
+    g_assert (bg.type != BG_TYPE_NONE);
+    g_assert (bg.surf[id] != NULL);
+
+    return bg.surf[id];
+}
+
+static void
+bg_update (int id)
+{
+    if (bg.surf[id] != NULL)
+        xcairo_surface_destroy (bg.surf[id]);
+    bg.surf[id] = bg_render_to_cairo_surface (id);
+}
 
 cairo_surface_t *
 bg_render_to_cairo_surface (int id)
@@ -421,15 +470,13 @@ bg_render_map_to_cairo_surface (int id)
     uint32_t *data;
     int stride;
     int tile_j, tile_i, delta_tile_i, delta_tile_j;
-    int map_index;
+    int map_index, vflip, hflip;
     uint32_t c;
     int width, height;
 
-    width = bg.bg[id].width;
-    height = bg.bg[id].height;
+    width = bg_matrix_get_width(bg.bg[id].matrix.size);
+    height = bg_matrix_get_height(bg.bg[id].matrix.size);
 
-    g_return_val_if_fail (width > 0 && height > 0, NULL);
-    
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
                                         width * BG_TILE_WIDTH,
                                         height * BG_TILE_HEIGHT);
@@ -443,23 +490,39 @@ bg_render_map_to_cairo_surface (int id)
         {
             /* Fill in the tile brush */
             map_index = bg.bg[id].data[map_j][map_i];
+            
+            // FIXME -- IS THIS RIGHT??
+            // vflip = map_index & (1 << 31);
+            // hflip = map_index & (1 << 30);
+            // map_index = map_index & 0x0fffffff;
+            
             delta_tile_j = (map_index / BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_HEIGHT;
             delta_tile_i = (map_index % BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_WIDTH;
             for (tile_j = 0; tile_j < BG_TILE_HEIGHT; tile_j ++)
             {
-                for (tile_i = 0; tile_i < BG_TILE_WIDTH; tile_i ++)
+                if (false && (bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
                 {
-                    uint32_t c32;
-                    if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
-                        c32 = bg.main_tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
-                    else if (id >= BG_SUB_0 && id <= BG_SUB_3)
-                        c32 = bg.sub_tilesheet[delta_tile_j + tile_j][delta_tile_i + tile_i];
-                    else
-                        g_return_val_if_reached (NULL);
-
-                    c = adjust_colorval (c32);
-                    data[(map_j * BG_TILE_HEIGHT + tile_j) * stride
-                         + (map_i * BG_TILE_WIDTH + tile_i)] = c;
+                    // FAST PATH, use memcpy to copy an entire row
+                    // from the tilesheet
+                }
+                else
+                {
+                    // SLOW PATH, copy a row pixel-by-pixel, adjusting
+                    // brighness, colorswap, (FIXME flipping too)
+                    for (tile_i = 0; tile_i < BG_TILE_WIDTH; tile_i ++)
+                    {
+                        uint32_t c32;
+                        if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
+                            c32 = bg.main_tilesheet.data[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                        else if (id >= BG_SUB_0 && id <= BG_SUB_3)
+                            c32 = bg.sub_tilesheet.data[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                        else
+                            g_return_val_if_reached (NULL);
+                        
+                        c = adjust_colorval (c32);
+                        data[(map_j * BG_TILE_HEIGHT + tile_j) * stride
+                             + (map_i * BG_TILE_WIDTH + tile_i)] = c;
+                    }
                 }
             }
         }
@@ -476,8 +539,8 @@ bg_render_bmp_to_cairo_surface (int id)
     uint32_t c32;
     cairo_surface_t *surf;
 
-    width = bg.bg[id].width;
-    height = bg.bg[id].height;
+    width = bg_matrix_get_width(bg.bg[id].matrix.size);
+    height = bg_matrix_get_height(bg.bg[id].matrix.size);
 
     g_return_val_if_fail (width > 0 && height > 0, NULL);
 
@@ -485,12 +548,23 @@ bg_render_bmp_to_cairo_surface (int id)
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
-    for (unsigned j = 0; j < height; j++)
+    if (bg.brightness == 1.0 && bg.colorswap == false /* && hflip == false && vflip == false */)
     {
-        for (unsigned i = 0; i < width; i++)
+        // FAST PATH, use memcpy.
+        g_assert (stride == width);
+        memcpy (data,
+                bg.bg[id].matrix.storage,
+                bg_matrix_get_u32_size (bg.bg[id].matrix.size) * sizeof (uint32_t));
+    }
+    else
+    {
+        for (unsigned j = 0; j < height; j++)
         {
-            c32 = bg.bg[id].data[j][i];
-            data[j * stride + i] = adjust_colorval (c32);
+            for (unsigned i = 0; i < width; i++)
+            {
+                c32 = bg.bg[id].matrix.data[j][i];
+                data[j * stride + i] = adjust_colorval (c32);
+            }
         }
     }
     xcairo_surface_mark_dirty (surf);
@@ -521,12 +595,11 @@ Set background later ID to not be drawn")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_bg_reset, "bg-reset", 2, 0, 0,
-            (SCM id, SCM type), "\
+SCM_DEFINE (G_bg_reset, "bg-reset", 1, 0, 0,
+            (SCM id), "\
 Reset a background to hidden with nominal status")
 {
-    bg_reset (scm_to_int (id),
-             (bg_type_t) scm_to_int (type));
+    bg_reset (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
 
@@ -620,6 +693,29 @@ Return #t if indicated background layer is visible.")
 {
     return scm_from_bool (bg_is_shown (scm_to_int (id)));
 }
+
+SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
+SCM_VARIABLE_INIT (G_BG_TYPE_MAP, "BG_TYPE_MAP", scm_from_int (BG_TYPE_MAP));
+
+SCM_VARIABLE_INIT (G_BG_SIZE_16x16, "BG_SIZE_16x16", scm_from_int (BG_SIZE_16x16));
+SCM_VARIABLE_INIT (G_BG_SIZE_16x32, "BG_SIZE_16x32", scm_from_int (BG_SIZE_16x32));
+SCM_VARIABLE_INIT (G_BG_SIZE_32x16, "BG_SIZE_32x16", scm_from_int (BG_SIZE_32x16));
+SCM_VARIABLE_INIT (G_BG_SIZE_32x32, "BG_SIZE_32x32", scm_from_int (BG_SIZE_32x32));
+SCM_VARIABLE_INIT (G_BG_SIZE_128x128, "BG_SIZE_128x128", scm_from_int (BG_SIZE_128x128));
+SCM_VARIABLE_INIT (G_BG_SIZE_256x256, "BG_SIZE_256x256", scm_from_int (BG_SIZE_256x256));
+SCM_VARIABLE_INIT (G_BG_SIZE_256x512, "BG_SIZE_256x512", scm_from_int (BG_SIZE_256x512));
+SCM_VARIABLE_INIT (G_BG_SIZE_512x256, "BG_SIZE_512x256", scm_from_int (BG_SIZE_512x256));
+SCM_VARIABLE_INIT (G_BG_SIZE_512x512, "BG_SIZE_512x512", scm_from_int (BG_SIZE_512x512));
+
+SCM_VARIABLE_INIT (G_BG_MAIN_0, "BG_MAIN_0", scm_from_int (BG_MAIN_0));
+SCM_VARIABLE_INIT (G_BG_MAIN_1, "BG_MAIN_1", scm_from_int (BG_MAIN_1));
+SCM_VARIABLE_INIT (G_BG_MAIN_2, "BG_MAIN_2", scm_from_int (BG_MAIN_2));
+SCM_VARIABLE_INIT (G_BG_MAIN_3, "BG_MAIN_3", scm_from_int (BG_MAIN_3));
+
+SCM_VARIABLE_INIT (G_BG_SUB_0, "BG_SUB_0", scm_from_int (BG_SUB_0));
+SCM_VARIABLE_INIT (G_BG_SUB_1, "BG_SUB_1", scm_from_int (BG_SUB_1));
+SCM_VARIABLE_INIT (G_BG_SUB_2, "BG_SUB_2", scm_from_int (BG_SUB_2));
+SCM_VARIABLE_INIT (G_BG_SUB_3, "BG_SUB_3", scm_from_int (BG_SUB_3));
 
 void
 bg_init_guile_procedures (void)
