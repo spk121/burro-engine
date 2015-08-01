@@ -2,7 +2,10 @@
 #define BURRO_XGUILE_H
 
 #include <stdbool.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
 #include <libguile.h>
+#pragma GCC diagnostic pop
 
 SCM                 xscm_c_eval_string                  (const char *string);
 SCM                 xscm_c_primitive_load               (const char *filename);

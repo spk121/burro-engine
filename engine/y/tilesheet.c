@@ -1,68 +1,49 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
-#include "bg.h"
-#include "eng.h"
-#include "tga.h"
+#include "tilesheet.h"
 #include "vram.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-struct bg_tilesheet
-{
-    bg_tilesheet_size_t size;
-    vram_bank_t bank;
-    uint32_t *storage;
-    uint32_t **data;
+size_t tilesheet_width[6] = {
+    [TILESHEET_SIZE_32x32] = 32,
+    [TILESHEET_SIZE_128x128] = 128,
+    [TILESHEET_SIZE_256x256] = 256,
+    [TILESHEET_SIZE_512x256] = 512,
+    [TILESHEET_SIZE_256x512] = 256,
+    [TILESHEET_SIZE_512x512] = 512,
 };
 
-size_t bg_matrix_width[9] = {
-    [BG_SIZE_16x16] = 16,
-    [BG_SIZE_32x16] = 32,
-    [BG_SIZE_16x32] = 16,
-    [BG_SIZE_32x32] = 32,
-    [BG_SIZE_128x128] = 128,
-    [BG_SIZE_256x256] = 256,
-    [BG_SIZE_512x256] = 512,
-    [BG_SIZE_256x512] = 256,
-    [BG_SIZE_512x512] = 512,
+size_t tilesheet_height[6] = {
+    [TILESHEET_SIZE_32x32] = 32,
+    [TILESHEET_SIZE_128x128] = 128,
+    [TILESHEET_SIZE_256x256] = 256,
+    [TILESHEET_SIZE_512x256] = 256,
+    [TILESHEET_SIZE_256x512] = 512,
+    [TILESHEET_SIZE_512x512] = 512,
 };
 
-size_t bg_matrix_height[9] = {
-    [BG_SIZE_16x16] = 16,
-    [BG_SIZE_32x16] = 16,
-    [BG_SIZE_16x32] = 32,
-    [BG_SIZE_32x32] = 32,
-    [BG_SIZE_128x128] = 128,
-    [BG_SIZE_256x256] = 256,
-    [BG_SIZE_512x256] = 256,
-    [BG_SIZE_256x512] = 512,
-    [BG_SIZE_512x512] = 512,
-};
-
-size_t bg_matrix_size[9] = {
-    [BG_SIZE_16x16] = 16*16,
-    [BG_SIZE_32x16] = 32*16,
-    [BG_SIZE_16x32] = 16*32,
-    [BG_SIZE_32x32] = 32*32,
-    [BG_SIZE_128x128] = 128*128,
-    [BG_SIZE_256x256] = 256*256,
-    [BG_SIZE_512x256] = 512*256,
-    [BG_SIZE_256x512] = 256*512,
-    [BG_SIZE_512x512] = 512*512,
+size_t tilesheet_size[6] = {
+    [TILESHEET_SIZE_32x32] = 32*32,
+    [TILESHEET_SIZE_128x128] = 128*128,
+    [TILESHEET_SIZE_256x256] = 256*256,
+    [TILESHEET_SIZE_512x256] = 512*256,
+    [TILESHEET_SIZE_256x512] = 256*512,
+    [TILESHEET_SIZE_512x512] = 512*512,
 };
 
 static size_t
-bg_matrix_get_height (bg_size_t size)
+tilesheet_get_height (bg_size_t size)
 {
-    return bg_matrix_height[size];
+    return tilesheet_height[size];
 }
 
 static size_t
-bg_matrix_get_u32_size (bg_size_t size)
+tilesheet_get_u32_size (bg_size_t size)
 {
-    return bg_matrix_size[size];
+    return tilesheet_size[size];
 } 
 
 static void

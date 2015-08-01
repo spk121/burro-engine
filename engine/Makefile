@@ -49,7 +49,9 @@ PKG_CFLAGS = -pthread -D_REENTRANT \
 	-I/usr/include/pango-1.0 \
 	-I/usr/include/pixman-1 \
 	-I/usr/lib/dbus-1.0/include \
-	-I/usr/lib/glib-2.0/include
+	-I/usr/lib/glib-2.0/include \
+	-I/usr/lib64/dbus-1.0/include \
+	-I/usr/lib64/glib-2.0/include \
 
 CPPFLAGS = \
  -Wall \
@@ -70,7 +72,9 @@ CWARN = \
  -Winit-self \
  -Wignored-qualifiers \
  -Wwrite-strings \
- -Wconversion
+ -Wconversion \
+ -Wpointer-arith \
+ -Werror
 
     # -Wcast-align \
     # -Wmissing-declarations \
@@ -210,4 +214,23 @@ check-syntax:
 
 TAGS: $(SRCS_C) $(SRCS_CPP)
 	etags $(SRCS_C) $(SRCS_CPP)
+
+################################################################
+# GENERATED SOURCES
+
+# sprites.png sprites.jsn: $(SPRITES_ASE)
+# 	 aseprite --batch --sheet sprites.png --data sprites.jsn $(SPRITES_ASE)
+
+################################################################
+# OBJECTS
+
+# burro.iso: $(SRCS_JS) $(MAPS_TMX) $(TILESHEETS_PNG) sprites.png sprites.jsn
+# 	genisoimage -o $@ $^
+
+
+################################################################
+
+# VERSION = 0.0
+# distdir = $(PACKAGE)-$(VERSION)
+# tar --format=posix --create --gzip --verbose --sort=name --file=$(distdir).tar.gz --transform 's,^,$(distdir),' $(DISTFILES)
 

@@ -13,6 +13,10 @@
 #include "loop.h"
 #include "rand.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfloat-conversion"
+#pragma GCC diagnostic ignored "-Wconversion"
+
 audio_model_t am;
 static int am_initialized = 0;
 static void
@@ -255,7 +259,7 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
             else
                 fp = fopen("wave.txt", "wt");
             for(size_t i2 = 0; i2 < *length; i2++)
-                fprintf(fp, "%d %d\n", i2, (int)(*buffer)[i2]);
+                fprintf(fp, "%lu %d\n", i2, (int)(*buffer)[i2]);
             fclose(fp);
         }
     }
@@ -336,3 +340,5 @@ am_init_guile_procedures (void)
   indent-tabs-mode:nil
   End:
 */
+
+#pragma GCC diagnostic pop

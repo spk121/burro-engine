@@ -1,5 +1,4 @@
 #include <glib.h>
-#include <libguile.h>
 #include "xguile.h"
 
 static SCM
@@ -60,12 +59,13 @@ _xscm_false_error_handler (void *data, SCM key, SCM exception)
     return SCM_BOOL_F;
 }
 
-
+#if 0
 static SCM
 _xscm_lookup_safe_body (void *data)
 {
     return scm_lookup (SCM_PACK (data));
 }
+#endif
 
 static SCM
 _xscm_c_resolve_module_safe_body (void *data)
