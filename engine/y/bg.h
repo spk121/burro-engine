@@ -34,9 +34,9 @@
 //! The maximum width of the map background in tiles, or bmp background in pixels
 #define BG_DATA_WIDTH 256
 //! The maximum height, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT_IN_TILES 64
+#define BG_TILESHEET_HEIGHT_IN_TILES 32
 //! The maximum width, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH_IN_TILES 64
+#define BG_TILESHEET_WIDTH_IN_TILES 32
 //! The height of a map background's tile
 #define BG_TILE_HEIGHT 16
 //! The width of a map background's tile
