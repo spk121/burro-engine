@@ -7,7 +7,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-size_t tilesheet_width[6] = {
+int tilesheet_width[6] = {
     [TILESHEET_SIZE_32x32] = 32,
     [TILESHEET_SIZE_128x128] = 128,
     [TILESHEET_SIZE_256x256] = 256,
@@ -16,7 +16,7 @@ size_t tilesheet_width[6] = {
     [TILESHEET_SIZE_512x512] = 512,
 };
 
-size_t tilesheet_height[6] = {
+int tilesheet_height[6] = {
     [TILESHEET_SIZE_32x32] = 32,
     [TILESHEET_SIZE_128x128] = 128,
     [TILESHEET_SIZE_256x256] = 256,
@@ -25,7 +25,7 @@ size_t tilesheet_height[6] = {
     [TILESHEET_SIZE_512x512] = 512,
 };
 
-size_t tilesheet_size[6] = {
+int tilesheet_size[6] = {
     [TILESHEET_SIZE_32x32] = 32*32,
     [TILESHEET_SIZE_128x128] = 128*128,
     [TILESHEET_SIZE_256x256] = 256*256,
@@ -36,32 +36,32 @@ size_t tilesheet_size[6] = {
 
 tilesheet_t ts[2];
 
-size_t
+int
 tilesheet_get_height (tilesheet_index_t index)
 {
     return tilesheet_height[ts[index].size];
 }
 
-size_t
+int
 tilesheet_get_width (tilesheet_index_t index)
 {
     return tilesheet_width[ts[index].size];
 }
 
-size_t
+int
 tilesheet_get_height_in_tiles (tilesheet_index_t index)
 {
     return tilesheet_height[ts[index].size] / TILE_HEIGHT;
 }
 
-size_t
+int
 tilesheet_get_width_in_tiles (tilesheet_index_t index)
 {
     return tilesheet_width[ts[index].size] / TILE_WIDTH;
 }
 
 
-size_t
+int
 tilesheet_get_u32_size (tilesheet_index_t index)
 {
     return tilesheet_size[ts[index].size];
@@ -83,7 +83,7 @@ tilesheet_init (tilesheet_index_t index, tilesheet_size_t size,
     ts[index].storage = vram_get_u32_ptr(bank);
     g_free (ts[index].data);
     ts[index].data = g_new0(uint32_t *, tilesheet_height[size]);
-    for (size_t i = 0; i < tilesheet_height[size]; i ++)
+    for (int i = 0; i < tilesheet_height[size]; i ++)
         ts[index].data[i] = ts[index].storage + i * tilesheet_width[size];
 }
 
@@ -169,6 +169,8 @@ tilesheet_init_guile_procedures (void)
 #include "tilesheet.x"
     scm_c_export ("tilesheet-init",
                   "tilesheet-set-data-from-file",
+                  "TILESHEET_MAIN",
+                  "TILESHEET_SUB",
                   "TILESHEET_SIZE_32x32", 
                   "TILESHEET_SIZE_128x128", 
                   "TILESHEET_SIZE_256x256", 

@@ -9,8 +9,8 @@ GdkPixbuf *      xgdk_pixbuf_new_from_file       (const char *filename);
 GdkPixbuf *      xgdk_pixbuf_new_from_resource   (const char *resource);
 bool             xgdk_pixbuf_is_argb32           (const GdkPixbuf *pb);
 void             xgdk_pixbuf_get_width_height_stride (const GdkPixbuf *pb,
-						      int *widght,
-						      int *height,
-						      int *stride);
+                                                      int *widght,
+                                                      int *height,
+                                                      int *stride);
 uint32_t *       xgdk_pixbuf_get_argb32_pixels   (GdkPixbuf *pb);
 #endif

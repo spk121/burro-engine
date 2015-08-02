@@ -20,6 +20,7 @@ void
 _burroscript_init (void *unused)
 {
     am_init_guile_procedures ();
+    backdrop_init_guile_procedures ();
     bg_init_guile_procedures();
     console_init_guile_procedures();
     eng_init_guile_procedures();

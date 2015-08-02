@@ -28,10 +28,12 @@ CXX      = gcc --std=c++11 -fdiagnostics-color=auto -fmessage-length=78
 ################################################################
 # FLAGS
 
-# `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 libpulse --cflags` \
+# `pkg-config cairo gtk+-3.0 gdk-3.0 guile-2.0 libpulse --cflags`
 
+PKG_CFLAGS_32 := -I/usr/lib/dbus-1.0/include -I/usr/lib/glib-2.0/include
+PKG_CFLAGS_64 := -I/usr/lib64/dbus-1.0/include -I/usr/lib64/glib-2.0/include
 
-PKG_CFLAGS = -pthread -D_REENTRANT \
+PKG_CFLAGS := -pthread -D_REENTRANT \
 	-I/usr/include/at-spi-2.0 \
 	-I/usr/include/at-spi2-atk/2.0 \
 	-I/usr/include/atk-1.0 \
@@ -48,10 +50,7 @@ PKG_CFLAGS = -pthread -D_REENTRANT \
 	-I/usr/include/libpng16 \
 	-I/usr/include/pango-1.0 \
 	-I/usr/include/pixman-1 \
-	-I/usr/lib/dbus-1.0/include \
-	-I/usr/lib/glib-2.0/include \
-	-I/usr/lib64/dbus-1.0/include \
-	-I/usr/lib64/glib-2.0/include \
+    $(PKG_CFLAGS_$(strip $(shell getconf LONG_BIT)))
 
 CPPFLAGS = \
  -Wall \
@@ -60,8 +59,6 @@ CPPFLAGS = \
  -Wunknown-pragmas \
   $(PKG_CFLAGS) \
  -I .
-
-DEFS     = -DSDL_ASSERT_LEVEL=2
 
 CDEBUG   = -g3 -O0
 
@@ -74,7 +71,7 @@ CWARN = \
  -Wwrite-strings \
  -Wconversion \
  -Wpointer-arith \
- -Werror
+ -Warray-bounds
 
     # -Wcast-align \
     # -Wmissing-declarations \
@@ -154,6 +151,7 @@ SRCS_C   = \
  y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
+ y/spritesheet.c \
  y/tilesheet.c \
  y/vram.c \
  main.c

@@ -26,6 +26,9 @@ where COLOR is a 24-bit RGB colorval")
     return SCM_UNSPECIFIED;
 }
 
+SCM_VARIABLE_INIT (G_BACKDROP_MAIN, "BACKDROP_MAIN", scm_from_int (BACKDROP_MAIN));
+SCM_VARIABLE_INIT (G_BACKDROP_SUB, "BACKDROP_SUB", scm_from_int (BACKDROP_SUB));
+
 void
 backdrop_init_guile_procedures (void)
 {

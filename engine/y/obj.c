@@ -4,60 +4,7 @@
 #include "eng.h"
 #include "guile.h"
 #include "obj.h"
-
-
-struct obj_spritesheet_matrix
-{
-    obj_spritesheet_size_t size;
-    vram_bank_t bank;
-    uint32_t *storage;
-    uint32_t **data;
-};
-
-size_t obj_spritesheet_width[6] = {
-    [OBJ_SPRITESHEET_SIZE_32x32] = 32,
-    [OBJ_SPRITESHEET_SIZE_128x128] = 128,
-    [OBJ_SPRITESHEET_SIZE_256x256] = 256,
-    [OBJ_SPRITESHEET_SIZE_256x512] = 256,
-    [OBJ_SPRITESHEET_SIZE_512x256] = 512,
-    [OBJ_SPRITESHEET_SIZE_512x512] = 512,
-};
-
-size_t obj_spritesheet_height[6] = {
-    [OBJ_SPRITESHEET_SIZE_32x32] = 32,
-    [OBJ_SPRITESHEET_SIZE_128x128] = 128,
-    [OBJ_SPRITESHEET_SIZE_256x256] = 256,
-    [OBJ_SPRITESHEET_SIZE_256x512] = 512,
-    [OBJ_SPRITESHEET_SIZE_512x256] = 256,
-    [OBJ_SPRITESHEET_SIZE_512x512] = 512,
-};
-
-size_t obj_spritesheet_size[6] = {
-    [OBJ_SPRITESHEET_SIZE_32x32] = 32*32,
-    [OBJ_SPRITESHEET_SIZE_128x128] = 128*128,
-    [OBJ_SPRITESHEET_SIZE_256x256] = 256*256,
-    [OBJ_SPRITESHEET_SIZE_256x512] = 256*512,
-    [OBJ_SPRITESHEET_SIZE_512x256] = 512*256,
-    [OBJ_SPRITESHEET_SIZE_512x512] = 512*512,
-};
-
-static size_t
-obj_spritesheet_get_height (obj_size_t size)
-{
-    return obj_spritesheet_height[size];
-}
-
-static size_t
-obj_spritesheet_get_width (obj_size_t size)
-{
-    return obj_spritesheet_width[size];
-}
-
-static size_t
-obj_spritesheet_get_u32_size (obj_size_t size)
-{
-    return obj_spritesheet_size[size];
-} 
+#include "spritesheet.h"
 
 struct obj_matrix
 {
@@ -129,21 +76,6 @@ obj_matrix_get_u32_size (obj_size_t size)
     return obj_matrix_size[size];
 } 
 
-static void
-obj_spritesheet_allocate (struct obj_matrix *x, obj_spritesheet_size_t size, vram_bank_t bank)
-{
-    g_assert_cmpuint (obj_spritesheet_get_u32_size(size), >=,  vram_get_u32_size(bank));
-
-    vram_zero_bank(bank);
-    
-    x->storage = vram_get_u32_ptr(bank);
-    
-    x->data = g_new0(uint32_t *, obj_spritesheet_get_height(size));
-    
-    for (size_t i = 0; i < obj_spritesheet_height[size]; i ++)
-        x->data[i] = x->storage + i * obj_spritesheet_width[size];
-}
-
 typedef struct obj_entry
 {
     /** Sprite is visible if true */
@@ -185,9 +117,6 @@ typedef struct obj_entry
 
 typedef struct obj_tag
 {
-    struct obj_spritesheet_matrix main_spritesheet;
-    struct obj_spritesheet_matrix sub_spritesheet;
-
     obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
 } obj_t;
 
@@ -217,67 +146,6 @@ adjust_colorval (uint32_t c32, bool colorswap, double brightness)
 
 ////////////////////////////////////////////////////////////////
 
-void obj_main_spritesheet_init (obj_spritesheet_size_t size, vram_bank_t bank)
-{
-
-    if (size != obj.main_spritesheet.size || bank != obj.main_spritesheet.bank)
-    {
-        size_t osize, oheight, owidth;
-        
-        osize = obj_spritesheet_get_u32_size (size);
-        oheight = obj_spritesheet_get_height (size);
-        owidth = obj_spritesheet_get_width (size);
-        
-        g_assert_cmpuint (vram_get_u32_size (bank), >=, osize);
-        
-        obj.main_spritesheet.size = size;
-        obj.main_spritesheet.bank = bank;
-        obj.main_spritesheet.storage = vram_get_u32_ptr(bank);
-        g_free (obj.main_spritesheet.data);
-        obj.main_spritesheet.data = g_new0 (uint32_t *, oheight);
-        for (size_t i = 0; i < obj_matrix_get_height (size); i ++)
-            obj.main_spritesheet.data[i] = obj.main_spritesheet.storage + i * owidth;
-    }
-    
-    vram_zero_bank (bank);
-}
-
-void obj_sub_spritesheet_init (obj_spritesheet_size_t size, vram_bank_t bank)
-{
-    size_t osize, oheight, owidth;
-
-    g_assert (size != OBJ_SPRITESHEET_SIZE_512x256);
-    g_assert (size != OBJ_SPRITESHEET_SIZE_256x512);
-    g_assert (size != OBJ_SPRITESHEET_SIZE_512x512);
-    g_assert (bank != VRAM_AB);
-    g_assert (bank != VRAM_CD);
-    g_assert (bank != VRAM_ABCD);
-
-    // FIXME: copy-pasta
-    
-    if (size != obj.sub_spritesheet.size || bank != obj.sub_spritesheet.bank)
-    {
-        size_t osize, oheight, owidth;
-        
-        osize = obj_spritesheet_get_u32_size (size);
-        oheight = obj_spritesheet_get_height (size);
-        owidth = obj_spritesheet_get_width (size);
-        
-        g_assert_cmpuint (vram_get_u32_size (bank), >=, osize);
-        
-        obj.sub_spritesheet.size = size;
-        obj.sub_spritesheet.bank = bank;
-        obj.sub_spritesheet.storage = vram_get_u32_ptr(bank);
-
-        g_free (obj.sub_spritesheet.data);
-        obj.sub_spritesheet.data = g_new0 (uint32_t *, oheight);
-    
-        for (size_t i = 0; i < obj_matrix_get_height (size); i ++)
-            obj.sub_spritesheet.data[i] = obj.sub_spritesheet.storage + i * owidth;
-    }
-    
-    vram_zero_bank (bank);
-}
 
 void obj_hide (int id)
 {
@@ -369,23 +237,11 @@ void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
         xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
 
-        if (spritesheet_id == 0)
+        width = CLAMP(width, 0, spritesheet_get_width(spritesheet_id));
+        height = CLAMP(height, 0, spritesheet_get_height(spritesheet_id));
+        for (int j = 0; j < height; j ++)
         {
-            width = CLAMP(width, 0, obj_spritesheet_get_width(obj.main_spritesheet.size));
-            height = CLAMP(height, 0, obj_spritesheet_get_height(obj.main_spritesheet.size));
-        }
-        else
-        {
-            width = CLAMP(width, 0, obj_spritesheet_get_width(obj.sub_spritesheet.size));
-            height = CLAMP(height, 0, obj_spritesheet_get_height(obj.sub_spritesheet.size));
-        }
-
-        for (unsigned j = 0; j < height; j ++)
-        {
-            if (spritesheet_id == 0)
-                memcpy (obj.main_spritesheet.data[j], c32 + j * stride, width * sizeof(uint32_t));
-            else
-                memcpy (obj.sub_spritesheet.data[j], c32 + j * stride, width * sizeof(uint32_t));
+            memcpy (spritesheet_get_u32_data(spritesheet_id)[j], c32 + j * stride, width * sizeof(uint32_t));
         }
         if (spritesheet_id == 0)
             g_debug ("loaded pixbuf %s as main spritesheet", path);
@@ -456,13 +312,8 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
         g_assert (stride == width);
         for (unsigned j = 0; j < height; j ++)
         {
-            if (spritesheet_id == 0)
                 memcpy (data + j * stride,
-                        &obj.main_spritesheet.data[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i],
-                        width * sizeof (uint32_t));
-            else
-                memcpy (data + j * stride,
-                        &obj.sub_spritesheet.data[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i],
+                        &(spritesheet_get_u32_data(spritesheet_id)[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i]),
                         width * sizeof (uint32_t));
         }
     }
@@ -481,10 +332,7 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
                 if (obj.obj[id].hflip == TRUE)
                     si = width - si;
 
-                if (spritesheet_id == 0)
-                    c32 = obj.main_spritesheet.data[sj][si];
-                else
-                    c32 = obj.sub_spritesheet.data[sj][si];
+                c32 = spritesheet_get_u32_data(spritesheet_id)[sj][si];
                     
                 data[j * stride + i] = adjust_colorval (c32, obj.obj[id].colorswap, obj.obj[id].brightness);
             }
@@ -504,36 +352,6 @@ obj_update (int id)
 
 
 ////////////////////////////////////////////////////////////////
-
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_32x32, "OBJ_SPRITESHEET_SIZE_32x32",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_32x32));
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_128x128, "OBJ_SPRITESHEET_SIZE_128x128",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_32x32));
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_256x256, "OBJ_SPRITESHEET_SIZE_256x256",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_256x256));
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_256x512, "OBJ_SPRITESHEET_SIZE_256x512",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_256x512));
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_512x256, "OBJ_SPRITESHEET_SIZE_512x256",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_512x256));
-SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_512x512, "OBJ_SPRITESHEET_SIZE_512x512",
-                   scm_from_int (OBJ_SPRITESHEET_SIZE_512x512));
-
-
-SCM_DEFINE (G_obj_main_spritesheet_init, "obj-main-spritesheet-init", 2, 0, 0, (SCM size, SCM bank), "\
-Initialize the size of the main spritesheet and assign \n\
-a VRAM bank to it")
-{
-    obj_main_spritesheet_init (scm_to_int (size), scm_to_int (bank));
-    return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_obj_sub_spritesheet_init, "obj-sub-spritesheet-init", 2, 0, 0, (SCM size, SCM bank), "\
-Initialize the size of the main spritesheet and assign \n\
-a VRAM bank to it")
-{
-    obj_sub_spritesheet_init (scm_to_int (size), scm_to_int (bank));
-    return SCM_UNSPECIFIED;
-}
 
 SCM_DEFINE (G_obj_hide, "obj-hide", 1, 0, 0, (SCM gid), "\
 Set object to not draw.")

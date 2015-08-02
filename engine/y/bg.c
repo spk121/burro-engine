@@ -18,7 +18,7 @@ struct bg_matrix
     uint32_t **data;
 };
 
-size_t bg_matrix_width[9] = {
+int bg_matrix_width[9] = {
     [BG_SIZE_16x16] = 16,
     [BG_SIZE_32x16] = 32,
     [BG_SIZE_16x32] = 16,
@@ -30,7 +30,7 @@ size_t bg_matrix_width[9] = {
     [BG_SIZE_512x512] = 512,
 };
 
-size_t bg_matrix_height[9] = {
+int bg_matrix_height[9] = {
     [BG_SIZE_16x16] = 16,
     [BG_SIZE_32x16] = 16,
     [BG_SIZE_16x32] = 32,
@@ -42,7 +42,7 @@ size_t bg_matrix_height[9] = {
     [BG_SIZE_512x512] = 512,
 };
 
-size_t bg_matrix_size[9] = {
+int bg_matrix_size[9] = {
     [BG_SIZE_16x16] = 16*16,
     [BG_SIZE_32x16] = 32*16,
     [BG_SIZE_16x32] = 16*32,
@@ -54,19 +54,19 @@ size_t bg_matrix_size[9] = {
     [BG_SIZE_512x512] = 512*512,
 };
 
-static size_t
+static int
 bg_matrix_get_height (bg_size_t size)
 {
     return bg_matrix_height[size];
 }
 
-static size_t
+static int
 bg_matrix_get_width (bg_size_t size)
 {
     return bg_matrix_width[size];
 }
 
-static size_t
+static int
 bg_matrix_get_u32_size (bg_size_t size)
 {
     return bg_matrix_size[size];
@@ -75,7 +75,7 @@ bg_matrix_get_u32_size (bg_size_t size)
 static void
 bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
 {
-    g_assert_cmpuint (bg_matrix_get_u32_size(size), >=,  vram_get_u32_size(bank));
+    g_assert_cmpint (bg_matrix_get_u32_size(size), <=,  vram_get_u32_size(bank));
 
     vram_zero_bank(bank);
     x->bank = bank;
@@ -83,8 +83,8 @@ bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
     x->storage = vram_get_u32_ptr(bank);
 
     g_free (x->data);
-    x->data = g_new0(uint32_t *, bg_matrix_get_height(size));
-    for (size_t i = 0; i < bg_matrix_height[size]; i ++)
+    x->data = g_new0(uint32_t *, (size_t) bg_matrix_get_height(size));
+    for (int i = 0; i < bg_matrix_height[size]; i ++)
         x->data[i] = x->storage + i * bg_matrix_width[size];
 }
 
@@ -353,13 +353,14 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
         width = MIN(img_width, bg_width);
         height = MIN(img_height, bg_height);
         
-        for (unsigned j = 0; j < height; j ++)
+        for (int j = 0; j < height; j ++)
         {
-            for (unsigned i = 0; i < width ; i ++)
+            for (int i = 0; i < width ; i ++)
             {
                 bg.bg[id].matrix.data[j][i] = c32[j * img_stride + i];
             }
         }
+        bg.bg[id].type = type;
         g_debug ("loaded pixbuf %s as bg %d", path, id);
         g_free (path);
         g_object_unref (pb);
@@ -424,7 +425,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
     uint32_t *data;
     int stride;
     int tile_j, tile_i, delta_tile_i, delta_tile_j;
-    int map_index, vflip, hflip;
+    int map_index;
     uint32_t c;
     int width, height;
     tilesheet_index_t tilesheet_id;
@@ -444,12 +445,12 @@ bg_render_map_to_cairo_surface (bg_index_t id)
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
 
-    for (unsigned map_j = 0; map_j < height; map_j ++)
+    for (int map_j = 0; map_j < height; map_j ++)
     {
-        for (unsigned map_i = 0; map_i < width; map_i ++)
+        for (int map_i = 0; map_i < width; map_i ++)
         {
             /* Fill in the tile brush */
-            map_index = bg.bg[id].matrix.data[map_j][map_i];
+            map_index = (int) bg.bg[id].matrix.data[map_j][map_i];
             
             // FIXME -- IS THIS RIGHT??
             // vflip = map_index & (1 << 31);
@@ -472,7 +473,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
                     for (tile_i = 0; tile_i < TILE_WIDTH; tile_i ++)
                     {
                         uint32_t c32;
-                        c32 = tilesheet_get_data_ptr(tilesheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                        c32 = tilesheet_get_u32_data(tilesheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
                         
                         c = adjust_colorval (c32);
                         data[(map_j * TILE_HEIGHT + tile_j) * stride
@@ -513,9 +514,9 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
     }
     else
     {
-        for (unsigned j = 0; j < height; j++)
+        for (int j = 0; j < height; j++)
         {
-            for (unsigned i = 0; i < width; i++)
+            for (int i = 0; i < width; i++)
             {
                 c32 = bg.bg[id].matrix.data[j][i];
                 data[j * stride + i] = adjust_colorval (c32);
@@ -588,7 +589,7 @@ Set BG to be a bitmap-type background using the data from FILE in the data\n\
 directory")
 {
     char *str = scm_to_locale_string (filename);
-    bg_set_bmp_from_file (scm_to_int (id), str);
+    bg_set_data_from_image_file (scm_to_int (id), BG_TYPE_BMP, str);
     free (str);
     return SCM_UNSPECIFIED;
 }
@@ -641,6 +642,20 @@ Return #t if indicated background layer is visible.")
     return scm_from_bool (bg_is_shown (scm_to_int (id)));
 }
 
+SCM_DEFINE (G_bg_update, "bg-update", 1, 0, 0, (SCM id), "\
+Apply all changes to this background layer since the last call to 'bg-update'")
+{
+    bg_update (scm_to_int (id));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_bg_modify, "bg-modify", 4, 0, 0, (SCM id, SCM sx, SCM sy, SCM sval), "\
+Modify the BG BMP or MAP data at the location (x,y) to given 32-bit value")
+{
+    bg.bg[scm_to_int(id)].matrix.data[scm_to_int(y)][scm_to_int(x)] = scm_to_uint32(val);
+    return SCM_UNSPECIFIED;
+}
+
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
 SCM_VARIABLE_INIT (G_BG_TYPE_MAP, "BG_TYPE_MAP", scm_from_int (BG_TYPE_MAP));
 
@@ -682,6 +697,8 @@ bg_init_guile_procedures (void)
                   "bg-set-rotation-expansion",
                   "bg-show",
                   "bg-shown?",
+                  "bg-update",
+                  "bg-modify",
                   NULL);
 }
 

@@ -181,9 +181,6 @@ static void draw_obj (int id)
 static void draw_console_layer ()
 {
     cairo_surface_t *surf;
-    cairo_matrix_t matrix;
-    double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
-    double rotation, expansion;
     
     surf = console_render_to_cairo_surface ();
     xcairo_surface_mark_dirty (surf);

@@ -117,7 +117,7 @@ uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + 
  *  @param [in] bank
  *  @return size of bank of VRAM in 32-bit words
  */
-size_t vram_get_u32_size (vram_bank_t bank);
+int vram_get_u32_size (vram_bank_t bank);
 
 /** Return a pointer to the beginning of the VRAM bank.
  *  @param [in] bank index

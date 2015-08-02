@@ -58,23 +58,23 @@ void tilesheet_init (tilesheet_index_t id, tilesheet_size_t siz,
 
 /** Returns the 2D U32 pointer to main tilesheeet data.
  */
-uint32_t **tilesheet_get_data_ptr (tilesheet_index_t id);
+uint32_t **tilesheet_get_u32_data (tilesheet_index_t id);
 
 /** Return the height, in pixels, of a tilesheet
  */
-size_t tilesheet_get_height (tilesheet_index_t id);
+int tilesheet_get_height (tilesheet_index_t id);
 
 /** Return the width, in pixels, of a tilesheet
  */
-size_t tilesheet_get_width (tilesheet_index_t id);
+int tilesheet_get_width (tilesheet_index_t id);
 
 /** Return the height, in tiles, of a tilesheet
  */
-size_t tilesheet_get_height_in_tiles (tilesheet_index_t id);
+int tilesheet_get_height_in_tiles (tilesheet_index_t id);
 
 /** Return the width, in tiles, of a tilesheet
  */
-size_t tilesheet_get_width_in_tiles (tilesheet_index_t id);
+int tilesheet_get_width_in_tiles (tilesheet_index_t id);
 
 
 /** Return the size, in total number of pixels, of a tilesheet

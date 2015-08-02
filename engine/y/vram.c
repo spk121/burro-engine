@@ -1,7 +1,7 @@
 #include "../x.h"
 #include "vram.h"
 
-static size_t vram_size[VRAM_COUNT] = {
+static int vram_size[VRAM_COUNT] = {
     [VRAM_0] = VRAM_0_U32_SIZE,
     [VRAM_1] = VRAM_1_U32_SIZE,
     [VRAM_A] = VRAM_A_U32_SIZE,
@@ -35,7 +35,7 @@ static uint32_t *vram_ptr[VRAM_COUNT] = {
     [VRAM_ABCD] = VRAM_ABCD_U32_PTR,
 };
 
-size_t
+int
 vram_get_u32_size (vram_bank_t bank)
 {
     return vram_size[bank];
