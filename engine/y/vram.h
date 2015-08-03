@@ -1,32 +1,38 @@
+/** @file vram.h
+    A set of pre-allocated, memory-aligned buffers used for storage
+    of BG maps, BG bitmaps, BG tilesheets, and OBJ spritesheets.
+*/
+
 #ifndef BURRO_VRAM_H
 #define BURRO_VRAM_H
 
 #include <stdint.h>
-////////////////////////////////////////////////////////////////
-//
+#include "../x.h"
 
-// For reasons of efficienty and perversity, all the background and sprite memory
-// is preallocated in a couple of blocks
-
+/** Index of a VRAM bank. */
 enum vram_bank_tag {
-    VRAM_0,
-    VRAM_1,
-    VRAM_A,
-    VRAM_B,
-    VRAM_C,
-    VRAM_D,
-    VRAM_E,
-    VRAM_F,
-    VRAM_G,
-    VRAM_H,
-    VRAM_I,
-    VRAM_ABCD,
-    VRAM_AB,
-    VRAM_CD,
-    VRAM_COUNT
+    VRAM_0,                     /**< space for main tilesheet  */
+    VRAM_1,                     /**< space for sub tilesheet  */
+    VRAM_A,                     /**< 64k uint32, usually for main spritesheet  */
+    VRAM_B,                     /**< 64k uint32, usually for sub spritesheet  */
+    VRAM_C,                     /**< 64k uint32  */
+    VRAM_D,                     /**< 64k uint32  */
+    VRAM_E,                     /**< 16k uint32, usually for bg maps  */
+    VRAM_F,                     /**< 1k uint32, usually for bg maps  */
+    VRAM_G,                     /**< 1k uint32, usually for bg maps  */
+    VRAM_H,                     /**< 1k uint32, usually for bg maps  */
+    VRAM_I,                     /**< 1k uint32, usually for bg maps  */
+    VRAM_ABCD,                  /**< 256k uint32, use A, B, C, and D
+                                 * as single block, main screen only  */
+    VRAM_AB,                    /**< 128k uint32, use A and B as a
+                                 * single block, main screen only  */
+    VRAM_CD,                    /**< 128k uint32, use C and D as a
+                                 * single block, main screen only  */
+    VRAM_COUNT,
 };
 
 typedef enum vram_bank_tag vram_bank_t;
+
 
 ////////////////////////////////////////////////////////////////
 //
@@ -34,16 +40,16 @@ typedef enum vram_bank_tag vram_bank_t;
 // VRAM 0 and 1: 2MB of storage.
 // Best used as 512x512px BG Tilesheets
 
-#define VRAM_0_U32_SIZE (BG_TILESHEET_HEIGHT * BG_TILESHEET_WIDTH)
-#define VRAM_1_U32_SIZE (BG_TILESHEET_HEIGHT * BG_TILESHEET_WIDTH)
+#define VRAM_0_U32_SIZE (512*512)
+#define VRAM_1_U32_SIZE (512*512)
 
 #define VRAM_0_U32_OFFSET 0
 #define VRAM_1_U32_OFFSET (VRAM_0_U32_OFFSET + VRAM_0_U32_SIZE)
 
-uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__ ((aligned (__BIGGEST_ALIGNMENT__)));
+uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligned (16)));
 
-const uint32_t *vram_0 = vram_01 + VRAM_0_U32_OFFSET;
-const uint32_t *vram_1 = vram_01 + VRAM_1_U32_OFFSET;
+#define VRAM_0_U32_PTR (vram_01 + VRAM_0_U32_OFFSET)
+#define VRAM_1_U32_PTR (vram_01 + VRAM_1_U32_OFFSET)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -69,15 +75,15 @@ const uint32_t *vram_1 = vram_01 + VRAM_1_U32_OFFSET;
 #define VRAM_AB_U32_OFFSET (VRAM_A_U32_OFFSET)
 #define VRAM_CD_U32_OFFSET (VRAM_C_U32_OFFSET)
 
-uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (__BIGGEST_ALIGNMENT__)));
+uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (16)));
 
-const uint32_t *vram_A = vram_ABCD_store + VRAM_A_U32_OFFSET;
-const uint32_t *vram_B = vram_ABCD_store + VRAM_B_U32_OFFSET;
-const uint32_t *vram_C = vram_ABCD_store + VRAM_C_U32_OFFSET;
-const uint32_t *vram_D = vram_ABCD_store + VRAM_D_U32_OFFSET;
-const uint32_t *vram_ABCD = vram_ABCD_store;
-const uint32_t *vram_AB = vram_ABCD_store;
-const uint32_t *vram_CD = vram_ABCD_store + VRAM_C_U32_OFFSET;
+#define VRAM_A_U32_PTR    (vram_ABCD_store + VRAM_A_U32_OFFSET)
+#define VRAM_B_U32_PTR    (vram_ABCD_store + VRAM_B_U32_OFFSET)
+#define VRAM_C_U32_PTR    (vram_ABCD_store + VRAM_C_U32_OFFSET)
+#define VRAM_D_U32_PTR    (vram_ABCD_store + VRAM_D_U32_OFFSET)
+#define VRAM_AB_U32_PTR   (vram_ABCD_store + VRAM_AB_U32_OFFSET)
+#define VRAM_CD_U32_PTR   (vram_ABCD_store + VRAM_CD_U32_OFFSET)
+#define VRAM_ABCD_U32_PTR (vram_ABCD_store + VRAM_ABCD_U32_OFFSET)
 
 ////////////////////////////////////////////////////////////////
 //
@@ -97,18 +103,39 @@ const uint32_t *vram_CD = vram_ABCD_store + VRAM_C_U32_OFFSET;
 #define VRAM_H_U32_OFFSET (VRAM_G_U32_OFFSET + VRAM_G_U32_SIZE)
 #define VRAM_I_U32_OFFSET (VRAM_H_U32_OFFSET + VRAM_H_U32_SIZE)
 
-uint32_t vram_EFGHI[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (__BIGGEST_ALIGNMENT__)));
+uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (16)));
 
-const uint32_t *vram_E = vram_EFGHI + VRAM_E_U32_OFFSET;
-const uint32_t *vram_F = vram_EFGHI + VRAM_F_U32_OFFSET;
-const uint32_t *vram_G = vram_EFGHI + VRAM_G_U32_OFFSET;
-const uint32_t *vram_H = vram_EFGHI + VRAM_H_U32_OFFSET;
-const uint32_t *vram_I = vram_EFGHI + VRAM_I_U32_OFFSET;
+#define VRAM_E_U32_PTR (vram_EFGHI_store + VRAM_E_U32_OFFSET)
+#define VRAM_F_U32_PTR (vram_EFGHI_store + VRAM_F_U32_OFFSET)
+#define VRAM_G_U32_PTR (vram_EFGHI_store + VRAM_G_U32_OFFSET)
+#define VRAM_H_U32_PTR (vram_EFGHI_store + VRAM_H_U32_OFFSET)
+#define VRAM_I_U32_PTR (vram_EFGHI_store + VRAM_I_U32_OFFSET)
 
 ////////////////////////////////////////////////////////////////
+
+/** Return the size, in 32-bit words, of a VRAM bank.
+ *  @param [in] bank
+ *  @return size of bank of VRAM in 32-bit words
+ */
 size_t vram_get_u32_size (vram_bank_t bank);
+
+/** Return a pointer to the beginning of the VRAM bank.
+ *  @param [in] bank index
+ *  @return a pointer to the VRAM bank
+ */
 uint32_t *vram_get_u32_ptr (vram_bank_t bank);
+
+/** Zero-fill the contents of a VRAM bank.
+ *  @param [in] bank index
+ */
 void vram_zero_bank (vram_bank_t bank);
+
+/** Register VRAM procedures with the script engine. */
+void vram_init_guile_procedures (void);
+
+
+////////////////////////////////////////////////////////////////
+
 
 // WRAM - 64K + 32K, audio
 
@@ -120,3 +147,5 @@ void vram_zero_bank (vram_bank_t bank);
 //       WRAM = 96kB  (2.2 sec of audio)
 
 // MAX ISO size 512 MB
+
+#endif

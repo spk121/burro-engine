@@ -80,7 +80,7 @@ xg_input_stream_read_all (GInputStream *stream,
         if (id_string == NULL)
             g_critical ("g_input_steam_read_all() returned FALSE: %s", err->message);
         else
-            g_critical ("g_input_stream_read_all(%s) returned FALSE: %s", id_string, err->message);
+            g_critical ("g_input_stream_read_all(%s) returned FALSE: %s", (char *)id_string, err->message);
         g_error_free (err);
         *bytes_read = 0;
     }

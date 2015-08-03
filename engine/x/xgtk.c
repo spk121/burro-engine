@@ -6,7 +6,7 @@ GList *
 xgtk_application_get_windows (GtkApplication *application)
 {
   g_assert (application != NULL);
-  gtk_application_get_windows (application);
+  return gtk_application_get_windows (application);
 }
 
 void                

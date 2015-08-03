@@ -9,6 +9,7 @@
 struct bg_matrix
 {
     bg_size_t size;
+    vram_bank_t bank;
     uint32_t *storage;
     uint32_t **data;
 };
@@ -64,14 +65,14 @@ bg_matrix_get_u32_size (bg_size_t size)
 static void
 bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
 {
-    g_assert (x != NULL);
-    
-    g_free (x->data);
-
     g_assert_cmpuint (bg_matrix_get_u32_size(size), >=,  vram_get_u32_size(bank));
     
     vram_zero_bank(bank);
+    x->bank = bank;
+    x->size = size;
     x->storage = vram_get_u32_ptr(bank);
+
+    g_free (x->data);
     x->data = g_new0(uint32_t *, bg_matrix_get_height(size));
     for (size_t i = 0; i < bg_matrix_height[size]; i ++)
         x->data[i] = x->storage + i * bg_matrix_width[size];
@@ -113,7 +114,8 @@ typedef struct bg_entry
 typedef struct bg_tag
 {
     /* The RGBA color displayed below all backgrounds and sprites */
-    uint32_t bg_color;
+    uint32_t main_backdrop_color;
+    uint32_t sub_backdrop_color;
 
     bool colorswap;
   
@@ -128,10 +130,12 @@ typedef struct bg_tag
 
 bg_t bg;
 
+////////////////////////////////////////////////////////////////
+
 static cairo_surface_t *
-bg_render_map_to_cairo_surface (int id);
+bg_render_map_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
-bg_render_bmp_to_cairo_surface (int id);
+bg_render_bmp_to_cairo_surface (bg_index_t id);
 
 static uint32_t
 adjust_colorval (uint32_t c32)
@@ -156,16 +160,24 @@ adjust_colorval (uint32_t c32)
     return c32;
 }
 
-void bg_get_backdrop_color_rgb (double *r, double *g, double *b)
+void bg_get_main_backdrop_color_rgb (double *r, double *g, double *b)
 {
-  uint32_t c32 = adjust_colorval (bg.bg_color);
+    uint32_t c32 = adjust_colorval (bg.main_backdrop_color);
+    *r = ((double)((c32 & 0x00ff0000) >> 16)) / 255.0;
+    *g = ((double)((c32 & 0x0000ff00) >> 8)) / 255.0;
+    *b = ((double)((c32 & 0x000000ff))) / 255.0;
+}
+
+void bg_get_sub_backdrop_color_rgb (double *r, double *g, double *b)
+{
+  uint32_t c32 = adjust_colorval (bg.sub_backdrop_color);
     *r = ((double)((c32 & 0x00ff0000) >> 16)) / 255.0;
     *g = ((double)((c32 & 0x0000ff00) >> 8)) / 255.0;
     *b = ((double)((c32 & 0x000000ff))) / 255.0;
 }
 
 bool
-bg_is_shown (int id)
+bg_is_shown (bg_index_t id)
 {
     return bg.bg[id].enable;
 }
@@ -190,28 +202,29 @@ int bg_get_priority (bg_index_t id)
     return bg.bg[id].priority;
 }
 
-void bg_hide (int id)
+void bg_hide (bg_index_t id)
 {
     bg.bg[id].enable = FALSE;
 }
 
 void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank)
 {
-    bg.bg[i].enable = false;
-    bg.bg[i].type = type;
-    bg.bg[i].priority = i % 4;
-    bg.bg[i].scroll_x = 0.0;
-    bg.bg[i].scroll_y = 0.0;
-    bg.bg[i].rotation_center_x = 0.0;
-    bg.bg[i].rotation_center_y = 0.0;
-    bg.bg[i].expansion = 1.0;
-    bg.bg[i].rotation = 0.0;
-    bg_matrix_allocate (&(bg.bg[i].matrix), siz, bank);
+    bg.bg[id].enable = false;
+    bg.bg[id].type = type;
+    bg.bg[id].priority = id % 4;
+    bg.bg[id].scroll_x = 0.0;
+    bg.bg[id].scroll_y = 0.0;
+    bg.bg[id].rotation_center_x = 0.0;
+    bg.bg[id].rotation_center_y = 0.0;
+    bg.bg[id].expansion = 1.0;
+    bg.bg[id].rotation = 0.0;
+    bg_matrix_allocate (&(bg.bg[id].matrix), siz, bank);
 }
 
 void bg_init_all_to_default ()
 {
-    bg.bg_color = 0xff000000;
+    bg.main_backdrop_color = 0xff000000;
+    bg.sub_backdrop_color = 0xff000000;
     bg.colorswap = false;
     bg.brightness = 1.0;
     bg_matrix_allocate (&(bg.main_tilesheet), BG_SIZE_512x512, VRAM_0);
@@ -230,7 +243,7 @@ void bg_init_all_to_default ()
     }
 }
 
-void bg_reset (int id)
+void bg_reset (bg_index_t id)
 {
     bg.bg[id].type = BG_TYPE_NONE;
     bg.bg[id].scroll_x = 0.0;
@@ -242,18 +255,18 @@ void bg_reset (int id)
     bg.bg[id].priority = id % 4;
 }
 
-void bg_rotate (int id, double angle)
+void bg_rotate (bg_index_t id, double angle)
 {
     bg.bg[id].rotation += angle;
 }
 
-void bg_scroll (int id, double dx, double dy)
+void bg_scroll (bg_index_t id, double dx, double dy)
 {
     bg.bg[id].scroll_x += dx;
     bg.bg[id].scroll_y += dy;
 }
 
-void bg_set (int id, double rotation, double expansion,
+void bg_set (bg_index_t id, double rotation, double expansion,
              double scroll_x, double scroll_y,
              double rotation_center_x, double rotation_center_y)
 {
@@ -267,43 +280,43 @@ void bg_set (int id, double rotation, double expansion,
 
 void bg_set_main_backdrop_color (uint32_t c32)
 {
-    bg.bg_main_backdrop_color = c32;
+    bg.main_backdrop_color = c32;
 }
 
 void bg_set_sub_backdrop_color (uint32_t c32)
 {
-    bg.bg_sub_backdrop_color = c32;
+    bg.sub_backdrop_color = c32;
 }
 
-void bg_set_expansion (int id, double expansion)
+void bg_set_expansion (bg_index_t id, double expansion)
 {
     bg.bg[id].expansion = expansion;
 }
 
-void bg_set_priority (int id, int priority)
+void bg_set_priority (bg_index_t id, int priority)
 {
     bg.bg[id].priority = priority;
 }
 
-void bg_set_rotation (int id, double rotation)
+void bg_set_rotation (bg_index_t id, double rotation)
 {
     bg.bg[id].rotation = rotation;
 }
 
-void bg_set_rotation_center (int id,
+void bg_set_rotation_center (bg_index_t id,
                              double rotation_center_x, double rotation_center_y)
 {
     bg.bg[id].rotation_center_x = rotation_center_x;
     bg.bg[id].rotation_center_y = rotation_center_y;
 }
 
-void bg_set_rotation_expansion (int id, double rotation, double expansion)
+void bg_set_rotation_expansion (bg_index_t id, double rotation, double expansion)
 {
     bg.bg[id].rotation = rotation;
     bg.bg[id].expansion = expansion;
 }
 
-void bg_show (int id)
+void bg_show (bg_index_t id)
 {
     g_assert (bg.bg[id].type != BG_TYPE_NONE);
     
@@ -311,7 +324,7 @@ void bg_show (int id)
 }
 
 #if 0
-static void bg_set_map_from_tga (int id, targa_image_t *t)
+static void bg_set_map_from_tga (bg_index_t id, targa_image_t *t)
 {
     unsigned width, height;
     targa_get_image_dimensions (t, &width, &height);
@@ -328,7 +341,7 @@ static void bg_set_map_from_tga (int id, targa_image_t *t)
 #endif
 
 #if 0
-static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
+static void bg_set_tilesheet_from_tga (bg_index_t id, targa_image_t *t)
 {
     unsigned width, height;
     int first = targa_get_color_map_first_index (t);
@@ -348,7 +361,7 @@ static void bg_set_tilesheet_from_tga (int id, targa_image_t *t)
 }
 #endif
 
-static void set_from_image_file (int id, bg_type_t type, const char *filename)
+static void set_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
     char *path = xg_find_data_file (filename);
     g_return_if_fail (path != NULL);
@@ -407,12 +420,12 @@ static void set_from_image_file (int id, bg_type_t type, const char *filename)
     }
 }
 
-void bg_set_data_from_image_file (int id, bg_type_t type, const char *filename)
+void bg_set_data_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
     set_from_image_file (id, type, filename);
 }
 
-void bg_set_tilesheet_from_image_file (int id, const char *filename)
+void bg_set_tilesheet_from_image_file (bg_index_t id, const char *filename)
 {
     if (id == 0)
         set_from_image_file (-1, 0, filename);
@@ -421,7 +434,7 @@ void bg_set_tilesheet_from_image_file (int id, const char *filename)
 }
 
 #if 0
-void bg_set_bmp_from_resource (int id, const gchar *resource)
+void bg_set_bmp_from_resource (bg_index_t id, const gchar *resource)
 {
     targa_image_t *t = tga_load_from_resource (resource);
     bg_set_bmp_from_tga (id, t);
@@ -430,7 +443,7 @@ void bg_set_bmp_from_resource (int id, const gchar *resource)
 #endif
 
 cairo_surface_t *
-bg_get_cairo_surface (int id)
+bg_get_cairo_surface (bg_index_t id)
 {
     g_assert (bg.type != BG_TYPE_NONE);
     g_assert (bg.surf[id] != NULL);
@@ -439,7 +452,7 @@ bg_get_cairo_surface (int id)
 }
 
 static void
-bg_update (int id)
+bg_update (bg_index_t id)
 {
     if (bg.surf[id] != NULL)
         xcairo_surface_destroy (bg.surf[id]);
@@ -447,7 +460,7 @@ bg_update (int id)
 }
 
 cairo_surface_t *
-bg_render_to_cairo_surface (int id)
+bg_render_to_cairo_surface (bg_index_t id)
 {
     g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
     
@@ -464,7 +477,7 @@ bg_render_to_cairo_surface (int id)
 }
 
 static cairo_surface_t *
-bg_render_map_to_cairo_surface (int id)
+bg_render_map_to_cairo_surface (bg_index_t id)
 {
     cairo_surface_t *surf;
     uint32_t *data;
@@ -532,7 +545,7 @@ bg_render_map_to_cairo_surface (int id)
 }
 
 static cairo_surface_t *
-bg_render_bmp_to_cairo_surface (int id)
+bg_render_bmp_to_cairo_surface (bg_index_t id)
 {
     int width, height, stride;
     uint32_t *data;
@@ -571,7 +584,7 @@ bg_render_bmp_to_cairo_surface (int id)
     return surf;
 }
 
-void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
+void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y, double *rotation_center_x,
                        double *rotation_center_y, double *rotation, double *expansion)
 {
     *scroll_x = bg.bg[id].scroll_x;

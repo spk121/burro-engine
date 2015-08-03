@@ -1,9 +1,148 @@
+#include <stdint.h>
+#include <stdbool.h>
 #include "../x.h"
 #include "eng.h"
 #include "guile.h"
 #include "obj.h"
-#include <stdint.h>
-#include <stdbool.h>
+
+
+struct obj_spritesheet_matrix
+{
+    obj_spritesheet_size_t size;
+    vram_bank_t bank;
+    uint32_t *storage;
+    uint32_t **data;
+};
+
+size_t obj_spritesheet_width[6] = {
+    [OBJ_SPRITESHEET_SIZE_32x32] = 32,
+    [OBJ_SPRITESHEET_SIZE_128x128] = 128,
+    [OBJ_SPRITESHEET_SIZE_256x256] = 256,
+    [OBJ_SPRITESHEET_SIZE_256x512] = 256,
+    [OBJ_SPRITESHEET_SIZE_512x256] = 512,
+    [OBJ_SPRITESHEET_SIZE_512x512] = 512,
+};
+
+size_t obj_spritesheet_height[6] = {
+    [OBJ_SPRITESHEET_SIZE_32x32] = 32,
+    [OBJ_SPRITESHEET_SIZE_128x128] = 128,
+    [OBJ_SPRITESHEET_SIZE_256x256] = 256,
+    [OBJ_SPRITESHEET_SIZE_256x512] = 512,
+    [OBJ_SPRITESHEET_SIZE_512x256] = 256,
+    [OBJ_SPRITESHEET_SIZE_512x512] = 512,
+};
+
+size_t obj_spritesheet_size[6] = {
+    [OBJ_SPRITESHEET_SIZE_32x32] = 32*32,
+    [OBJ_SPRITESHEET_SIZE_128x128] = 128*128,
+    [OBJ_SPRITESHEET_SIZE_256x256] = 256*256,
+    [OBJ_SPRITESHEET_SIZE_256x512] = 256*512,
+    [OBJ_SPRITESHEET_SIZE_512x256] = 512*256,
+    [OBJ_SPRITESHEET_SIZE_512x512] = 512*512,
+};
+
+static size_t
+obj_spritesheet_get_height (obj_size_t size)
+{
+    return obj_spritesheet_height[size];
+}
+
+static size_t
+obj_spritesheet_get_width (obj_size_t size)
+{
+    return obj_spritesheet_width[size];
+}
+
+static size_t
+obj_spritesheet_get_u32_size (obj_size_t size)
+{
+    return obj_spritesheet_size[size];
+} 
+
+struct obj_matrix
+{
+    obj_size_t size;
+    uint32_t *storage;
+    uint32_t **data;
+};
+
+size_t obj_matrix_width[12] = {
+    [OBJ_SIZE_16x16] = 16,
+    [OBJ_SIZE_16x32] = 16,
+    [OBJ_SIZE_16x64] = 16,
+    [OBJ_SIZE_32x16] = 32,
+    [OBJ_SIZE_32x32] = 32,
+    [OBJ_SIZE_32x64] = 32,
+    [OBJ_SIZE_64x16] = 16,
+    [OBJ_SIZE_64x32] = 64,
+    [OBJ_SIZE_64x64] = 64,
+    [OBJ_SIZE_64x128] = 64,
+    [OBJ_SIZE_128x64] = 128,
+    [OBJ_SIZE_128x128] = 128,
+};
+
+size_t obj_matrix_height[12] = {
+    [OBJ_SIZE_16x16] = 16,
+    [OBJ_SIZE_16x32] = 32,
+    [OBJ_SIZE_16x64] = 64,
+    [OBJ_SIZE_32x16] = 16,
+    [OBJ_SIZE_32x32] = 32,
+    [OBJ_SIZE_32x64] = 64,
+    [OBJ_SIZE_64x16] = 16,
+    [OBJ_SIZE_64x32] = 32,
+    [OBJ_SIZE_64x64] = 64,
+    [OBJ_SIZE_64x128] = 128,
+    [OBJ_SIZE_128x64] = 64,
+    [OBJ_SIZE_128x128] = 128,
+};
+
+size_t obj_matrix_size[12] = {
+    [OBJ_SIZE_16x16] = 16*16,
+    [OBJ_SIZE_16x32] = 16*32,
+    [OBJ_SIZE_16x64] = 16*64,
+    [OBJ_SIZE_32x16] = 32*16,
+    [OBJ_SIZE_32x32] = 32*32,
+    [OBJ_SIZE_32x64] = 32*64,
+    [OBJ_SIZE_64x16] = 64*16,
+    [OBJ_SIZE_64x32] = 64*32,
+    [OBJ_SIZE_64x64] = 64*64,
+    [OBJ_SIZE_64x128] = 64*128,
+    [OBJ_SIZE_128x64] = 128*64,
+    [OBJ_SIZE_128x128] = 128*128,
+};
+
+static size_t
+obj_matrix_get_height (obj_size_t size)
+{
+    return obj_matrix_height[size];
+}
+
+static size_t
+obj_matrix_get_width (obj_size_t size)
+{
+    return obj_matrix_width[size];
+}
+
+static size_t
+obj_matrix_get_u32_size (obj_size_t size)
+{
+    return obj_matrix_size[size];
+} 
+
+static void
+obj_spritesheet_allocate (struct obj_matrix *x, obj_spritesheet_size_t size, vram_bank_t bank)
+{
+    g_assert_cmpuint (obj_spritesheet_get_u32_size(size), >=,  vram_get_u32_size(bank));
+
+    vram_zero_bank(bank);
+    
+    x->storage = vram_get_u32_ptr(bank);
+    
+    x->data = g_new0(uint32_t *, obj_spritesheet_get_height(size));
+    
+    for (size_t i = 0; i < obj_spritesheet_height[size]; i ++)
+        x->data[i] = x->storage + i * obj_spritesheet_width[size];
+}
 
 typedef struct obj_entry
 {
@@ -17,7 +156,7 @@ typedef struct obj_entry
     int spritesheet_i, spritesheet_j;
 
     /** size of sprite in pixels */
-    int sprite_width, sprite_height;
+    obj_size_t size;
 
     /** the "user" or screen location of the rotation center of the sprite */
     double x, y;
@@ -40,26 +179,21 @@ typedef struct obj_entry
 
     /** Adjust color of object: from  0.0 to 1.0 */
     double brightness;
+
+    cairo_surface_t *surf;
 } obj_entry_t;
 
-typedef struct spritesheet_tag
+typedef struct obj_tag
 {
-    uint32_t bmp[SPRITESHEET_HEIGHT][SPRITESHEET_WIDTH];
-    int width, height;
-    bool initialized;
-} spritesheet_t;
+    struct obj_spritesheet_matrix main_spritesheet;
+    struct obj_spritesheet_matrix sub_spritesheet;
 
-obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
-spritesheet_t spritesheets[SPRITESHEET_COUNT];
+    obj_entry_t obj[MAIN_OBJ_COUNT + SUB_OBJ_COUNT];
+} obj_t;
 
-static bool colorswap = false;
-static double brightness = 1.0;
+obj_t obj;
 
-static GdkPixbuf *main_pixbuf = NULL;
-static GdkPixbuf *sub_pixbuf = NULL;
-    
-
-/****************************************************************/
+////////////////////////////////////////////////////////////////
 
 static uint32_t
 adjust_colorval (uint32_t c32, bool colorswap, double brightness)
@@ -81,75 +215,138 @@ adjust_colorval (uint32_t c32, bool colorswap, double brightness)
     return (a << 24) + (r << 16) + (g << 8) + b;
 }
 
+////////////////////////////////////////////////////////////////
+
+void obj_main_spritesheet_init (obj_spritesheet_size_t size, vram_bank_t bank)
+{
+
+    if (size != obj.main_spritesheet.size || bank != obj.main_spritesheet.bank)
+    {
+        size_t osize, oheight, owidth;
+        
+        osize = obj_spritesheet_get_u32_size (size);
+        oheight = obj_spritesheet_get_height (size);
+        owidth = obj_spritesheet_get_width (size);
+        
+        g_assert_cmpuint (vram_get_u32_size (bank), >=, osize);
+        
+        obj.main_spritesheet.size = size;
+        obj.main_spritesheet.bank = bank;
+        obj.main_spritesheet.storage = vram_get_u32_ptr(bank);
+        g_free (obj.main_spritesheet.data);
+        obj.main_spritesheet.data = g_new0 (uint32_t *, oheight);
+        for (size_t i = 0; i < obj_matrix_get_height (size); i ++)
+            obj.main_spritesheet.data[i] = obj.main_spritesheet.storage + i * owidth;
+    }
+    
+    vram_zero_bank (bank);
+}
+
+void obj_sub_spritesheet_init (obj_spritesheet_size_t size, vram_bank_t bank)
+{
+    size_t osize, oheight, owidth;
+
+    g_assert (size != OBJ_SPRITESHEET_SIZE_512x256);
+    g_assert (size != OBJ_SPRITESHEET_SIZE_256x512);
+    g_assert (size != OBJ_SPRITESHEET_SIZE_512x512);
+    g_assert (bank != VRAM_AB);
+    g_assert (bank != VRAM_CD);
+    g_assert (bank != VRAM_ABCD);
+
+    // FIXME: copy-pasta
+    
+    if (size != obj.sub_spritesheet.size || bank != obj.sub_spritesheet.bank)
+    {
+        size_t osize, oheight, owidth;
+        
+        osize = obj_spritesheet_get_u32_size (size);
+        oheight = obj_spritesheet_get_height (size);
+        owidth = obj_spritesheet_get_width (size);
+        
+        g_assert_cmpuint (vram_get_u32_size (bank), >=, osize);
+        
+        obj.sub_spritesheet.size = size;
+        obj.sub_spritesheet.bank = bank;
+        obj.sub_spritesheet.storage = vram_get_u32_ptr(bank);
+
+        g_free (obj.sub_spritesheet.data);
+        obj.sub_spritesheet.data = g_new0 (uint32_t *, oheight);
+    
+        for (size_t i = 0; i < obj_matrix_get_height (size); i ++)
+            obj.sub_spritesheet.data[i] = obj.sub_spritesheet.storage + i * owidth;
+    }
+    
+    vram_zero_bank (bank);
+}
+
 void obj_hide (int id)
 {
-    obj[id].enable = false;
+    obj.obj[id].enable = false;
 }
 
 void obj_show (int id)
 {
-    obj[id].enable = true;
+    obj.obj[id].enable = true;
 }
 
 bool obj_is_shown (int id)
 {
-    return obj[id].enable;
+    return obj.obj[id].enable;
 }
 
-void obj_init (int id, int spritesheet_i, int spritesheet_j, int sprite_width, int sprite_height,
+void obj_init (int id, int spritesheet_i, int spritesheet_j, obj_size_t size,
                double rotation_center_x, double rotation_center_y, bool hflip, bool vflip)
 {
-    obj[id].spritesheet_i = spritesheet_i;
-    obj[id].spritesheet_j = spritesheet_j;
-    obj[id].sprite_width = sprite_width;
-    obj[id].sprite_height = sprite_height;
-    obj[id].rotation_center_x = rotation_center_x;
-    obj[id].rotation_center_y = rotation_center_y;
-    obj[id].hflip = hflip;
-    obj[id].vflip = vflip;
+    obj.obj[id].spritesheet_i = spritesheet_i;
+    obj.obj[id].spritesheet_j = spritesheet_j;
+    obj.obj[id].size = size;
+    obj.obj[id].rotation_center_x = rotation_center_x;
+    obj.obj[id].rotation_center_y = rotation_center_y;
+    obj.obj[id].hflip = hflip;
+    obj.obj[id].vflip = vflip;
 }
 
 void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j)
 {
-    obj[id].spritesheet_i = spritesheet_i;
-    obj[id].spritesheet_j = spritesheet_j;
+    obj.obj[id].spritesheet_i = spritesheet_i;
+    obj.obj[id].spritesheet_j = spritesheet_j;
 }
 
 void obj_set (int id, int priority, double x, double y, double rotation, double expansion)
 {
-    obj[id].priority = priority;
-    obj[id].x = x;
-    obj[id].y = y;
-    obj[id].rotation = rotation;
-    obj[id].expansion = expansion;
+    obj.obj[id].priority = priority;
+    obj.obj[id].x = x;
+    obj.obj[id].y = y;
+    obj.obj[id].rotation = rotation;
+    obj.obj[id].expansion = expansion;
 }
 
 int obj_get_priority (int id)
 {
-    return obj[id].priority;
+    return obj.obj[id].priority;
 }
 
 void obj_set_rotation_expansion (int id, double rotation, double expansion)
 {
-    obj[id].rotation = rotation;
-    obj[id].expansion = expansion;
+    obj.obj[id].rotation = rotation;
+    obj.obj[id].expansion = expansion;
 }
 
 void obj_set_position (int id, double x, double y)
 {
-    obj[id].x = x;
-    obj[id].y = y;
+    obj.obj[id].x = x;
+    obj.obj[id].y = y;
 }
 
 void obj_get_location (int id, double *x, double *y, double *rotation_center_x, double *rotation_center_y,
                        double *rotation, double *expansion)
 {
-    *x = obj[id].x;
-    *y = obj[id].y;
-    *rotation_center_x = obj[id].rotation_center_x;
-    *rotation_center_y = obj[id].rotation_center_y;
-    *rotation = obj[id].rotation;
-    *expansion = obj[id].expansion;
+    *x = obj.obj[id].x;
+    *y = obj.obj[id].y;
+    *rotation_center_x = obj.obj[id].rotation_center_x;
+    *rotation_center_y = obj.obj[id].rotation_center_y;
+    *rotation = obj.obj[id].rotation;
+    *expansion = obj.obj[id].expansion;
 }
 
 void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
@@ -171,25 +368,29 @@ void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
         int width, height, stride;
         xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
-        
 
-        if (width > SPRITESHEET_WIDTH)
-            width = SPRITESHEET_WIDTH;
-        if (height > SPRITESHEET_HEIGHT)
-            height = SPRITESHEET_HEIGHT;
-        
-        spritesheets[spritesheet_id].height = height;
-        spritesheets[spritesheet_id].width = height;
-        spritesheets[spritesheet_id].initialized = true;
-        
+        if (spritesheet_id == 0)
+        {
+            width = CLAMP(width, 0, obj_spritesheet_get_width(obj.main_spritesheet.size));
+            height = CLAMP(height, 0, obj_spritesheet_get_height(obj.main_spritesheet.size));
+        }
+        else
+        {
+            width = CLAMP(width, 0, obj_spritesheet_get_width(obj.sub_spritesheet.size));
+            height = CLAMP(height, 0, obj_spritesheet_get_height(obj.sub_spritesheet.size));
+        }
+
         for (unsigned j = 0; j < height; j ++)
         {
-            for (unsigned i = 0; i < width ; i ++)
-            {
-                spritesheets[spritesheet_id].bmp[j][i] = c32[j * stride + i];
-            }
+            if (spritesheet_id == 0)
+                memcpy (obj.main_spritesheet.data[j], c32 + j * stride, width * sizeof(uint32_t));
+            else
+                memcpy (obj.sub_spritesheet.data[j], c32 + j * stride, width * sizeof(uint32_t));
         }
-        g_debug ("loaded pixbuf %s as spritesheet %d", path, spritesheet_id);
+        if (spritesheet_id == 0)
+            g_debug ("loaded pixbuf %s as main spritesheet", path);
+        else
+            g_debug ("loaded pixbuf %s as sub spritesheet", path);
         g_free (path);
         g_object_unref (pb);
     }
@@ -230,11 +431,9 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     int spritesheet_id;
     
     g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT, NULL);
-    g_return_val_if_fail (obj[id].sprite_width > 0, NULL);
-    g_return_val_if_fail (obj[id].sprite_height > 0, NULL);
-    
-    width = obj[id].sprite_width;
-    height = obj[id].sprite_height;
+
+    width = obj_matrix_get_width (obj.obj[id].size);
+    height = obj_matrix_get_height (obj.obj[id].size);
 
     if (id < MAIN_OBJ_COUNT)
         spritesheet_id = 0;
@@ -247,33 +446,94 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
-    for (guint j = 0; j < height; j++)
-    {
-        for (guint i = 0; i < width; i++)
-        {
-            guint si, sj;
-            sj = j + obj[id].spritesheet_j;
-            if (obj[id].vflip == TRUE)
-                sj = height - sj;
-            si = i + obj[id].spritesheet_i;
-            if (obj[id].hflip == TRUE)
-                si = width - si;
 
-            if (si >= spritesheets[spritesheet_id].width || sj >= spritesheets[spritesheet_id].height)
-            {
-                g_critical ("out of range on sprite sheet");
-                c32 = 0xffff00ff;
-            }
+    if ((obj.obj[id].vflip == FALSE)
+        && (obj.obj[id].hflip == FALSE)
+        && (obj.obj[id].brightness == 1.0)
+        && (obj.obj[id].colorswap == false))
+    {
+        // FAST PATH
+        g_assert (stride == width);
+        for (unsigned j = 0; j < height; j ++)
+        {
+            if (spritesheet_id == 0)
+                memcpy (data + j * stride,
+                        &obj.main_spritesheet.data[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i],
+                        width * sizeof (uint32_t));
             else
-                c32 = spritesheets[spritesheet_id].bmp[sj][si];
-            data[j * stride + i] = adjust_colorval (c32, obj[id].colorswap, obj[id].brightness);
+                memcpy (data + j * stride,
+                        &obj.sub_spritesheet.data[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i],
+                        width * sizeof (uint32_t));
+        }
+    }
+    else
+    {
+        // SLOW PATH
+        for (guint j = 0; j < height; j++)
+        {
+            for (guint i = 0; i < width; i++)
+            {
+                guint si, sj;
+                sj = j + obj.obj[id].spritesheet_j;
+                if (obj.obj[id].vflip == TRUE)
+                    sj = height - sj;
+                si = i + obj.obj[id].spritesheet_i;
+                if (obj.obj[id].hflip == TRUE)
+                    si = width - si;
+
+                if (spritesheet_id == 0)
+                    c32 = obj.main_spritesheet.data[sj][si];
+                else
+                    c32 = obj.sub_spritesheet.data[sj][si];
+                    
+                data[j * stride + i] = adjust_colorval (c32, obj.obj[id].colorswap, obj.obj[id].brightness);
+            }
         }
     }
     xcairo_surface_mark_dirty (surf);
     return surf;
 }
 
+static void
+obj_update (int id)
+{
+    if (obj.obj[id].surf != NULL)
+        xcairo_surface_destroy (obj.obj[id].surf);
+    obj.obj[id].surf = obj_render_to_cairo_surface (id);
+}
+
+
 ////////////////////////////////////////////////////////////////
+
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_32x32, "OBJ_SPRITESHEET_SIZE_32x32",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_32x32));
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_128x128, "OBJ_SPRITESHEET_SIZE_128x128",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_32x32));
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_256x256, "OBJ_SPRITESHEET_SIZE_256x256",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_256x256));
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_256x512, "OBJ_SPRITESHEET_SIZE_256x512",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_256x512));
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_512x256, "OBJ_SPRITESHEET_SIZE_512x256",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_512x256));
+SCM_VARIABLE_INIT (G_OBJ_SPRITESHEET_SIZE_512x512, "OBJ_SPRITESHEET_SIZE_512x512",
+                   scm_from_int (OBJ_SPRITESHEET_SIZE_512x512));
+
+
+SCM_DEFINE (G_obj_main_spritesheet_init, "obj-main-spritesheet-init", 2, 0, 0, (SCM size, SCM bank), "\
+Initialize the size of the main spritesheet and assign \n\
+a VRAM bank to it")
+{
+    obj_main_spritesheet_init (scm_to_int (size), scm_to_int (bank));
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_obj_sub_spritesheet_init, "obj-sub-spritesheet-init", 2, 0, 0, (SCM size, SCM bank), "\
+Initialize the size of the main spritesheet and assign \n\
+a VRAM bank to it")
+{
+    obj_sub_spritesheet_init (scm_to_int (size), scm_to_int (bank));
+    return SCM_UNSPECIFIED;
+}
 
 SCM_DEFINE (G_obj_hide, "obj-hide", 1, 0, 0, (SCM gid), "\
 Set object to not draw.")
@@ -297,14 +557,13 @@ SCM_DEFINE (G_obj_shown_p, "obj-shown?", 1, 0, 0, (SCM gid), "")
 }
 
 SCM_DEFINE (G_obj_init, "obj-init", 9, 0, 0,
-            (SCM id, SCM spritesheet_i, SCM spritesheet_j, SCM sprite_width, SCM sprite_height,
+            (SCM id, SCM spritesheet_i, SCM spritesheet_j, SCM sprite_size,
              SCM rot_center_x, SCM rot_center_y, SCM hflip, SCM vflip), "")
 {
     obj_init (scm_to_int (id),
               scm_to_int (spritesheet_i),
               scm_to_int (spritesheet_j),
-              scm_to_int (sprite_width),
-              scm_to_int (sprite_height),
+              scm_to_int (sprite_size),
               scm_to_double (rot_center_x),
               scm_to_double (rot_center_y),
               scm_to_bool (hflip),
@@ -357,7 +616,9 @@ void
 init_guile_obj_procedures (void)
 {
 #include "obj.x"
-  scm_c_export ("obj-hide",
+    scm_c_export ("obj-main-spritesheet-init",
+                  "obj-sub-spritesheet-init",
+                  "obj-hide",
                 "obj-show",
                 "obj-shown?",
                 "obj-init",

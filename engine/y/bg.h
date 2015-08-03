@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "../x.h"
+#include "vram.h"
 
 //! The number of background layers for the main screen
 #define BG_MAIN_BACKGROUNDS_COUNT 4
@@ -101,13 +102,13 @@ uint32_t *bg_get_sub_tilesheet_ptr (void);
     \return
         priority 0, 1, 2, or 3
 */
-int bg_get_priority (int id);
+int bg_get_priority (bg_index_t id);
 
 /*! \brief Hides the current background
     \param id
         background layer ID. e.g. BG_MAIN_0
 */ 
-void bg_hide (int id);
+void bg_hide (bg_index_t id);
 
 /*! \brief Initializes a background on either the main or sub displays
            Sets up the format and size of a background layer.  Also resets its
@@ -133,7 +134,7 @@ void bg_init_all_to_default ();
     \param angle
         the angle of counter clockwise rotation in degrees
 */ 
-void bg_rotate (int id, double angle);
+void bg_rotate (bg_index_t id, double angle);
 
 /*! \brief Scrolls the background by the specified relative values.
          Specifically, it is a relative move of the rotational center of the
@@ -147,7 +148,7 @@ void bg_rotate (int id, double angle);
     \note
         Be mindful of the ordering of the rotation, expansion, and scroll operations
 */ 
-void bg_scroll (int id, double dx, double dy);
+void bg_scroll (bg_index_t id, double dx, double dy);
 
 /*! \brief Sets the rotation and scale of the background in one operation.
     \param id
@@ -168,7 +169,7 @@ void bg_scroll (int id, double dx, double dy);
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
 */ 
-void bg_set (int id, double rotation, double expansion, double scroll_x, double scroll_y,
+void bg_set (bg_index_t id, double rotation, double expansion, double scroll_x, double scroll_y,
 	     double rotation_center_x, double rotation_center_y);
 
 /*! \brief Sets the center of rotation of a background
@@ -181,7 +182,7 @@ void bg_set (int id, double rotation, double expansion, double scroll_x, double 
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
 */
-void bg_set_rotation_center (int id, double rotation_center_x, double rotation_center_y);
+void bg_set_rotation_center (bg_index_t id, double rotation_center_x, double rotation_center_y);
 
 /*! \brief Sets the background priority
     \param id
@@ -190,7 +191,7 @@ void bg_set_rotation_center (int id, double rotation_center_x, double rotation_c
         background priority (0-3) where 0 is most in the background and 3 is most 
         in the foreground
 */ 
-void bg_set_priority (int id, int priority);
+void bg_set_priority (bg_index_t id, int priority);
 
 /*! \brief Performs sets the rotation of the background to specified angle. 
         This rotation is about its rotational center.
@@ -199,7 +200,7 @@ void bg_set_priority (int id, int priority);
     \param rotation
         the angle of counter clockwise rotation in degrees
 */ 
-void bg_set_rotation (int id, double rotation);
+void bg_set_rotation (bg_index_t id, double rotation);
 
 /*! \brief Performs sets the rotation and expansion of a background.
         This rotation and expansion is about its rotational center.
@@ -210,7 +211,7 @@ void bg_set_rotation (int id, double rotation);
     \param expansion
         the expansion ratio, where 1.0 is 1:1 expansion
 */ 
-void bg_set_rotation_expansion (int id, double rotation, double expansion);
+void bg_set_rotation_expansion (bg_index_t id, double rotation, double expansion);
 
 /*! \brief Performs sets the expansion of a background.
         This expansion is about its rotational center.
@@ -219,22 +220,22 @@ void bg_set_rotation_expansion (int id, double rotation, double expansion);
     \param expansion
         the expansion ratio, where 1.0 is 1:1 expansion
 */ 
-void bg_set_expansion (int id, double expansion);
+void bg_set_expansion (bg_index_t id, double expansion);
 
 /*! \brief Shows (makes visible) the specified background layer
     \param id
         background layer ID. e.g. BG_MAIN_0
 */ 
-void bg_show (int id);
+void bg_show (bg_index_t id);
 
 void bg_set_backdrop_color (uint32_t c32);
 void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
 
 
 
-bool bg_is_shown (int id);
+bool bg_is_shown (bg_index_t id);
 
-void bg_reset (int id, bg_type_t type);
+void bg_reset (bg_index_t id);
 
 
 
@@ -250,7 +251,7 @@ void bg_reset (int id, bg_type_t type);
     \param
         name of image resource in the GResource bundle
 */
-void bg_set_map_from_resource (int id, const char *resource);
+void bg_set_map_from_resource (bg_index_t id, const char *resource);
 
 /*! \brief Sets the tilesheet of a BG_TYPE_MAP map-and-tile background from a resource.
         The tilesheet is interpreted as 8x8 pixel blocks, numbered sequentially rowwise.
@@ -259,7 +260,7 @@ void bg_set_map_from_resource (int id, const char *resource);
     \param
         name of image resource in the GResource bundle
 */
-void bg_set_tilesheet_from_resource (int id, const char *resource);
+void bg_set_tilesheet_from_resource (bg_index_t id, const char *resource);
 
 /*! \brief Sets the a BG_TYPE_BMP background from a resource.
     \param id
@@ -267,13 +268,13 @@ void bg_set_tilesheet_from_resource (int id, const char *resource);
     \param
         name of image resource in the GResource bundle
 */
-void bg_set_bmp_from_file (int id, const char *filename);
-void bg_set_bmp_from_resource (int id, const char *resource);
+void bg_set_bmp_from_file (bg_index_t id, const char *filename);
+void bg_set_bmp_from_resource (bg_index_t id, const char *resource);
 
-void bg_get_transform (int id, double *scroll_x, double *scroll_y, double *rotation_center_x,
+void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y, double *rotation_center_x,
 		       double *rotation_center_y, double *rotation, double *expansion);
 		       
-cairo_surface_t *bg_render_to_cairo_surface (int id);
+cairo_surface_t *bg_render_to_cairo_surface (bg_index_t id);
 
 void bg_init_guile_procedures (void);
 
