@@ -258,8 +258,8 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                 fp = fopen("noise.txt", "wt");
             else
                 fp = fopen("wave.txt", "wt");
-            for(size_t i2 = 0; i2 < *length; i2++)
-                fprintf(fp, "%lu %d\n", i2, (int)(*buffer)[i2]);
+            for(unsigned i2 = 0; i2 < *length; i2++)
+                fprintf(fp, "%u %d\n", i2, (int)(*buffer)[i2]);
             fclose(fp);
         }
     }

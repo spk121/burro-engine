@@ -4,14 +4,15 @@
 #include "bg.h"
 #include "eng.h"
 #include "tga.h"
+#include "tilesheet.h"
 #include "vram.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-struct bg_tilesheet
+struct bg_matrix
 {
-    bg_tilesheet_size_t size;
+    bg_size_t size;
     vram_bank_t bank;
     uint32_t *storage;
     uint32_t **data;
@@ -60,6 +61,12 @@ bg_matrix_get_height (bg_size_t size)
 }
 
 static size_t
+bg_matrix_get_width (bg_size_t size)
+{
+    return bg_matrix_width[size];
+}
+
+static size_t
 bg_matrix_get_u32_size (bg_size_t size)
 {
     return bg_matrix_size[size];
@@ -69,7 +76,7 @@ static void
 bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
 {
     g_assert_cmpuint (bg_matrix_get_u32_size(size), >=,  vram_get_u32_size(bank));
-    
+
     vram_zero_bank(bank);
     x->bank = bank;
     x->size = size;
@@ -109,7 +116,7 @@ typedef struct bg_entry
     /** The width, height, and data of either the map or the bitmap.
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
-     *  FIXME: replace this with VRAM to save space */
+     */
     struct bg_matrix matrix;
 
 } bg_entry_t;
@@ -117,16 +124,10 @@ typedef struct bg_entry
 typedef struct bg_tag
 {
     /* The RGBA color displayed below all backgrounds and sprites */
-    uint32_t main_backdrop_color;
-    uint32_t sub_backdrop_color;
-
     bool colorswap;
   
     double brightness;
 
-    struct bg_matrix main_tilesheet;
-    struct bg_matrix sub_tilesheet;
-    
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
     cairo_surface_t *surf[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
@@ -135,6 +136,8 @@ bg_t bg;
 
 ////////////////////////////////////////////////////////////////
 
+static cairo_surface_t *
+bg_render_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
 bg_render_map_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
@@ -163,22 +166,6 @@ adjust_colorval (uint32_t c32)
     return c32;
 }
 
-void bg_get_main_backdrop_color_rgb (double *r, double *g, double *b)
-{
-    uint32_t c32 = adjust_colorval (bg.main_backdrop_color);
-    *r = ((double)((c32 & 0x00ff0000) >> 16)) / 255.0;
-    *g = ((double)((c32 & 0x0000ff00) >> 8)) / 255.0;
-    *b = ((double)((c32 & 0x000000ff))) / 255.0;
-}
-
-void bg_get_sub_backdrop_color_rgb (double *r, double *g, double *b)
-{
-  uint32_t c32 = adjust_colorval (bg.sub_backdrop_color);
-    *r = ((double)((c32 & 0x00ff0000) >> 16)) / 255.0;
-    *g = ((double)((c32 & 0x0000ff00) >> 8)) / 255.0;
-    *b = ((double)((c32 & 0x000000ff))) / 255.0;
-}
-
 bool
 bg_is_shown (bg_index_t id)
 {
@@ -188,16 +175,6 @@ bg_is_shown (bg_index_t id)
 uint32_t *bg_get_data_ptr (bg_index_t id)
 {
     return bg.bg[id].matrix.storage;
-}
-
-uint32_t *bg_get_main_tilesheet_ptr ()
-{
-    return bg.main_tilesheet.storage;    
-}
-
-uint32_t *bg_get_sub_tilesheet_ptr ()
-{
-    return bg.sub_tilesheet.storage;
 }
 
 int bg_get_priority (bg_index_t id)
@@ -226,12 +203,8 @@ void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank)
 
 void bg_init_all_to_default ()
 {
-    bg.main_backdrop_color = 0xff000000;
-    bg.sub_backdrop_color = 0xff000000;
     bg.colorswap = false;
     bg.brightness = 1.0;
-    bg_matrix_allocate (&(bg.main_tilesheet), BG_SIZE_512x512, VRAM_0);
-    bg_matrix_allocate (&(bg.sub_tilesheet), BG_SIZE_512x512, VRAM_1);
     for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT; i ++)
     {
         bg.bg[i].enable = false;
@@ -279,16 +252,6 @@ void bg_set (bg_index_t id, double rotation, double expansion,
     bg.bg[id].scroll_y = scroll_y;
     bg.bg[id].rotation_center_x = rotation_center_x;
     bg.bg[id].rotation_center_y = rotation_center_y;
-}
-
-void bg_set_main_backdrop_color (uint32_t c32)
-{
-    bg.main_backdrop_color = c32;
-}
-
-void bg_set_sub_backdrop_color (uint32_t c32)
-{
-    bg.sub_backdrop_color = c32;
 }
 
 void bg_set_expansion (bg_index_t id, double expansion)
@@ -378,46 +341,26 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
     }
     else
     {
-        int width, height, stride;
-        xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
-        uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
+        int img_width, img_height, img_stride;
+        int bg_width, bg_height;
+        int width, height;
 
-        if (id == -2 || id == -1)
-        {
-            if (width > BG_TILESHEET_WIDTH)
-                width = BG_TILESHEET_WIDTH;
-            if (height > BG_TILESHEET_HEIGHT)
-                height = BG_TILESHEET_HEIGHT;
-        }
-        else
-        {
-            if (width > BG_DATA_WIDTH)
-                width = BG_DATA_WIDTH;
-            if (height > BG_DATA_HEIGHT)
-                height = BG_DATA_HEIGHT;
-            bg.bg[id].height = height;
-            bg.bg[id].width = width;
-            bg.bg[id].type = type;
-        }
+        xgdk_pixbuf_get_width_height_stride (pb, &img_width, &img_height, &img_stride);
+        uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
+        bg_width = bg_matrix_width[bg.bg[id].matrix.size];
+        bg_height = bg_matrix_height[bg.bg[id].matrix.size];
+
+        width = MIN(img_width, bg_width);
+        height = MIN(img_height, bg_height);
         
         for (unsigned j = 0; j < height; j ++)
         {
             for (unsigned i = 0; i < width ; i ++)
             {
-                if (id == -2)
-                    bg.sub_tilesheet[j][i] = c32[j * stride + i];
-                else if (id == -1)
-                    bg.main_tilesheet[j][i] = c32[j * stride + i];
-                else
-                    bg.bg[id].data[j][i] = c32[j * stride + i];
+                bg.bg[id].matrix.data[j][i] = c32[j * img_stride + i];
             }
         }
-        if (id == -2)
-            g_debug ("loaded pixbuf %s as bg sub tilesheet", path);
-        else if (id == -1)
-            g_debug ("loaded pixbuf %s as bg main tilesheet", path);
-        else
-            g_debug ("loaded pixbuf %s as bg %d", path, id);
+        g_debug ("loaded pixbuf %s as bg %d", path, id);
         g_free (path);
         g_object_unref (pb);
     }
@@ -426,14 +369,6 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 void bg_set_data_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
     set_from_image_file (id, type, filename);
-}
-
-void bg_set_tilesheet_from_image_file (bg_index_t id, const char *filename)
-{
-    if (id == 0)
-        set_from_image_file (-1, 0, filename);
-    else if (id == 1)
-        set_from_image_file (-2, 0, filename);
 }
 
 #if 0
@@ -448,7 +383,7 @@ void bg_set_bmp_from_resource (bg_index_t id, const gchar *resource)
 cairo_surface_t *
 bg_get_cairo_surface (bg_index_t id)
 {
-    g_assert (bg.type != BG_TYPE_NONE);
+    g_assert (bg.bg[id].type != BG_TYPE_NONE);
     g_assert (bg.surf[id] != NULL);
 
     return bg.surf[id];
@@ -462,13 +397,16 @@ bg_update (bg_index_t id)
     bg.surf[id] = bg_render_to_cairo_surface (id);
 }
 
-cairo_surface_t *
+static cairo_surface_t *
 bg_render_to_cairo_surface (bg_index_t id)
 {
     g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
     
     switch (bg.bg[id].type)
     {
+    case BG_TYPE_NONE:
+        return NULL;
+        break;
     case BG_TYPE_MAP:
         return bg_render_map_to_cairo_surface (id);
         break;
@@ -489,13 +427,19 @@ bg_render_map_to_cairo_surface (bg_index_t id)
     int map_index, vflip, hflip;
     uint32_t c;
     int width, height;
+    tilesheet_index_t tilesheet_id;
 
+    if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
+        tilesheet_id = TILESHEET_MAIN;
+    else
+        tilesheet_id = TILESHEET_SUB;
+    
     width = bg_matrix_get_width(bg.bg[id].matrix.size);
     height = bg_matrix_get_height(bg.bg[id].matrix.size);
 
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-                                        width * BG_TILE_WIDTH,
-                                        height * BG_TILE_HEIGHT);
+                                        width * TILE_WIDTH,
+                                        height * TILE_HEIGHT);
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
@@ -505,16 +449,16 @@ bg_render_map_to_cairo_surface (bg_index_t id)
         for (unsigned map_i = 0; map_i < width; map_i ++)
         {
             /* Fill in the tile brush */
-            map_index = bg.bg[id].data[map_j][map_i];
+            map_index = bg.bg[id].matrix.data[map_j][map_i];
             
             // FIXME -- IS THIS RIGHT??
             // vflip = map_index & (1 << 31);
             // hflip = map_index & (1 << 30);
             // map_index = map_index & 0x0fffffff;
             
-            delta_tile_j = (map_index / BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_HEIGHT;
-            delta_tile_i = (map_index % BG_TILESHEET_WIDTH_IN_TILES) * BG_TILE_WIDTH;
-            for (tile_j = 0; tile_j < BG_TILE_HEIGHT; tile_j ++)
+            delta_tile_j = (map_index / tilesheet_get_width_in_tiles(tilesheet_id)) * TILE_HEIGHT;
+            delta_tile_i = (map_index % tilesheet_get_width_in_tiles(tilesheet_id)) * TILE_WIDTH;
+            for (tile_j = 0; tile_j < TILE_HEIGHT; tile_j ++)
             {
                 if (false && (bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
                 {
@@ -525,19 +469,14 @@ bg_render_map_to_cairo_surface (bg_index_t id)
                 {
                     // SLOW PATH, copy a row pixel-by-pixel, adjusting
                     // brighness, colorswap, (FIXME flipping too)
-                    for (tile_i = 0; tile_i < BG_TILE_WIDTH; tile_i ++)
+                    for (tile_i = 0; tile_i < TILE_WIDTH; tile_i ++)
                     {
                         uint32_t c32;
-                        if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
-                            c32 = bg.main_tilesheet.data[delta_tile_j + tile_j][delta_tile_i + tile_i];
-                        else if (id >= BG_SUB_0 && id <= BG_SUB_3)
-                            c32 = bg.sub_tilesheet.data[delta_tile_j + tile_j][delta_tile_i + tile_i];
-                        else
-                            g_return_val_if_reached (NULL);
+                        c32 = tilesheet_get_data_ptr(tilesheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
                         
                         c = adjust_colorval (c32);
-                        data[(map_j * BG_TILE_HEIGHT + tile_j) * stride
-                             + (map_i * BG_TILE_WIDTH + tile_i)] = c;
+                        data[(map_j * TILE_HEIGHT + tile_j) * stride
+                             + (map_i * TILE_WIDTH + tile_i)] = c;
                     }
                 }
             }
@@ -587,8 +526,9 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
     return surf;
 }
 
-void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y, double *rotation_center_x,
-                       double *rotation_center_y, double *rotation, double *expansion)
+void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
+                       double *rotation_center_x, double *rotation_center_y,
+                       double *rotation, double *expansion)
 {
     *scroll_x = bg.bg[id].scroll_x;
     *scroll_y = bg.bg[id].scroll_y;
@@ -640,15 +580,6 @@ Set the position, rotation, expansion, and rotation center of a background.")
     bg_set (scm_to_int(id), scm_to_double(rotation), scm_to_double (expansion), scm_to_double (scroll_x),
             scm_to_double (scroll_y), scm_to_double (center_x), scm_to_double (center_y));
     return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_bg_set_backdrop_color, "bg-set-backdrop-color",
-            1, 0, 0, (SCM color), "\
-Given COLOR, a 32-bit ARGB integer, set the color of the lowest layer of\n\
-the background")
-{
-  bg_set_backdrop_color (scm_to_uint32 (color));
-  return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_bg_set_bmp_from_file, "bg-set-bmp-from-file",
@@ -743,7 +674,6 @@ bg_init_guile_procedures (void)
                   "bg-rotate",
                   "bg-scroll",
                   "bg-set",
-                  "bg-set-backdrop-color",
                   "bg-set-bmp-from-file",
                   "bg-set-expansion",
                   "bg-set-priority",

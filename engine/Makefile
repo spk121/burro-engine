@@ -140,6 +140,7 @@ SRCS_C   = \
  x/xguile.c \
  x/xpulseaudio.c \
  y/audio_model.c \
+ y/backdrop.c \
  y/bg.c \
  y/console.c \
  y/draw.c \
@@ -153,6 +154,7 @@ SRCS_C   = \
  y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
+ y/tilesheet.c \
  y/vram.c \
  main.c
 

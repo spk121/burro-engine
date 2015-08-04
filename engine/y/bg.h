@@ -1,13 +1,13 @@
-/*---------------------------------------------------------------------------------
+/*-----------------------------------------------------------------------------
 
 	background.h -- definitions for DS backgrounds
 	Copyright (C) 2013,2014
 		Michael L. Gran (spk121)
 
 	GPL3+
----------------------------------------------------------------------------------*/
-/*! \file bg.h
-    \brief background defines and functionality
+-----------------------------------------------------------------------------*/
+/** @file bg.h
+    @brief background defines and functionality
 
     These are the public as well as the internal API to control backgrounds.
     There are four backgrounds for both the main and sub screens.  BG0 is 
@@ -38,10 +38,6 @@
 #define BG_TILESHEET_HEIGHT_IN_TILES 32
 //! The maximum width, in tiles, of a map background's tilesheet
 #define BG_TILESHEET_WIDTH_IN_TILES 32
-//! The height of a map background's tile
-#define BG_TILE_HEIGHT 16
-//! The width of a map background's tile
-#define BG_TILE_WIDTH 16
 //! The maximum height, in pixels, of a map background's tilesheet
 #define BG_TILESHEET_HEIGHT (BG_TILESHEET_HEIGHT_IN_TILES * BG_TILE_HEIGHT)
 //! The maximum width, in pixels, of a map background's tilesheet
@@ -87,14 +83,6 @@ typedef enum bg_size_tag bg_size_t;
 /*! \brief Returns the pointer to the map or bmp data
  */
 uint32_t *bg_get_data_ptr (bg_index_t id);
-
-/*! \brief Returns the pointer to tilesheeet data
- */
-uint32_t *bg_get_main_tilesheet_ptr (void);
-
-/*! \brief Returns the pointer to tilesheeet data
- */
-uint32_t *bg_get_sub_tilesheet_ptr (void);
 
 /*! \brief Gets the priority of the background layer.
     \param id
@@ -228,11 +216,6 @@ void bg_set_expansion (bg_index_t id, double expansion);
 */ 
 void bg_show (bg_index_t id);
 
-void bg_set_backdrop_color (uint32_t c32);
-void bg_get_backdrop_color_rgb (double *r, double *g, double *b);
-
-
-
 bool bg_is_shown (bg_index_t id);
 
 void bg_reset (bg_index_t id);
@@ -271,10 +254,11 @@ void bg_set_tilesheet_from_resource (bg_index_t id, const char *resource);
 void bg_set_bmp_from_file (bg_index_t id, const char *filename);
 void bg_set_bmp_from_resource (bg_index_t id, const char *resource);
 
-void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y, double *rotation_center_x,
-		       double *rotation_center_y, double *rotation, double *expansion);
+void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
+                       double *rotation_center_x, double *rotation_center_y,
+                       double *rotation, double *expansion);
 		       
-cairo_surface_t *bg_render_to_cairo_surface (bg_index_t id);
+cairo_surface_t *bg_get_cairo_surface (bg_index_t id);
 
 void bg_init_guile_procedures (void);
 

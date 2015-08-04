@@ -17,6 +17,11 @@
 #include <stdint.h>
 #include "vram.h"
 
+/** The height of a map background's tile */
+#define TILE_HEIGHT 16
+/** The width of a map background's tile */
+#define TILE_WIDTH 16
+
 /** Indices for the two tilesheets. */
 typedef enum tilesheet_index_tag {
     TILESHEET_MAIN = 0,
@@ -42,17 +47,39 @@ typedef struct tilesheet
     uint32_t **data;
 } tilesheet_t;
 
-/** Returns the 2D U32 pointer to main tilesheeet data.
- */
-uint32_t **tilesheet_get_data_ptr (tilesheet_index_t id);
-
 /** Initializes a tilesheet's size and virtual memory.
     @param size
         size of the tilesheet, TILESHEET_SIZE_512x512, etc
     @param bank
         storage location for this background: VRAM_A, VRAM_B, etc
 */
-void tilesheet_init (tilesheet_index_t id, bg_size_t siz, vram_bank_t bank);
+void tilesheet_init (tilesheet_index_t id, tilesheet_size_t siz,
+                     vram_bank_t bank);
+
+/** Returns the 2D U32 pointer to main tilesheeet data.
+ */
+uint32_t **tilesheet_get_data_ptr (tilesheet_index_t id);
+
+/** Return the height, in pixels, of a tilesheet
+ */
+size_t tilesheet_get_height (tilesheet_index_t id);
+
+/** Return the width, in pixels, of a tilesheet
+ */
+size_t tilesheet_get_width (tilesheet_index_t id);
+
+/** Return the height, in tiles, of a tilesheet
+ */
+size_t tilesheet_get_height_in_tiles (tilesheet_index_t id);
+
+/** Return the width, in tiles, of a tilesheet
+ */
+size_t tilesheet_get_width_in_tiles (tilesheet_index_t id);
+
+
+/** Return the size, in total number of pixels, of a tilesheet
+ */
+size_t tilesheet_get_size (tilesheet_index_t id);
 
 /** Initializes a tilesheet's contents from a file.
  *  Note that this doesn't change the size of a tilesheet as assigned
@@ -67,6 +94,8 @@ void tilesheet_set_data_from_file (tilesheet_index_t, const char *filename);
 /** Initialize tilesheet procedures for the scripting engine
  */
 void tilesheet_init_guile_procedures (void);
+
+#endif
 
 /*
   Local Variables:

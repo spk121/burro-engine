@@ -5,6 +5,7 @@
 #include "eng.h"
 #include "guile.h"
 #include "loop.h"
+#include "tilesheet.h"
 #include <libguile.h>
 
 // One route to defining C functions into a module is
@@ -23,6 +24,7 @@ _burroscript_init (void *unused)
     console_init_guile_procedures();
     eng_init_guile_procedures();
     loop_init_guile_procedures();
+    tilesheet_init_guile_procedures();
 }
 
 void
