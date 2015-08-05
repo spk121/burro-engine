@@ -1,93 +1,84 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
-#include "tilesheet.h"
+#include "sheet.h"
 #include "vram.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-int tilesheet_width[6] = {
-    [TILESHEET_SIZE_32x32] = 32,
-    [TILESHEET_SIZE_128x128] = 128,
-    [TILESHEET_SIZE_256x256] = 256,
-    [TILESHEET_SIZE_512x256] = 512,
-    [TILESHEET_SIZE_256x512] = 256,
-    [TILESHEET_SIZE_512x512] = 512,
-};
-
-int tilesheet_height[6] = {
-    [TILESHEET_SIZE_32x32] = 32,
-    [TILESHEET_SIZE_128x128] = 128,
-    [TILESHEET_SIZE_256x256] = 256,
-    [TILESHEET_SIZE_512x256] = 256,
-    [TILESHEET_SIZE_256x512] = 512,
-    [TILESHEET_SIZE_512x512] = 512,
-};
-
-int tilesheet_size[6] = {
-    [TILESHEET_SIZE_32x32] = 32*32,
-    [TILESHEET_SIZE_128x128] = 128*128,
-    [TILESHEET_SIZE_256x256] = 256*256,
-    [TILESHEET_SIZE_512x256] = 512*256,
-    [TILESHEET_SIZE_256x512] = 256*512,
-    [TILESHEET_SIZE_512x512] = 512*512,
-};
-
-tilesheet_t ts[2];
+sheet_t ts[2];
 
 int
-tilesheet_get_height (tilesheet_index_t index)
+sheet_get_height (sheet_index_t index)
 {
-    return tilesheet_height[ts[index].size];
+    sheet_assert_valid_index (index);
+
+    return matrix_get_height(ts[index].size);
 }
 
 int
-tilesheet_get_width (tilesheet_index_t index)
+sheet_get_width (sheet_index_t index)
 {
-    return tilesheet_width[ts[index].size];
+    sheet_assert_valid_index (index);
+
+    return matrix_get_width(ts[index].size);
 }
 
 int
-tilesheet_get_height_in_tiles (tilesheet_index_t index)
+sheet_get_height_in_tiles (sheet_index_t index)
 {
-    return tilesheet_height[ts[index].size] / TILE_HEIGHT;
+    sheet_assert_valid_index (index);
+
+    return matrix_get_height(ts[index].size) / TILE_HEIGHT;
 }
 
 int
-tilesheet_get_width_in_tiles (tilesheet_index_t index)
+sheet_get_width_in_tiles (sheet_index_t index)
 {
-    return tilesheet_width[ts[index].size] / TILE_WIDTH;
+    sheet_assert_valid_index (index);
+
+    return matrix_get_width(ts[index].size) / TILE_WIDTH;
 }
 
-
 int
-tilesheet_get_u32_size (tilesheet_index_t index)
+sheet_get_u32_size (sheet_index_t index)
 {
-    return tilesheet_size[ts[index].size];
+    sheet_assert_valid_index (index);
+
+    return matrix_get_u32_width(ts[index].size);
 } 
 
-uint32_t **
-tilesheet_get_u32_data (tilesheet_index_t index)
+uint32_t *
+sheet_get_u32_storage (sheet_index_t index)
 {
+    sheet_assert_valid_index (index);
+
+    return ts[index].storage;
+}
+
+uint32_t **
+sheet_get_u32_data (sheet_index_t index)
+{
+    sheet_assert_valid_index (index);
+
     return ts[index].data;
 }
 
 void
-tilesheet_init (tilesheet_index_t index, tilesheet_size_t size,
+sheet_init (sheet_index_t index, matrix_size_t size,
                 vram_bank_t bank)
 {
-    g_assert_cmpuint (tilesheet_size[size], >=,  vram_get_u32_size(bank));
+    sheet_assert_valid_index(index);
+    matrix_assert_valid_size(size);
+    vram_assert_valid_index(bank);
+
     ts[index].bank = bank;
     ts[index].size = size;
-    ts[index].storage = vram_get_u32_ptr(bank);
-    g_free (ts[index].data);
-    ts[index].data = g_new0(uint32_t *, tilesheet_height[size]);
-    for (int i = 0; i < tilesheet_height[size]; i ++)
-        ts[index].data[i] = ts[index].storage + i * tilesheet_width[size];
+    matrix_attach_to_vram(size, bank, &(ts[index].storage), &(ts[index].data));
 }
 
-void tilesheet_set_data_from_file (tilesheet_index_t id, const char *filename)
+void sheet_set_data_from_file (sheet_index_t id, const char *filename)
 {
     char *path = xg_find_data_file (filename);
     g_return_if_fail (path != NULL);
@@ -110,8 +101,8 @@ void tilesheet_set_data_from_file (tilesheet_index_t id, const char *filename)
                                             &img_stride);
         uint32_t *img_store = xgdk_pixbuf_get_argb32_pixels (pb);
 
-        ts_width = tilesheet_width[ts[id].size];
-        ts_height = tilesheet_height[ts[id].size];
+        ts_width = sheet_width[ts[id].size];
+        ts_height = sheet_height[ts[id].size];
 
         width = MIN(img_width, ts_width);
         height = MIN(img_height, ts_height);
@@ -123,60 +114,50 @@ void tilesheet_set_data_from_file (tilesheet_index_t id, const char *filename)
                 ts[id].data[j][i] = img_store[j * img_stride + i];
             }
         }
-        if (id == TILESHEET_MAIN)
-            g_debug ("loaded pixbuf %s as bg main tilesheet", path);
+        if (id == SHEET_MAIN)
+            g_debug ("loaded pixbuf %s as bg main sheet", path);
         else
-            g_debug ("loaded pixbuf %s as bg sub tilesheet", path);
+            g_debug ("loaded pixbuf %s as bg sub sheet", path);
         g_free (path);
         g_object_unref (pb);
     }
 }
 
-SCM_DEFINE (G_tilesheet_init, "tilesheet-init", 3, 0, 0,
+SCM_DEFINE (G_sheet_init, "sheet-init", 3, 0, 0,
             (SCM id, SCM size, SCM bank), "\
-Set the size and VRAM storage of a given tilesheet")
+Set the size and VRAM storage of a given sheet")
 {
-    tilesheet_init (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
+    sheet_init (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_tilesheet_set_data_from_file, "tilesheet-set-data-from-file",
+SCM_DEFINE (G_sheet_set_data_from_file, "sheet-set-data-from-file",
             2, 0, 0, (SCM id, SCM filename), "\
-Copies the contents of an ARGB32 image into the tilesheet.  Note that the \n\
-tilesheet's size and VRAM must first be set using 'tilesheet-init'")
+Copies the contents of an ARGB32 image into the sheet.  Note that the \n\
+sheet's size and VRAM must first be set using 'sheet-init'")
 {
     char *str = scm_to_locale_string (filename);
-    tilesheet_set_data_from_file (scm_to_int (id), str);
+    sheet_set_data_from_file (scm_to_int (id), str);
     free (str);
     return SCM_UNSPECIFIED;
 }
 
-SCM_VARIABLE_INIT (G_TILESHEET_MAIN, "TILESHEET_MAIN",
-                   scm_from_int (TILESHEET_MAIN));
-SCM_VARIABLE_INIT (G_TILESHEET_SUB, "TILESHEET_SUB",
-                   scm_from_int (TILESHEET_SUB));
-
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_32x32, "TILESHEET_SIZE_32x32", scm_from_int (TILESHEET_SIZE_32x32));
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_128x128, "TILESHEET_SIZE_128x128", scm_from_int (TILESHEET_SIZE_128x128));
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_256x256, "TILESHEET_SIZE_256x256", scm_from_int (TILESHEET_SIZE_256x256));
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_256x512, "TILESHEET_SIZE_256x512", scm_from_int (TILESHEET_SIZE_256x512));
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_512x256, "TILESHEET_SIZE_512x256", scm_from_int (TILESHEET_SIZE_512x256));
-SCM_VARIABLE_INIT (G_TILESHEET_SIZE_512x512, "TILESHEET_SIZE_512x512", scm_from_int (TILESHEET_SIZE_512x512));
+SCM_VARIABLE_INIT (G_SHEET_MAIN_BG, "SHEET_MAIN_BG", scm_from_int (SHEET_MAIN_BG));
+SCM_VARIABLE_INIT (G_SHEET_MAIN_OBJ, "SHEET_MAIN_OBJ", scm_from_int (SHEET_MAIN_OBJ));
+SCM_VARIABLE_INIT (G_SHEET_SUB_BG, "SHEET_SUB_BG", scm_from_int (SHEET_SUB_BG));
+SCM_VARIABLE_INIT (G_SHEET_SUB_OBJ, "SHEET_SUB_OBJ", scm_from_int (SHEET_SUB_OBJ));
 
 void
-tilesheet_init_guile_procedures (void)
+sheet_init_guile_procedures (void)
 {
-#include "tilesheet.x"
-    scm_c_export ("tilesheet-init",
-                  "tilesheet-set-data-from-file",
-                  "TILESHEET_MAIN",
-                  "TILESHEET_SUB",
-                  "TILESHEET_SIZE_32x32", 
-                  "TILESHEET_SIZE_128x128", 
-                  "TILESHEET_SIZE_256x256", 
-                  "TILESHEET_SIZE_256x512", 
-                  "TILESHEET_SIZE_512x256", 
-                  "TILESHEET_SIZE_512x512", 
+#include "sheet.x"
+    scm_c_export ("sheet-init",
+                  "sheet-set-data-from-file",
+                  "sheet-get-width",
+                  "sheet-get-height",
+                  "sheet-get-u32-size",
+                  "sheet->bytevector",
+                  "sheet->list-of-bytevectors",
                   NULL);
 }
 

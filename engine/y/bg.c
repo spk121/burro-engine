@@ -652,10 +652,16 @@ Apply all changes to this background layer since the last call to 'bg-update'")
 SCM_DEFINE (G_bg_modify, "bg-get-bytevector", 1, 0, 0, (SCM id), "\
 Returns a bytevector of data that holds the BG bitmap or map data")
 {
-    return scm_pointer_to_bytevector(bg.bg[scm_to_int(id)].storage,
-                                     scm_from_int (bg_matrix_size[bg.bg[scm_to_int(id)].size]),
-                                     scm_from_int (0),
-                                     scm_from_locale_symbol("u32"));
+    // First make a pointer
+    bg_index_t i = scm_to_int (id);
+    SCM pointer = scm_from_pointer (bg_get_u32_data_ptr (i), NULL);
+
+    // Then make a bytevector
+    SCM len = scm_from_size_t (get_bg_matrix_u32_size (i));
+    SCM zero_offset = scm_from_size_t (0);
+    SCM uvec_type = SCM_ARRAY_ELEMENT_U32;
+        
+    return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
 }
 
 SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
@@ -668,16 +674,6 @@ SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
 
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
 SCM_VARIABLE_INIT (G_BG_TYPE_MAP, "BG_TYPE_MAP", scm_from_int (BG_TYPE_MAP));
-
-SCM_VARIABLE_INIT (G_BG_SIZE_16x16, "BG_SIZE_16x16", scm_from_int (BG_SIZE_16x16));
-SCM_VARIABLE_INIT (G_BG_SIZE_16x32, "BG_SIZE_16x32", scm_from_int (BG_SIZE_16x32));
-SCM_VARIABLE_INIT (G_BG_SIZE_32x16, "BG_SIZE_32x16", scm_from_int (BG_SIZE_32x16));
-SCM_VARIABLE_INIT (G_BG_SIZE_32x32, "BG_SIZE_32x32", scm_from_int (BG_SIZE_32x32));
-SCM_VARIABLE_INIT (G_BG_SIZE_128x128, "BG_SIZE_128x128", scm_from_int (BG_SIZE_128x128));
-SCM_VARIABLE_INIT (G_BG_SIZE_256x256, "BG_SIZE_256x256", scm_from_int (BG_SIZE_256x256));
-SCM_VARIABLE_INIT (G_BG_SIZE_256x512, "BG_SIZE_256x512", scm_from_int (BG_SIZE_256x512));
-SCM_VARIABLE_INIT (G_BG_SIZE_512x256, "BG_SIZE_512x256", scm_from_int (BG_SIZE_512x256));
-SCM_VARIABLE_INIT (G_BG_SIZE_512x512, "BG_SIZE_512x512", scm_from_int (BG_SIZE_512x512));
 
 SCM_VARIABLE_INIT (G_BG_MAIN_0, "BG_MAIN_0", scm_from_int (BG_MAIN_0));
 SCM_VARIABLE_INIT (G_BG_MAIN_1, "BG_MAIN_1", scm_from_int (BG_MAIN_1));
@@ -693,22 +689,44 @@ void
 bg_init_guile_procedures (void)
 {
 #include "bg.x"
-    scm_c_export ("bg-get-priority",
+    scm_c_export ("bg-init",
+                  "bg-set-bmp-from-file",
+                  "bg-set-map-from-file",
+
                   "bg-hide", 
-                  "bg-reset",
+                  "bg-show",
+
+                  "bg-set",
                   "bg-rotate",
                   "bg-scroll",
-                  "bg-set",
-                  "bg-set-bmp-from-file",
                   "bg-set-expansion",
                   "bg-set-priority",
                   "bg-set-rotation",
                   "bg-set-rotation-center",
                   "bg-set-rotation-expansion",
-                  "bg-show",
-                  "bg-shown?",
+
+                  "bg-set-colorswap",
+                  "bg-set-brightness",
+
                   "bg-update",
-                  "bg-modify",
+                  
+                  "bg-get-width",
+                  "bg-get-height",
+                  "bg-get-u32-size",
+                  "bg->bytevector",
+                  "bg->list-of-bytevectors",
+
+                  
+                  "BG_TYPE_BMP",
+                  "BG_TYPE_MAP",
+                  "BG_MAIN_0",
+                  "BG_MAIN_1",
+                  "BG_MAIN_2",
+                  "BG_MAIN_3",
+                  "BG_SUB_0",
+                  "BG_SUB_1",
+                  "BG_SUB_2",
+                  "BG_SUB_3",
                   NULL);
 }
 

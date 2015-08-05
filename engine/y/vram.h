@@ -7,7 +7,6 @@
 #define BURRO_VRAM_H
 
 #include <stdint.h>
-#include "../x.h"
 
 /** Index of a VRAM bank. */
 enum vram_bank_tag {
@@ -133,19 +132,5 @@ void vram_zero_bank (vram_bank_t bank);
 /** Register VRAM procedures with the script engine. */
 void vram_init_guile_procedures (void);
 
-
-////////////////////////////////////////////////////////////////
-
-
-// WRAM - 64K + 32K, audio
-
-// OAM - 2K object memory
-
-// 4MB ISO data storage memory
-
-// Total VRAM ABCD = 1024kB EFGHI = 80kB
-//       WRAM = 96kB  (2.2 sec of audio)
-
-// MAX ISO size 512 MB
 
 #endif

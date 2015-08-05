@@ -1,99 +1,100 @@
 /*---------------------------------------------------------------------------------
 
-	tilesheet.h
+	sheet.h
 	Copyright (C) 2015
 		Michael L. Gran (spk121)
 
 	GPL3+
 ---------------------------------------------------------------------------------*/
-/** @file tilesheet.h
-    @brief Tilesheets for map-and-tile backgrounds
+/** @file sheet.h
+    @brief Sheets and spritesheets
 */
 
-#ifndef BURRO_TILESHEET_H
-#define BURRO_TILESHEET_H
+#ifndef BURRO_SHEET_H
+#define BURRO_SHEET_H
 
 #include <stdbool.h>
 #include <stdint.h>
 #include "vram.h"
 
-/** The height of a map background's tile */
+/** The height of a spritesheet tile */
 #define TILE_HEIGHT 16
-/** The width of a map background's tile */
+/** The width of a spritesheet tile */
 #define TILE_WIDTH 16
 
-/** Indices for the two tilesheets. */
-typedef enum tilesheet_index_tag {
-    TILESHEET_MAIN = 0,
-    TILESHEET_SUB = 1,
-    TILESHEET_COUNT = 2
-} tilesheet_index_t;
+/** Indices for the two sheets. */
+typedef enum sheet_index_tag {
+    SHEET_MAIN_BG = 0,
+    SHEET_SUB_BG = 1,
+    SHEET_MAIN_OBJ = 2,
+    SHEET_SUB_OBJ = 3,
+    SHEET_COUNT = 4
+} sheet_index_t;
 
-/** The allowed sizes of BG tilesheets, in pixels. */
-typedef enum tilesheet_size_tag {
-    TILESHEET_SIZE_32x32,              /**< 2x2 16px blocks, requires 1k uint32 VRAM */
-    TILESHEET_SIZE_128x128,            /**< 8x8 16px blocks, requires 16k uint32 VRAM */
-    TILESHEET_SIZE_256x256,            /**< 16x16 16px blocks, requires 64k uint32 VRAM */
-    TILESHEET_SIZE_512x256,            /**< 32x16 16px blocks, requires 128k uint32 VRAM */
-    TILESHEET_SIZE_256x512,            /**< 16x32 16px blocks, requires 128k uint32 VRAM */
-    TILESHEET_SIZE_512x512,            /**< 32x32 16px blocks, requires 256k uint32 VRAM */
-} tilesheet_size_t;
+#define heet_assert_valid_index(_x) \
+    g_assert(_x >= 0 && _x < SHEET_COUNT)
 
-typedef struct tilesheet
+typedef struct sheet
 {
-    tilesheet_size_t size;
+    matrix_size_t size;
     vram_bank_t bank;
     uint32_t *storage;
     uint32_t **data;
-} tilesheet_t;
+} sheet_t;
 
-/** Initializes a tilesheet's size and virtual memory.
+/** Initializes a sheet's size and virtual memory.
+    @param id
+        SHEET_MAIN_BG, SHEET_SUB_BG, etc
     @param size
-        size of the tilesheet, TILESHEET_SIZE_512x512, etc
+        size of the sheet, MATRIX_SIZE_512x512, etc
     @param bank
         storage location for this background: VRAM_A, VRAM_B, etc
 */
-void tilesheet_init (tilesheet_index_t id, tilesheet_size_t siz,
+void sheet_init (sheet_index_t id, matrix_size_t siz,
                      vram_bank_t bank);
 
-/** Returns the 2D U32 pointer to main tilesheeet data.
+/** Returns the 2D U32 pointer to tilesheeet data.
  */
-uint32_t **tilesheet_get_u32_data (tilesheet_index_t id);
+uint32_t **sheet_get_u32_data (sheet_index_t id);
 
-/** Return the height, in pixels, of a tilesheet
+/** Returns the U32 pointer to the sheet_data
  */
-int tilesheet_get_height (tilesheet_index_t id);
+uint32_t *sheet_get_u32_storage (sheet_index_t id);
 
-/** Return the width, in pixels, of a tilesheet
+/** Return the height, in pixels, of a sheet
  */
-int tilesheet_get_width (tilesheet_index_t id);
+int sheet_get_height (sheet_index_t id);
 
-/** Return the height, in tiles, of a tilesheet
+/** Return the width, in pixels, of a sheet
  */
-int tilesheet_get_height_in_tiles (tilesheet_index_t id);
+int sheet_get_width (sheet_index_t id);
 
-/** Return the width, in tiles, of a tilesheet
+/** Return the height, in tiles, of a sheet
  */
-int tilesheet_get_width_in_tiles (tilesheet_index_t id);
+int sheet_get_height_in_tiles (sheet_index_t id);
 
-
-/** Return the size, in total number of pixels, of a tilesheet
+/** Return the width, in tiles, of a sheet
  */
-size_t tilesheet_get_size (tilesheet_index_t id);
+int sheet_get_width_in_tiles (sheet_index_t id);
 
-/** Initializes a tilesheet's contents from a file.
- *  Note that this doesn't change the size of a tilesheet as assigned
- *  in 'tilesheet_init'.  If the file is larger than the tilesheet,
+/** Return the size, in total number of pixels, of a sheet
+ */
+size_t sheet_get_size (sheet_index_t id);
+
+/** Initializes a sheet's contents from a file.
+ *  Note that this doesn't change the size of a sheet as assigned
+ *  in 'sheet_init'.  If the file is larger than the sheet,
  *  extra data is dropped.  If it is smaller, some part of the
- *  tilesheet will remain unfilled.
- *  @param id - either MAIN or SUB tilesheet index
+ *  sheet will remain unfilled.
+ *  @param id - either MAIN or SUB sheet index
  *  @param filename - the name of a PNG file in the data directory
  */
-void tilesheet_set_data_from_file (tilesheet_index_t, const char *filename);
+void sheet_set_data_from_image_file (sheet_index_t, const char *filename);
+void sheet_set_data_from_csv_file (sheet_index_t, const char *filename);
 
-/** Initialize tilesheet procedures for the scripting engine
+/** Initialize sheet procedures for the scripting engine
  */
-void tilesheet_init_guile_procedures (void);
+void sheet_init_guile_procedures (void);
 
 #endif
 

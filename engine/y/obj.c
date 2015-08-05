@@ -434,18 +434,27 @@ void
 init_guile_obj_procedures (void)
 {
 #include "obj.x"
-    scm_c_export ("obj-main-spritesheet-init",
-                  "obj-sub-spritesheet-init",
-                  "obj-hide",
-                "obj-show",
-                "obj-shown?",
-                "obj-init",
-                "obj-set",
-                "obj-set-rotation-expansion",
-                "obj-set-position",
-                "obj-set-spritesheet-origin",
-                "obj-set-spritesheet-from-file",
-                NULL);
+    scm_c_export (
+        "obj-init",
+
+        "obj-hide",
+        "obj-show",
+
+        "obj-set",
+        "obj-rotate",
+        "obj-move",
+        "obj-set-position"
+        "obj-set-expansion",
+        "obj-set-rotation",
+        "obj-set-rotation-center",
+        "obj-set-rotation-expansion",
+
+        "obj-set-colorswap",
+        "obj-set-brightness",
+
+        "obj-get-width",
+        "obj-get-height",
+        NULL);
 }
 
 

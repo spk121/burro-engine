@@ -68,25 +68,58 @@ SCM_VARIABLE_INIT (G_VRAM_AB, "VRAM_AB", scm_from_int (VRAM_AB));
 SCM_VARIABLE_INIT (G_VRAM_CD, "VRAM_CD", scm_from_int (VRAM_CD));
 SCM_VARIABLE_INIT (G_VRAM_ABCD, "VRAM_ABCD", scm_from_int (VRAM_ABCD));
 
+#define SCM_BV(_bank) \
+    scm_pointer_to_bytevector(scm_from_pointer(VRAM_ ## bank ## _U32_PTR), scm_from_int (VRAM_ ## bank ## _U32_SIZE), scm_from_int (0), SCM_ARRAY_ELEMENT_U32)
+
+SCM_VARIABLE_INIT (G_vram_0_bv, "vram-0-bv", SCM_BV(0));
+SCM_VARIABLE_INIT (G_vram_1_bv, "vram-1-bv", SCM_BV(1));
+SCM_VARIABLE_INIT (G_vram_A_bv, "vram-A-bv", SCM_BV(A));
+SCM_VARIABLE_INIT (G_vram_B_bv, "vram-B-bv", SCM_BV(B));
+SCM_VARIABLE_INIT (G_vram_C_bv, "vram-C-bv", SCM_BV(C));
+SCM_VARIABLE_INIT (G_vram_D_bv, "vram-D-bv", SCM_BV(D));
+SCM_VARIABLE_INIT (G_vram_E_bv, "vram-E-bv", SCM_BV(E));
+SCM_VARIABLE_INIT (G_vram_F_bv, "vram-F-bv", SCM_BV(F));
+SCM_VARIABLE_INIT (G_vram_G_bv, "vram-G-bv", SCM_BV(G));
+SCM_VARIABLE_INIT (G_vram_H_bv, "vram-H-bv", SCM_BV(H));
+SCM_VARIABLE_INIT (G_vram_I_bv, "vram-I-bv", SCM_BV(I));
+SCM_VARIABLE_INIT (G_vram_AB_bv, "vram-AB-bv", SCM_BV(AB));
+SCM_VARIABLE_INIT (G_vram_CD_bv, "vram-CD-bv", SCM_BV(CD));
+SCM_VARIABLE_INIT (G_vram_ABCD_bv, "vram-ABCD-bv", SCM_BV(ABCD));
+
 void
 vram_init_guile_procedures (void)
 {
 #include "vram.x"
-  scm_c_export ("VRAM_0",
-                "VRAM_1",
-                "VRAM_A",
-                "VRAM_B",
-                "VRAM_C",
-                "VRAM_D",
-                "VRAM_E",
-                "VRAM_F",
-                "VRAM_G",
-                "VRAM_H",
-                "VRAM_I",
-                "VRAM_AB",
-                "VRAM_CD",
-                "VRAM_ABCD",
-                NULL);
+    scm_c_export (
+                  "VRAM_0",
+                  "VRAM_1",
+                  "VRAM_A",
+                  "VRAM_B",
+                  "VRAM_C",
+                  "VRAM_D",
+                  "VRAM_E",
+                  "VRAM_F",
+                  "VRAM_G",
+                  "VRAM_H",
+                  "VRAM_I",
+                  "VRAM_AB",
+                  "VRAM_CD",
+                  "VRAM_ABCD",
+                  "vram-0-bv",
+                  "vram-1-bv",
+                  "vram-A-bv",
+                  "vram-B-bv",
+                  "vram-C-bv",
+                  "vram-D-bv",
+                  "vram-E-bv",
+                  "vram-F-bv",
+                  "vram-G-bv",
+                  "vram-H-bv",
+                  "vram-I-bv",
+                  "vram-AB-bv",
+                  "vram-CD-bv",
+                  "vram-ABCD-bv",
+                  NULL);
 }
 
 
