@@ -649,11 +649,21 @@ Apply all changes to this background layer since the last call to 'bg-update'")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_bg_modify, "bg-modify", 4, 0, 0, (SCM id, SCM sx, SCM sy, SCM sval), "\
-Modify the BG BMP or MAP data at the location (x,y) to given 32-bit value")
+SCM_DEFINE (G_bg_modify, "bg-get-bytevector", 1, 0, 0, (SCM id), "\
+Returns a bytevector of data that holds the BG bitmap or map data")
 {
-    bg.bg[scm_to_int(id)].matrix.data[scm_to_int(y)][scm_to_int(x)] = scm_to_uint32(val);
-    return SCM_UNSPECIFIED;
+    return scm_pointer_to_bytevector(bg.bg[scm_to_int(id)].storage,
+                                     scm_from_int (bg_matrix_size[bg.bg[scm_to_int(id)].size]),
+                                     scm_from_int (0),
+                                     scm_from_locale_symbol("u32"));
+}
+
+SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
+{
+    bg_size_t = bg.bg[scm_to_int(id)].size;
+    return scm_list_3 (scm_from_int (bg_matrix_width (siz)),
+                       scm_from_int (bg_matrix_height (siz)),
+                       scm_from_int (bg_matrix_size(siz)));
 }
 
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
