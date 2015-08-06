@@ -10,84 +10,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-struct bg_matrix
-{
-    bg_size_t size;
-    vram_bank_t bank;
-    uint32_t *storage;
-    uint32_t **data;
-};
-
-int bg_matrix_width[9] = {
-    [BG_SIZE_16x16] = 16,
-    [BG_SIZE_32x16] = 32,
-    [BG_SIZE_16x32] = 16,
-    [BG_SIZE_32x32] = 32,
-    [BG_SIZE_128x128] = 128,
-    [BG_SIZE_256x256] = 256,
-    [BG_SIZE_512x256] = 512,
-    [BG_SIZE_256x512] = 256,
-    [BG_SIZE_512x512] = 512,
-};
-
-int bg_matrix_height[9] = {
-    [BG_SIZE_16x16] = 16,
-    [BG_SIZE_32x16] = 16,
-    [BG_SIZE_16x32] = 32,
-    [BG_SIZE_32x32] = 32,
-    [BG_SIZE_128x128] = 128,
-    [BG_SIZE_256x256] = 256,
-    [BG_SIZE_512x256] = 256,
-    [BG_SIZE_256x512] = 512,
-    [BG_SIZE_512x512] = 512,
-};
-
-int bg_matrix_size[9] = {
-    [BG_SIZE_16x16] = 16*16,
-    [BG_SIZE_32x16] = 32*16,
-    [BG_SIZE_16x32] = 16*32,
-    [BG_SIZE_32x32] = 32*32,
-    [BG_SIZE_128x128] = 128*128,
-    [BG_SIZE_256x256] = 256*256,
-    [BG_SIZE_512x256] = 512*256,
-    [BG_SIZE_256x512] = 256*512,
-    [BG_SIZE_512x512] = 512*512,
-};
-
-static int
-bg_matrix_get_height (bg_size_t size)
-{
-    return bg_matrix_height[size];
-}
-
-static int
-bg_matrix_get_width (bg_size_t size)
-{
-    return bg_matrix_width[size];
-}
-
-static int
-bg_matrix_get_u32_size (bg_size_t size)
-{
-    return bg_matrix_size[size];
-} 
-
-static void
-bg_matrix_allocate (struct bg_matrix *x, bg_size_t size, vram_bank_t bank)
-{
-    g_assert_cmpint (bg_matrix_get_u32_size(size), <=,  vram_get_u32_size(bank));
-
-    vram_zero_bank(bank);
-    x->bank = bank;
-    x->size = size;
-    x->storage = vram_get_u32_ptr(bank);
-
-    g_free (x->data);
-    x->data = g_new0(uint32_t *, (size_t) bg_matrix_get_height(size));
-    for (int i = 0; i < bg_matrix_height[size]; i ++)
-        x->data[i] = x->storage + i * bg_matrix_width[size];
-}
-
 typedef struct bg_entry
 {
     /* BG is displayed when true */
@@ -117,7 +39,10 @@ typedef struct bg_entry
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
      */
-    struct bg_matrix matrix;
+    matrix_size_t size;
+    vram_bank_t bank;
+    uint32_t *storage;
+    uint32_t **data;
 
 } bg_entry_t;
 
@@ -174,7 +99,7 @@ bg_is_shown (bg_index_t id)
 
 uint32_t *bg_get_data_ptr (bg_index_t id)
 {
-    return bg.bg[id].matrix.storage;
+    return bg.bg[id].storage;
 }
 
 int bg_get_priority (bg_index_t id)
@@ -187,7 +112,7 @@ void bg_hide (bg_index_t id)
     bg.bg[id].enable = FALSE;
 }
 
-void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank)
+void bg_init (bg_index_t id, bg_type_t type, matrix_size_t siz, vram_bank_t bank)
 {
     bg.bg[id].enable = false;
     bg.bg[id].type = type;
@@ -198,7 +123,7 @@ void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank)
     bg.bg[id].rotation_center_y = 0.0;
     bg.bg[id].expansion = 1.0;
     bg.bg[id].rotation = 0.0;
-    bg_matrix_allocate (&(bg.bg[id].matrix), siz, bank);
+    matrix_attach_to_vram (siz, bank, &(bg.bg[id].storage), &(bg.bg[id].data));
 }
 
 void bg_init_all_to_default ()
@@ -300,7 +225,7 @@ static void bg_set_map_from_tga (bg_index_t id, targa_image_t *t)
     {
         for (unsigned i = 0; i < width ; i ++)
         {
-            bg.bg[id].map.map[j][i] = tga_get_image_data_u16_ptr(t)[j * width + i];
+            bg.bg[id].data[j][i] = tga_get_image_data_u16_ptr(t)[j * width + i];
         }
     }
 }
@@ -347,8 +272,8 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 
         xgdk_pixbuf_get_width_height_stride (pb, &img_width, &img_height, &img_stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
-        bg_width = bg_matrix_width[bg.bg[id].matrix.size];
-        bg_height = bg_matrix_height[bg.bg[id].matrix.size];
+        bg_width = bg_matrix_width[bg.bg[id].size];
+        bg_height = bg_matrix_height[bg.bg[id].size];
 
         width = MIN(img_width, bg_width);
         height = MIN(img_height, bg_height);
@@ -357,7 +282,7 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
         {
             for (int i = 0; i < width ; i ++)
             {
-                bg.bg[id].matrix.data[j][i] = c32[j * img_stride + i];
+                bg.bg[id].data[j][i] = c32[j * img_stride + i];
             }
         }
         bg.bg[id].type = type;
@@ -435,8 +360,8 @@ bg_render_map_to_cairo_surface (bg_index_t id)
     else
         tilesheet_id = TILESHEET_SUB;
     
-    width = bg_matrix_get_width(bg.bg[id].matrix.size);
-    height = bg_matrix_get_height(bg.bg[id].matrix.size);
+    width = bg_matrix_get_width(bg.bg[id].size);
+    height = bg_matrix_get_height(bg.bg[id].size);
 
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
                                         width * TILE_WIDTH,
@@ -450,7 +375,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
         for (int map_i = 0; map_i < width; map_i ++)
         {
             /* Fill in the tile brush */
-            map_index = (int) bg.bg[id].matrix.data[map_j][map_i];
+            map_index = (int) bg.bg[id].data[map_j][map_i];
             
             // FIXME -- IS THIS RIGHT??
             // vflip = map_index & (1 << 31);
@@ -509,8 +434,8 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
         // FAST PATH, use memcpy.
         g_assert (stride == width);
         memcpy (data,
-                bg.bg[id].matrix.storage,
-                bg_matrix_get_u32_size (bg.bg[id].matrix.size) * sizeof (uint32_t));
+                bg.bg[id].storage,
+                bg_matrix_get_u32_size (bg.bg[id].size) * sizeof (uint32_t));
     }
     else
     {

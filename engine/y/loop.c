@@ -267,13 +267,18 @@ SCM_DEFINE (G_loop_quit, "loop-quit", 0, 0, 0, (void), "")
     return SCM_UNSPECIFIED;
 }
 
+SCM_DEFINE (G_loop_time, "loop-time", 0, 0, 0, (void), "")
+{
+    return scm_from_double (loop_time ());
+}
+
 void
 loop_init_guile_procedures (void)
 {
 #include "loop.x"
     scm_c_export ("loop-set-full-speed", "loop-unset-full-speed",
                   "loop-set-idle-callback", "loop-set-after-draw-callback",
-                  "loop-quit",
+                  "loop-quit", "loop-time",
                   NULL);
 }
 

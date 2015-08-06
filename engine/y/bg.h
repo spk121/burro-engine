@@ -24,26 +24,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "../x.h"
+#include "matrix.h"
+#include "sheet.h"
 #include "vram.h"
 
-//! The number of background layers for the main screen
+/** The number of background layers for the main screen */
 #define BG_MAIN_BACKGROUNDS_COUNT 4
-//! The number of background layers for the sub screen
+/** The number of background layers for the sub screen */
 #define BG_SUB_BACKGROUNDS_COUNT 4
-//! The maximum height of the map background in tiles, or bmp background in pixels
-#define BG_DATA_HEIGHT 256
-//! The maximum width of the map background in tiles, or bmp background in pixels
-#define BG_DATA_WIDTH 256
-//! The maximum height, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT_IN_TILES 32
-//! The maximum width, in tiles, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH_IN_TILES 32
-//! The maximum height, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_HEIGHT (BG_TILESHEET_HEIGHT_IN_TILES * BG_TILE_HEIGHT)
-//! The maximum width, in pixels, of a map background's tilesheet
-#define BG_TILESHEET_WIDTH (BG_TILESHEET_WIDTH_IN_TILES * BG_TILE_WIDTH)
 
-//! Enumeration of the 8 background layer IDs
+/** Enumeration of the 8 background layer IDs */
 enum bg_index_tag {
     BG_MAIN_0 = 0,
     BG_MAIN_1 = 1,
@@ -57,7 +47,7 @@ enum bg_index_tag {
 
 typedef enum bg_index_tag bg_index_t;
 
-//! Allowed background types, used in bg_init
+/** Allowed background types, used in bg_init */
 enum bg_type_tag {
     BG_TYPE_NONE,
     BG_TYPE_MAP, 
@@ -66,152 +56,138 @@ enum bg_type_tag {
 
 typedef enum bg_type_tag bg_type_t;
 
-enum bg_size_tag {
-    BG_SIZE_16x16,              /* 1k VRAM */
-    BG_SIZE_32x16,              /* 2k VRAM */
-    BG_SIZE_16x32,              /* 2k VRAM */
-    BG_SIZE_32x32,              /* 4k VRAM */
-    BG_SIZE_128x128,            /* 64k VRAM */
-    BG_SIZE_256x256,            /* 256k VRAM */
-    BG_SIZE_512x256,            /* 512k VRAM */
-    BG_SIZE_256x512,            /* 512k VRAM */
-    BG_SIZE_512x512,            /* 1024k VRAM */
-};
-
-typedef enum bg_size_tag bg_size_t;
-    
-/*! \brief Returns the pointer to the map or bmp data
+/**  Returns the pointer to the map or bmp data
  */
 uint32_t *bg_get_data_ptr (bg_index_t id);
 
-/*! \brief Gets the priority of the background layer.
-    \param id
+/**  Gets the priority of the background layer.
+    @param id
         background layer id. e.g. BG_MAIN_0
     \return
         priority 0, 1, 2, or 3
 */
 int bg_get_priority (bg_index_t id);
 
-/*! \brief Hides the current background
-    \param id
+/**  Hides the current background
+    @param id
         background layer ID. e.g. BG_MAIN_0
 */ 
 void bg_hide (bg_index_t id);
 
-/*! \brief Initializes a background on either the main or sub displays
+/**  Initializes a background on either the main or sub displays
            Sets up the format and size of a background layer.  Also resets its
            rotation and scaling back to 1:1 and 0 degress of rotation.  Any
            bitmap resource associated with the background will be reset.
            The priority will be reset to 0, 1, 2 or 3 respectively.
-    \param id
+    @param id
         background layer to init. Must be BG_MAIN_0 , 1, 2, 3 or BG_SUB_0, 1, 2, 3
-    \param type
+    @param type
         the type of background to init: BG_TYPE_MAP, BG_TYPE_BMP
-    \param size
-        size of the BG, BG_SIZE_16x16, etc...
-    \param bank
+    @param size
+        size of the BG, MATRIX_16x16, etc
+    @param bank
         storage location for this background: VRAM_A, VRAM_B, etc
 */
-void bg_init (bg_index_t id, bg_type_t type, bg_size_t siz, vram_bank_t bank);
+void bg_init (bg_index_t id, bg_type_t type, matrix_size_t siz, vram_bank_t bank);
 
 void bg_init_all_to_default ();
 
-/*! \brief Performs a cumulative rotation of the background by the specified angle. 
-    \param id
+/**  Performs a cumulative rotation of the background by the specified angle. 
+    @param id
         background layer ID
-    \param angle
+    @param angle
         the angle of counter clockwise rotation in degrees
 */ 
 void bg_rotate (bg_index_t id, double angle);
 
-/*! \brief Scrolls the background by the specified relative values.
+/**  Scrolls the background by the specified relative values.
          Specifically, it is a relative move of the rotational center of the
          background.
-    \param id
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param dx
+    @param dx
         the horizontal scroll
-    \param dy
+    @param dy
         vertical scroll
     \note
         Be mindful of the ordering of the rotation, expansion, and scroll operations
 */ 
 void bg_scroll (bg_index_t id, double dx, double dy);
 
-/*! \brief Sets the rotation and scale of the background in one operation.
-    \param id
+/**  Sets the rotation and scale of the background in one operation.
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param rotation
+    @param rotation
         the angle of counter clockwise rotation about the rotational center in degrees
-    \param expansion
+    @param expansion
         the expansion about the rotational center of the background, where 1.0 is
         no expansion
-    \param scroll_x
+    @param scroll_x
         the offset of the rotational center of the background from the screen origin
-    \param scroll_y
+    @param scroll_y
         the offset of the rotational center of the background from the screen origin
-    \param rotation_center_x
+    @param rotation_center_x
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
-    \param rotation_center_y
+    @param rotation_center_y
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
 */ 
 void bg_set (bg_index_t id, double rotation, double expansion, double scroll_x, double scroll_y,
 	     double rotation_center_x, double rotation_center_y);
 
-/*! \brief Sets the center of rotation of a background
-    \param id
+/**  Sets the center of rotation of a background
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param rotation_center_x
+    @param rotation_center_x
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
-    \param rotation_center_y
+    @param rotation_center_y
         the pixel location of the (unrotated, unexpanded) background that will be its
         rotational center
 */
 void bg_set_rotation_center (bg_index_t id, double rotation_center_x, double rotation_center_y);
 
-/*! \brief Sets the background priority
-    \param id
+/**  Sets the background priority
+    @param id
         background layer id returned from bgInit or bgInitSub
-    \param priority
+    @param priority
         background priority (0-3) where 0 is most in the background and 3 is most 
         in the foreground
 */ 
 void bg_set_priority (bg_index_t id, int priority);
 
-/*! \brief Performs sets the rotation of the background to specified angle. 
+/**  Performs sets the rotation of the background to specified angle. 
         This rotation is about its rotational center.
-    \param id
+    @param id
         background layer ID
-    \param rotation
+    @param rotation
         the angle of counter clockwise rotation in degrees
 */ 
 void bg_set_rotation (bg_index_t id, double rotation);
 
-/*! \brief Performs sets the rotation and expansion of a background.
+/**  Performs sets the rotation and expansion of a background.
         This rotation and expansion is about its rotational center.
-    \param id
+    @param id
         background layer ID
-    \param rotation
+    @param rotation
         the angle of counter clockwise rotation in degrees
-    \param expansion
+    @param expansion
         the expansion ratio, where 1.0 is 1:1 expansion
 */ 
 void bg_set_rotation_expansion (bg_index_t id, double rotation, double expansion);
 
-/*! \brief Performs sets the expansion of a background.
+/**  Performs sets the expansion of a background.
         This expansion is about its rotational center.
-    \param id
+    @param id
         background layer ID
-    \param expansion
+    @param expansion
         the expansion ratio, where 1.0 is 1:1 expansion
 */ 
 void bg_set_expansion (bg_index_t id, double expansion);
 
-/*! \brief Shows (makes visible) the specified background layer
-    \param id
+/**  Shows (makes visible) the specified background layer
+    @param id
         background layer ID. e.g. BG_MAIN_0
 */ 
 void bg_show (bg_index_t id);
@@ -225,30 +201,30 @@ void bg_reset (bg_index_t id);
 
 
 
-/*! \brief Sets the map part of a BG_TYPE_MAP map-and-tile background from a resource.
+/**  Sets the map part of a BG_TYPE_MAP map-and-tile background from a resource.
         Each pixel in the map image will be interpreted as the index to an 8x8 pixel
         block in the tile image, where each block in the tile image is numbered
         row-wise sequentially.
-    \param id
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param
+    @param
         name of image resource in the GResource bundle
 */
 void bg_set_map_from_resource (bg_index_t id, const char *resource);
 
-/*! \brief Sets the tilesheet of a BG_TYPE_MAP map-and-tile background from a resource.
+/**  Sets the tilesheet of a BG_TYPE_MAP map-and-tile background from a resource.
         The tilesheet is interpreted as 8x8 pixel blocks, numbered sequentially rowwise.
-    \param id
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param
+    @param
         name of image resource in the GResource bundle
 */
 void bg_set_tilesheet_from_resource (bg_index_t id, const char *resource);
 
-/*! \brief Sets the a BG_TYPE_BMP background from a resource.
-    \param id
+/**  Sets the a BG_TYPE_BMP background from a resource.
+    @param id
         background layer ID, e.g. BG_MAIN_0
-    \param
+    @param
         name of image resource in the GResource bundle
 */
 void bg_set_bmp_from_file (bg_index_t id, const char *filename);
