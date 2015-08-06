@@ -325,7 +325,14 @@ void
 am_init_guile_procedures (void)
 {
 #include "audio_model.x"
-  scm_c_export ("am-add-tone",
+  scm_c_export ("enqueue-tone",
+                "enqueue-simple-tone",
+                "enqueue-noise",
+                "enqueue-simple-noise",
+                "enqueue-wave",
+                "wave-add-from-file",
+                "channel-bytevector",
+                "wave-bytevector",
                 "beep",
                 NULL);
 }

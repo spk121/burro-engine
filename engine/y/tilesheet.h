@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "vram.h"
+#include "matrix.h"
 
 /** The height of a spritesheet tile */
 #define TILE_HEIGHT 16

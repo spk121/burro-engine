@@ -425,9 +425,10 @@ void
 eng_init_guile_procedures ()
 {
 #include "eng.x"
-    scm_c_export ("eng-blank?", "eng-blank", "eng-unblank",
-                  "eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
-                  "eng-get-brightness", "eng-set-brightness",
+    scm_c_export ("screen-blank?", "screen-blank", "screen-unblank",
+                  /*"eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
+                    "eng-get-brightness", "eng-set-brightness", */
+                  "sub-screen-shown?", "sub-screen-show", "sub-screen-hide"
                   "eng-get-keyinput",
                   NULL);
 }

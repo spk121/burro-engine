@@ -41,8 +41,9 @@
 //! Holds the information of the audio model
 typedef struct
 {
-  int16_t channels[AUDIO_CHANNEL_COUNT][AUDIO_BUFFER_SIZE];
-  int16_t sum[AUDIO_BUFFER_SIZE];
+  int16_t channels[AUDIO_CHANNEL_COUNT][AUDIO_BUFFER_SIZE] __attribute__ ((alignment (16)));
+  int16_t sum[AUDIO_BUFFER_SIZE] __attribute__ ((alignment (16)));
+  int16_t waves[WAVE_LIST_COUNT][WAVE_BUFFER_SIZE] __attribute__ ((alignment (16)));
   double start_time;
 } audio_model_t;
 
