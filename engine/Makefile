@@ -151,9 +151,9 @@ SRCS_C   = \
  y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
- y/spritesheet.c \
- y/tilesheet.c \
+ y/sheet.c \
  y/vram.c \
+ y/wave.c \
  main.c
 
 ################################################################

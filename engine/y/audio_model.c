@@ -405,6 +405,12 @@ SCM_DEFINE (G_beep, "beep", 0, 0, 0, (void), "")
     return SCM_UNSPECIFIED;
 }
 
+SCM_DEFINE (G_wave, "wave", 3, 0, 0, (SCM channel, SCM now, SCM index),"\
+Copy wave resource INDEX into CHANNEL at a specific clock time")
+{
+    
+}
+
 SCM_DEFINE (G_audio_last_update_time, "audio-last-update-time", 0, 0, 0, (void), "\
 Return the loop timestamp of the last time that the mixed audio was sent\n\
 to the sound server.")
@@ -449,6 +455,7 @@ am_init_guile_procedures (void)
                 "noise",
                 "simple-noise",
                 "beep",
+                "wave",
                 "channel-bytevector",
                 "audio-last-update-time",
                 "audio-time->index",

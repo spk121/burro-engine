@@ -101,15 +101,17 @@ void audio_model_add_tone(int channel, double start_time,
     @param start_time
         seconds since program start when the sound is supposed to play, or
         0.0 for 'now'
+    @param ampliltude
+        from 0.0 to 1.0, adjust the amplitude of the wave
     @param resource
-        name of audio resource in the GResource bundle
+        the index of a wave in the wave store
 */
-void audio_model_add_wave_from_resource (int channel, double start_time,
-					 const char *resource);
+void audio_model_add_wave (int channel, double start_time, double amplitude,
+					 int index);
 
 /**  Returns a pointer to the mixed waveform
  */
-int16_t *audio_model_get_wave();
+int16_t *audio_model_get_mixed();
 
 /** De-queues samples from the audio model
     @param n

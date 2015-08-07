@@ -74,7 +74,7 @@ uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligned (16))
 #define VRAM_AB_U32_OFFSET (VRAM_A_U32_OFFSET)
 #define VRAM_CD_U32_OFFSET (VRAM_C_U32_OFFSET)
 
-uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (16)));
+extern uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (16)));
 
 #define VRAM_A_U32_PTR    (vram_ABCD_store + VRAM_A_U32_OFFSET)
 #define VRAM_B_U32_PTR    (vram_ABCD_store + VRAM_B_U32_OFFSET)
@@ -102,7 +102,7 @@ uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + V
 #define VRAM_H_U32_OFFSET (VRAM_G_U32_OFFSET + VRAM_G_U32_SIZE)
 #define VRAM_I_U32_OFFSET (VRAM_H_U32_OFFSET + VRAM_H_U32_SIZE)
 
-uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (16)));
+extern uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (16)));
 
 #define VRAM_E_U32_PTR (vram_EFGHI_store + VRAM_E_U32_OFFSET)
 #define VRAM_F_U32_PTR (vram_EFGHI_store + VRAM_F_U32_OFFSET)
