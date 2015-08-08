@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="16" tileheight="16" nextobjectid="20">
+ <tileset firstgid="1" name="Brick" tilewidth="16" tileheight="16">
+  <image source="brick_0.png" width="80" height="80"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="16" height="16">
+  <data encoding="csv">
+2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+2,1,1,1,1,1,1,2,2,1,1,1,1,1,1,2,
+2,1,1,1,1,1,1,15,1073741839,1,1,1,0,0,1,2,
+2,1,1,1,1,1,1,1,0,1,0,1,1,1,1,2,
+2,1,1,1,0,1,1,1,1,1,1,1,1,1,1,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,
+2,1,1,1,1,1,1,1,1,1,1,1,0,1,0,2,
+2,0,1,1,1,1,1,1,1,1,1,1,1,1,1,2,
+2,0,1,1,1,1,1,1,1,0,0,1,1,0,1,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
+2,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,
+11,12,13,14,11,12,13,14,11,12,1,1,2,2,2,2,
+16,17,16,17,16,17,16,17,16,17,16,16,2,2,2,2
+</data>
+ </layer>
+ <objectgroup name="Object Layer 1">
+  <object id="7" name="subfloor1" type="solid" x="0" y="224" width="160" height="32"/>
+  <object id="8" name="subfloor2" type="solid" x="160" y="240" width="32" height="16"/>
+  <object id="9" name="subfloor3" type="solid" x="193.333" y="226.667" width="32" height="32"/>
+  <object id="10" name="subfloor4" type="solid" x="226" y="179.333" width="16" height="80"/>
+  <object id="11" name="rightwall" type="solid" x="241.333" y="18" width="16" height="235.333"/>
+  <object id="12" name="roof" type="solid" x="2.66667" y="2" width="254.667" height="16"/>
+  <object id="13" name="roof2" type="solid" x="114.667" y="18.6667" width="32" height="16"/>
+  <object id="14" name="leftwall" type="solid" x="1.33333" y="18" width="16" height="208"/>
+  <object id="18" name="heart1" type="heart" x="120.667" y="40"/>
+  <object id="19" name="heart2" type="heart" x="137.333" y="40.6667"/>
+ </objectgroup>
+</map>
