@@ -3,9 +3,10 @@
 #include "../x.h"
 #include "bg.h"
 #include "eng.h"
-#include "tga.h"
-#include "tilesheet.h"
+#include "matrix.h"
+#include "sheet.h"
 #include "vram.h"
+// #include "tga.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
@@ -232,7 +233,7 @@ static void bg_set_map_from_tga (bg_index_t id, targa_image_t *t)
 #endif
 
 #if 0
-static void bg_set_tilesheet_from_tga (bg_index_t id, targa_image_t *t)
+static void bg_set_sheet_from_tga (bg_index_t id, targa_image_t *t)
 {
     unsigned width, height;
     int first = targa_get_color_map_first_index (t);
@@ -243,7 +244,7 @@ static void bg_set_tilesheet_from_tga (bg_index_t id, targa_image_t *t)
     {
         for (unsigned i = 0; i < width ; i ++)
         {
-            bg.bg[id].map.tilesheet[j][i] = tga_get_image_data_u8_ptr(t)[j * width + i];
+            bg.bg[id].map.sheet[j][i] = tga_get_image_data_u8_ptr(t)[j * width + i];
         }
     }
 
@@ -272,8 +273,8 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 
         xgdk_pixbuf_get_width_height_stride (pb, &img_width, &img_height, &img_stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
-        bg_width = bg_matrix_width[bg.bg[id].size];
-        bg_height = bg_matrix_height[bg.bg[id].size];
+        bg_width = matrix_get_width(bg.bg[id].size);
+        bg_height = matrix_get_height(bg.bg[id].size);
 
         width = MIN(img_width, bg_width);
         height = MIN(img_height, bg_height);
@@ -353,15 +354,15 @@ bg_render_map_to_cairo_surface (bg_index_t id)
     int map_index;
     uint32_t c;
     int width, height;
-    tilesheet_index_t tilesheet_id;
+    sheet_index_t sheet_id;
 
     if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
-        tilesheet_id = TILESHEET_MAIN;
+        sheet_id = SHEET_MAIN_BG;
     else
-        tilesheet_id = TILESHEET_SUB;
+        sheet_id = SHEET_SUB_BG;
     
-    width = bg_matrix_get_width(bg.bg[id].size);
-    height = bg_matrix_get_height(bg.bg[id].size);
+    width = matrix_get_width(bg.bg[id].size);
+    height = matrix_get_height(bg.bg[id].size);
 
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
                                         width * TILE_WIDTH,
@@ -382,14 +383,14 @@ bg_render_map_to_cairo_surface (bg_index_t id)
             // hflip = map_index & (1 << 30);
             // map_index = map_index & 0x0fffffff;
             
-            delta_tile_j = (map_index / tilesheet_get_width_in_tiles(tilesheet_id)) * TILE_HEIGHT;
-            delta_tile_i = (map_index % tilesheet_get_width_in_tiles(tilesheet_id)) * TILE_WIDTH;
+            delta_tile_j = (map_index / sheet_get_width_in_tiles(sheet_id)) * TILE_HEIGHT;
+            delta_tile_i = (map_index % sheet_get_width_in_tiles(sheet_id)) * TILE_WIDTH;
             for (tile_j = 0; tile_j < TILE_HEIGHT; tile_j ++)
             {
                 if (false && (bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
                 {
                     // FAST PATH, use memcpy to copy an entire row
-                    // from the tilesheet
+                    // from the sheet
                 }
                 else
                 {
@@ -398,7 +399,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
                     for (tile_i = 0; tile_i < TILE_WIDTH; tile_i ++)
                     {
                         uint32_t c32;
-                        c32 = tilesheet_get_u32_data(tilesheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
+                        c32 = sheet_get_u32_data(sheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
                         
                         c = adjust_colorval (c32);
                         data[(map_j * TILE_HEIGHT + tile_j) * stride
@@ -420,8 +421,8 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
     uint32_t c32;
     cairo_surface_t *surf;
 
-    width = bg_matrix_get_width(bg.bg[id].matrix.size);
-    height = bg_matrix_get_height(bg.bg[id].matrix.size);
+    width = matrix_get_width(bg.bg[id].size);
+    height = matrix_get_height(bg.bg[id].size);
 
     g_return_val_if_fail (width > 0 && height > 0, NULL);
 
@@ -435,7 +436,7 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
         g_assert (stride == width);
         memcpy (data,
                 bg.bg[id].storage,
-                bg_matrix_get_u32_size (bg.bg[id].size) * sizeof (uint32_t));
+                matrix_get_u32_size (bg.bg[id].size) * sizeof (uint32_t));
     }
     else
     {
@@ -443,7 +444,7 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
         {
             for (int i = 0; i < width; i++)
             {
-                c32 = bg.bg[id].matrix.data[j][i];
+                c32 = bg.bg[id].data[j][i];
                 data[j * stride + i] = adjust_colorval (c32);
             }
         }
@@ -579,22 +580,22 @@ Returns a bytevector of data that holds the BG bitmap or map data")
 {
     // First make a pointer
     bg_index_t i = scm_to_int (id);
-    SCM pointer = scm_from_pointer (bg_get_u32_data_ptr (i), NULL);
+    SCM pointer = scm_from_pointer (bg_get_data_ptr (i), NULL);
 
     // Then make a bytevector
-    SCM len = scm_from_size_t (get_bg_matrix_u32_size (i));
+    SCM len = scm_from_size_t (matrix_get_u32_size (i));
     SCM zero_offset = scm_from_size_t (0);
-    SCM uvec_type = SCM_ARRAY_ELEMENT_U32;
+    SCM uvec_type = scm_from_int (SCM_ARRAY_ELEMENT_TYPE_U32);
         
     return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
 }
 
 SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
 {
-    bg_size_t = bg.bg[scm_to_int(id)].size;
-    return scm_list_3 (scm_from_int (bg_matrix_width (siz)),
-                       scm_from_int (bg_matrix_height (siz)),
-                       scm_from_int (bg_matrix_size(siz)));
+    matrix_size_t siz = bg.bg[scm_to_int(id)].size;
+    return scm_list_3 (scm_from_int (matrix_get_width (siz)),
+                       scm_from_int (matrix_get_height (siz)),
+                       scm_from_int (matrix_get_u32_size(siz)));
 }
 
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));

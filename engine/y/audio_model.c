@@ -7,6 +7,7 @@
   -----------------------------------------------------------------------------*/
 #define _GNU_SOURCE
 #include <math.h>
+#include <stdalign.h>
 #include <string.h>
 #include "../x.h"
 #include "audio_model.h"
@@ -19,9 +20,9 @@
 
 
 /** Holds the information of the audio model */
-static int16_t am_channels[AUDIO_CHANNEL_COUNT][AUDIO_BUFFER_SIZE] __attribute__ ((alignment (16)));
-static float am_working[AUDIO_BUFFER_SIZE] __attribute__ ((alignment (16)));
-static int16_t am_sum[AUDIO_BUFFER_SIZE] __attribute__ ((alignment (16)));
+static alignas(16) int16_t am_channels[AUDIO_CHANNEL_COUNT][AUDIO_BUFFER_SIZE];
+static alignas(16) float am_working[AUDIO_BUFFER_SIZE];
+static alignas(16) int16_t am_sum[AUDIO_BUFFER_SIZE];
 static double am_last_update_time = 0.0;
 
 static void
@@ -29,14 +30,14 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                    double D_release, double F_initial, double F_attack,
                    double F_sustain, double F_release, double A_attack,
                    double A_sustain, double duty, _Bool noise, int waveform,
-                   int16_t **buffer, size_t *length);
+                   int16_t *buffer, size_t *length);
 static void
 update_sum();
 
 void audio_model_initialize ()
 {
     for (int i = 0; i < AUDIO_CHANNEL_COUNT; i ++)
-        memset (channels[i], 0, sizeof (int16_t) * AUDIO_BUFFER_SIZE);
+        memset (am_channels[i], 0, sizeof (int16_t) * AUDIO_BUFFER_SIZE);
     am_last_update_time = loop_time ();
 }
 
@@ -56,7 +57,6 @@ void audio_model_add_tone(int channel, double start_time,
     double now = loop_time();
     double time_since_last_update = now - am_last_update_time;
     double delta_t;
-    int delta_i, i2, i;
 
     if (start_time == 0.0)
         delta_t = 0.0;
@@ -73,7 +73,7 @@ void audio_model_add_tone(int channel, double start_time,
                        F_initial, F_attack, F_sustain, F_release,
                        A_attack, A_sustain,
                        duty, noise, waveform,
-                       &(am_buffer[channel][delta_t_in_samples]), &length);
+                       &(am_channels[channel][delta_t_in_samples]), &length);
 
     update_sum();
 }
@@ -123,7 +123,6 @@ int16_t *audio_model_get_wave()
 void audio_model_dequeue(unsigned n)
 {
     g_return_if_fail (AUDIO_BUFFER_SIZE >= n);
-    g_return_if_fail (am_initialized != 0);
     
     int c;
     size_t samples_moved = AUDIO_BUFFER_SIZE - n;
@@ -147,7 +146,7 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                    double D_release, double F_initial, double F_attack,
                    double F_sustain, double F_release, double A_attack,
                    double A_sustain, double duty, _Bool noise, int waveform,
-                   int16_t **buffer, size_t *length)
+                   int16_t *buffer, size_t *length)
 {
     /* D = duration in sec
        F = frequency in Hz
@@ -227,16 +226,16 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
         if (t - t_start < period * duty)
         {
             if(waveform == 0)
-                (*buffer)[i] = level_a;
+                buffer[i] = level_a;
             else if (waveform == 1)
-                (*buffer)[i] = level_a * sin(M_PI * (t - t_start) / (period * duty));
+                buffer[i] = level_a * sin(M_PI * (t - t_start) / (period * duty));
         }
         else if (t - t_start < period)
         {
             if(waveform == 0)
-                (*buffer)[i] = level_b;
+                buffer[i] = level_b;
             else if (waveform == 1)
-                (*buffer)[i] = level_b * sin(M_PI * ((t - t_start) - period * duty) / (period * (1.0 - duty)));
+                buffer[i] = level_b * sin(M_PI * ((t - t_start) - period * duty) / (period * (1.0 - duty)));
         }
         i ++;
         t += 1.0 / (double) AUDIO_SAMPLE_RATE_IN_HZ;
@@ -250,7 +249,7 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
             else
                 fp = fopen("wave.txt", "wt");
             for(unsigned i2 = 0; i2 < *length; i2++)
-                fprintf(fp, "%u %d\n", i2, (int)(*buffer)[i2]);
+                fprintf(fp, "%u %d\n", i2, (int)buffer[i2]);
             fclose(fp);
         }
     }
@@ -408,7 +407,7 @@ SCM_DEFINE (G_beep, "beep", 0, 0, 0, (void), "")
 SCM_DEFINE (G_wave, "wave", 3, 0, 0, (SCM channel, SCM now, SCM index),"\
 Copy wave resource INDEX into CHANNEL at a specific clock time")
 {
-    
+    return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_audio_last_update_time, "audio-last-update-time", 0, 0, 0, (void), "\
@@ -426,24 +425,24 @@ a specific clock time.")
 }
 
 #define SCM_BV(_bank) \
-    scm_pointer_to_bytevector(scm_from_pointer(am_channels[_bank]), scm_from_int (AUDIO_BUFFER_SIZE), scm_from_int (0), SCM_ARRAY_ELEMENT_I16)
+    scm_pointer_to_bytevector(scm_from_pointer(am_channels[_bank], NULL), scm_from_int (AUDIO_BUFFER_SIZE), scm_from_int (0), scm_from_int(SCM_ARRAY_ELEMENT_TYPE_S16))
 
-SCM_VARIABLE_INIT (G_channel_1_bv, "channel-1-bv", SCM_BV(0));
-SCM_VARIABLE_INIT (G_channel_2_bv, "channel-2-bv", SCM_BV(1));
-SCM_VARIABLE_INIT (G_channel_3_bv, "channel-3-bv", SCM_BV(2));
-SCM_VARIABLE_INIT (G_channel_4_bv, "channel-4-bv", SCM_BV(3));
-SCM_VARIABLE_INIT (G_channel_5_bv, "channel-5-bv", SCM_BV(4));
-SCM_VARIABLE_INIT (G_channel_6_bv, "channel-6-bv", SCM_BV(5));
-SCM_VARIABLE_INIT (G_channel_7_bv, "channel-7-bv", SCM_BV(6));
-SCM_VARIABLE_INIT (G_channel_8_bv, "channel-8-bv", SCM_BV(7));
-SCM_VARIABLE_INIT (G_channel_9_bv, "channel-9-bv", SCM_BV(8));
-SCM_VARIABLE_INIT (G_channel_10_bv, "channel-10-bv", SCM_BV(9));
-SCM_VARIABLE_INIT (G_channel_11_bv, "channel-11-bv", SCM_BV(10));
-SCM_VARIABLE_INIT (G_channel_12_bv, "channel-12-bv", SCM_BV(11));
-SCM_VARIABLE_INIT (G_channel_13_bv, "channel-13-bv", SCM_BV(12));
-SCM_VARIABLE_INIT (G_channel_14_bv, "channel-14-bv", SCM_BV(13));
-SCM_VARIABLE_INIT (G_channel_15_bv, "channel-15-bv", SCM_BV(14));
-SCM_VARIABLE_INIT (G_channel_16_bv, "channel-16-bv", SCM_BV(15));
+/* SCM_VARIABLE_INIT (G_channel_1_bv, "channel-1-bv", SCM_BV(0)); */
+/* SCM_VARIABLE_INIT (G_channel_2_bv, "channel-2-bv", SCM_BV(1)); */
+/* SCM_VARIABLE_INIT (G_channel_3_bv, "channel-3-bv", SCM_BV(2)); */
+/* SCM_VARIABLE_INIT (G_channel_4_bv, "channel-4-bv", SCM_BV(3)); */
+/* SCM_VARIABLE_INIT (G_channel_5_bv, "channel-5-bv", SCM_BV(4)); */
+/* SCM_VARIABLE_INIT (G_channel_6_bv, "channel-6-bv", SCM_BV(5)); */
+/* SCM_VARIABLE_INIT (G_channel_7_bv, "channel-7-bv", SCM_BV(6)); */
+/* SCM_VARIABLE_INIT (G_channel_8_bv, "channel-8-bv", SCM_BV(7)); */
+/* SCM_VARIABLE_INIT (G_channel_9_bv, "channel-9-bv", SCM_BV(8)); */
+/* SCM_VARIABLE_INIT (G_channel_10_bv, "channel-10-bv", SCM_BV(9)); */
+/* SCM_VARIABLE_INIT (G_channel_11_bv, "channel-11-bv", SCM_BV(10)); */
+/* SCM_VARIABLE_INIT (G_channel_12_bv, "channel-12-bv", SCM_BV(11)); */
+/* SCM_VARIABLE_INIT (G_channel_13_bv, "channel-13-bv", SCM_BV(12)); */
+/* SCM_VARIABLE_INIT (G_channel_14_bv, "channel-14-bv", SCM_BV(13)); */
+/* SCM_VARIABLE_INIT (G_channel_15_bv, "channel-15-bv", SCM_BV(14)); */
+/* SCM_VARIABLE_INIT (G_channel_16_bv, "channel-16-bv", SCM_BV(15)); */
 #undef SCM_BV
 
 void

@@ -70,7 +70,7 @@ initialize (GtkApplication *app)
     gtk_widget_show_all (mainwin);
 
     /* Initialize the audio system */
-    audio_model_initialize (0);
+    audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
 
     /* Load player's game options and saved game files */
@@ -78,18 +78,20 @@ initialize (GtkApplication *app)
     /* Create drawing surface */
     backdrop_set_color (BACKDROP_MAIN, 0x00000000);
     backdrop_set_color (BACKDROP_SUB, 0x00000000);
-    tilesheet_init (TILESHEET_MAIN, TILESHEET_SIZE_512x512, VRAM_0);
-    tilesheet_init (TILESHEET_SUB, TILESHEET_SIZE_512x512, VRAM_1);
-    spritesheet_init (SPRITESHEET_MAIN, SPRITESHEET_SIZE_256x256, VRAM_A);
-    spritesheet_init (SPRITESHEET_SUB, SPRITESHEET_SIZE_256x256, VRAM_B);
+#if 0
+    sheet_init (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
+    sheet_init (SHEET_SUB_BG, MATRIX_512x512, VRAM_1);
+    sheet_init (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
+    sheet_init (SHEET_SUB_OBJ, MATRIX_256x256, VRAM_B);
     for (int i = 0; i < 8; i ++) {
-        bg_init(i, BG_TYPE_NONE, BG_SIZE_16x16, VRAM_I);
+        bg_init(i, BG_TYPE_NONE, MATRIX_16x16, VRAM_I);
         bg_hide(i);
     }
     for (int i = 0; i < 256; i ++) {
         obj_init(i, 0, 0, OBJ_SIZE_16x16, 0.0, 0.0, false, false);
         obj_hide(i);
     }
+#endif
     draw_initialize();
 
     /* All other stuff */

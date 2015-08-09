@@ -4,7 +4,7 @@
 #include "eng.h"
 #include "guile.h"
 #include "obj.h"
-#include "spritesheet.h"
+#include "sheet.h"
 
 struct obj_matrix
 {
@@ -85,7 +85,7 @@ typedef struct obj_entry
     int priority;
 
     /** location of top-left corner of sprite in sprite sheet */
-    int spritesheet_i, spritesheet_j;
+    int sheet_i, sheet_j;
 
     /** size of sprite in pixels */
     obj_size_t size;
@@ -162,11 +162,11 @@ bool obj_is_shown (int id)
     return obj.obj[id].enable;
 }
 
-void obj_init (int id, int spritesheet_i, int spritesheet_j, obj_size_t size,
+void obj_init (int id, int sheet_i, int sheet_j, obj_size_t size,
                double rotation_center_x, double rotation_center_y, bool hflip, bool vflip)
 {
-    obj.obj[id].spritesheet_i = spritesheet_i;
-    obj.obj[id].spritesheet_j = spritesheet_j;
+    obj.obj[id].sheet_i = sheet_i;
+    obj.obj[id].sheet_j = sheet_j;
     obj.obj[id].size = size;
     obj.obj[id].rotation_center_x = rotation_center_x;
     obj.obj[id].rotation_center_y = rotation_center_y;
@@ -174,10 +174,10 @@ void obj_init (int id, int spritesheet_i, int spritesheet_j, obj_size_t size,
     obj.obj[id].vflip = vflip;
 }
 
-void obj_set_spritesheet_origin (int id, int spritesheet_i, int spritesheet_j)
+void obj_set_sheet_origin (int id, int sheet_i, int sheet_j)
 {
-    obj.obj[id].spritesheet_i = spritesheet_i;
-    obj.obj[id].spritesheet_j = spritesheet_j;
+    obj.obj[id].sheet_i = sheet_i;
+    obj.obj[id].sheet_j = sheet_j;
 }
 
 void obj_set (int id, int priority, double x, double y, double rotation, double expansion)
@@ -217,9 +217,9 @@ void obj_get_location (int id, double *x, double *y, double *rotation_center_x, 
     *expansion = obj.obj[id].expansion;
 }
 
-void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
+void obj_set_sheet_from_file (int sheet_id, const char *filename)
 {
-    g_return_if_fail (spritesheet_id < 0 || spritesheet_id >= SPRITESHEET_COUNT);
+    g_return_if_fail (sheet_id < 0 || sheet_id >= SHEET_COUNT);
     g_return_if_fail (filename == NULL);
     char *path = xg_find_data_file (filename);
     g_return_if_fail (path != NULL);
@@ -237,16 +237,16 @@ void obj_set_spritesheet_from_file (int spritesheet_id, const char *filename)
         xgdk_pixbuf_get_width_height_stride (pb, &width, &height, &stride);
         uint32_t *c32 = xgdk_pixbuf_get_argb32_pixels (pb);
 
-        width = CLAMP(width, 0, spritesheet_get_width(spritesheet_id));
-        height = CLAMP(height, 0, spritesheet_get_height(spritesheet_id));
+        width = CLAMP(width, 0, sheet_get_width(sheet_id));
+        height = CLAMP(height, 0, sheet_get_height(sheet_id));
         for (int j = 0; j < height; j ++)
         {
-            memcpy (spritesheet_get_u32_data(spritesheet_id)[j], c32 + j * stride, width * sizeof(uint32_t));
+            memcpy (sheet_get_u32_data(sheet_id)[j], c32 + j * stride, width * sizeof(uint32_t));
         }
-        if (spritesheet_id == 0)
-            g_debug ("loaded pixbuf %s as main spritesheet", path);
+        if (sheet_id == 0)
+            g_debug ("loaded pixbuf %s as main sheet", path);
         else
-            g_debug ("loaded pixbuf %s as sub spritesheet", path);
+            g_debug ("loaded pixbuf %s as sub sheet", path);
         g_free (path);
         g_object_unref (pb);
     }
@@ -283,8 +283,8 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     guint width, height, stride;
     uint32_t *data, c32;
     cairo_surface_t *surf;
-    int spritesheet_width, spritesheet_height, spritesheet_stride;
-    int spritesheet_id;
+    int sheet_width, sheet_height, sheet_stride;
+    int sheet_id;
     
     g_return_val_if_fail (id < 0 || id >= MAIN_OBJ_COUNT + SUB_OBJ_COUNT, NULL);
 
@@ -292,9 +292,9 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
     height = obj_matrix_get_height (obj.obj[id].size);
 
     if (id < MAIN_OBJ_COUNT)
-        spritesheet_id = 0;
+        sheet_id = 0;
     else if (id >= MAIN_OBJ_COUNT && id < MAIN_OBJ_COUNT + SUB_OBJ_COUNT)
-        spritesheet_id = 1;
+        sheet_id = 1;
     else
         abort ();
 
@@ -313,7 +313,7 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
         for (unsigned j = 0; j < height; j ++)
         {
                 memcpy (data + j * stride,
-                        &(spritesheet_get_u32_data(spritesheet_id)[obj.obj[id].spritesheet_j + j][obj.obj[id].spritesheet_i]),
+                        &(sheet_get_u32_data(sheet_id)[obj.obj[id].sheet_j + j][obj.obj[id].sheet_i]),
                         width * sizeof (uint32_t));
         }
     }
@@ -325,14 +325,14 @@ cairo_surface_t *obj_render_to_cairo_surface (int id)
             for (guint i = 0; i < width; i++)
             {
                 guint si, sj;
-                sj = j + obj.obj[id].spritesheet_j;
+                sj = j + obj.obj[id].sheet_j;
                 if (obj.obj[id].vflip == TRUE)
                     sj = height - sj;
-                si = i + obj.obj[id].spritesheet_i;
+                si = i + obj.obj[id].sheet_i;
                 if (obj.obj[id].hflip == TRUE)
                     si = width - si;
 
-                c32 = spritesheet_get_u32_data(spritesheet_id)[sj][si];
+                c32 = sheet_get_u32_data(sheet_id)[sj][si];
                     
                 data[j * stride + i] = adjust_colorval (c32, obj.obj[id].colorswap, obj.obj[id].brightness);
             }
@@ -375,12 +375,12 @@ SCM_DEFINE (G_obj_shown_p, "obj-shown?", 1, 0, 0, (SCM gid), "")
 }
 
 SCM_DEFINE (G_obj_init, "obj-init", 9, 0, 0,
-            (SCM id, SCM spritesheet_i, SCM spritesheet_j, SCM sprite_size,
+            (SCM id, SCM sheet_i, SCM sheet_j, SCM sprite_size,
              SCM rot_center_x, SCM rot_center_y, SCM hflip, SCM vflip), "")
 {
     obj_init (scm_to_int (id),
-              scm_to_int (spritesheet_i),
-              scm_to_int (spritesheet_j),
+              scm_to_int (sheet_i),
+              scm_to_int (sheet_j),
               scm_to_int (sprite_size),
               scm_to_double (rot_center_x),
               scm_to_double (rot_center_y),
@@ -416,16 +416,16 @@ SCM_DEFINE (G_obj_set_position, "obj-set-position", 3, 0, 0, (SCM id, SCM x, SCM
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_obj_set_spritesheet_origin, "obj-set-spritesheet-origin", 3, 0, 0, (SCM id, SCM i, SCM j), "")
+SCM_DEFINE (G_obj_set_sheet_origin, "obj-set-sheet-origin", 3, 0, 0, (SCM id, SCM i, SCM j), "")
 {
-    obj_set_spritesheet_origin (scm_to_int (id), scm_to_int (i), scm_to_int (j));
+    obj_set_sheet_origin (scm_to_int (id), scm_to_int (i), scm_to_int (j));
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_obj_set_tilesheet_from_file, "obj-set-spritesheet-from-file", 2, 0, 0, (SCM sub, SCM filename),"")
+SCM_DEFINE (G_obj_set_tilesheet_from_file, "obj-set-sheet-from-file", 2, 0, 0, (SCM sub, SCM filename),"")
 {
     char *fname = scm_to_locale_string (filename);
-    obj_set_spritesheet_from_file (scm_to_int (sub), fname);
+    obj_set_sheet_from_file (scm_to_int (sub), fname);
     free (fname);
     return SCM_UNSPECIFIED;
 }

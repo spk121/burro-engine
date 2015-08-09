@@ -1,6 +1,9 @@
 #include "../x.h"
 #include "vram.h"
 
+uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (16)));
+uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (16)));
+
 static int vram_size[VRAM_COUNT] = {
     [VRAM_0] = VRAM_0_U32_SIZE,
     [VRAM_1] = VRAM_1_U32_SIZE,
@@ -67,9 +70,25 @@ SCM_VARIABLE_INIT (G_VRAM_I, "VRAM_I", scm_from_int (VRAM_I));
 SCM_VARIABLE_INIT (G_VRAM_AB, "VRAM_AB", scm_from_int (VRAM_AB));
 SCM_VARIABLE_INIT (G_VRAM_CD, "VRAM_CD", scm_from_int (VRAM_CD));
 SCM_VARIABLE_INIT (G_VRAM_ABCD, "VRAM_ABCD", scm_from_int (VRAM_ABCD));
+SCM_VARIABLE_INIT (G_VRAM_INDEX_LIST, "VRAM_INDEX_LIST",
+                   scm_list_n(G_VRAM_0,
+                              G_VRAM_1,
+                              G_VRAM_A,
+                              G_VRAM_B,
+                              G_VRAM_C,
+                              G_VRAM_D,
+                              G_VRAM_E,
+                              G_VRAM_F,
+                              G_VRAM_G,
+                              G_VRAM_H,
+                              G_VRAM_I,
+                              G_VRAM_AB,
+                              G_VRAM_CD,
+                              G_VRAM_ABCD,
+                              SCM_UNSPECIFIED));
 
 #define SCM_BV(_bank) \
-    scm_pointer_to_bytevector(scm_from_pointer(VRAM_ ## bank ## _U32_PTR), scm_from_int (VRAM_ ## bank ## _U32_SIZE), scm_from_int (0), SCM_ARRAY_ELEMENT_U32)
+    scm_pointer_to_bytevector(scm_from_pointer(VRAM_ ## _bank ## _U32_PTR, NULL), scm_from_int (VRAM_ ## _bank ## _U32_SIZE), scm_from_int (0), scm_from_int (SCM_ARRAY_ELEMENT_TYPE_U32))
 
 SCM_VARIABLE_INIT (G_vram_0_bv, "vram-0-bv", SCM_BV(0));
 SCM_VARIABLE_INIT (G_vram_1_bv, "vram-1-bv", SCM_BV(1));
@@ -85,6 +104,29 @@ SCM_VARIABLE_INIT (G_vram_I_bv, "vram-I-bv", SCM_BV(I));
 SCM_VARIABLE_INIT (G_vram_AB_bv, "vram-AB-bv", SCM_BV(AB));
 SCM_VARIABLE_INIT (G_vram_CD_bv, "vram-CD-bv", SCM_BV(CD));
 SCM_VARIABLE_INIT (G_vram_ABCD_bv, "vram-ABCD-bv", SCM_BV(ABCD));
+SCM_VARIABLE_INIT (G_vram_bv_list, "vram-bv-list",
+                   scm_list_n(G_vram_0_bv,
+                              G_vram_1_bv,
+                              G_vram_A_bv,
+                              G_vram_B_bv,
+                              G_vram_C_bv,
+                              G_vram_D_bv,
+                              G_vram_E_bv,
+                              G_vram_F_bv,
+                              G_vram_G_bv,
+                              G_vram_H_bv,
+                              G_vram_I_bv,
+                              G_vram_AB_bv,
+                              G_vram_CD_bv,
+                              G_vram_ABCD_bv,
+                              SCM_UNSPECIFIED));
+
+SCM_DEFINE (G_vram_get_u32_size, "vram-get-u32-size", 1, 0, 0, (SCM index),
+    "Given an index that represents a VRAM bank, return the maximum number of \n\
+32-bit integers that it could contain in its bytevector.")
+{
+    return scm_from_int (vram_get_u32_size (scm_to_int (index)));
+}
 
 void
 vram_init_guile_procedures (void)
@@ -105,6 +147,7 @@ vram_init_guile_procedures (void)
                   "VRAM_AB",
                   "VRAM_CD",
                   "VRAM_ABCD",
+                  "VRAM_INDEX_LIST",
                   "vram-0-bv",
                   "vram-1-bv",
                   "vram-A-bv",
@@ -119,6 +162,8 @@ vram_init_guile_procedures (void)
                   "vram-AB-bv",
                   "vram-CD-bv",
                   "vram-ABCD-bv",
+                  "vram-bv-list",
+                  "vram-get-u32-size",
                   NULL);
 }
 

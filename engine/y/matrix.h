@@ -4,6 +4,7 @@
 #ifndef BURRO_MATRIX_H
 #define BURRO_MATRIX_H
 
+#include "../x.h"
 #include "vram.h"
 
 typedef enum matrix_size_tag {
@@ -25,63 +26,6 @@ typedef enum matrix_size_tag {
     MATRIX_512x512,           /**< 32x32 16px blocks, 1024k VRAM */
     MATRIX_N_SIZES
 } matrix_size_t;
-
-static int matrix_width[MATRIX_N_SIZES] = {
-    [MATRIX_16x16] = 16,
-    [MATRIX_16x32] = 16,
-    [MATRIX_16x64] = 16,
-    [MATRIX_32x16] = 32,
-    [MATRIX_32x32] = 32,
-    [MATRIX_32x64] = 32,
-    [MATRIX_64x16] = 16,
-    [MATRIX_64x32] = 64,
-    [MATRIX_64x64] = 64,
-    [MATRIX_64x128] = 64,
-    [MATRIX_128x64] = 128,
-    [MATRIX_128x128] = 128,
-    [MATRIX_256x256] = 256,
-    [MATRIX_512x256] = 512,
-    [MATRIX_256x512] = 256,
-    [MATRIX_512x512] = 512
-};
-
-static int matrix_height[MATRIX_N_SIZES] = {
-    [MATRIX_16x16] = 16,
-    [MATRIX_16x32] = 32,
-    [MATRIX_16x64] = 64,
-    [MATRIX_32x16] = 16,
-    [MATRIX_32x32] = 32,
-    [MATRIX_32x64] = 64,
-    [MATRIX_64x16] = 16,
-    [MATRIX_64x32] = 32,
-    [MATRIX_64x64] = 64,
-    [MATRIX_64x128] = 128,
-    [MATRIX_128x64] = 64,
-    [MATRIX_128x128] = 128,
-    [MATRIX_256x256] = 256,
-    [MATRIX_512x256] = 256,
-    [MATRIX_256x512] = 512,
-    [MATRIX_512x512] = 512
-};
-
-static int matrix_u32_size[MATRIX_N_SIZES] = {
-    [MATRIX_16x16] = 16*16,
-    [MATRIX_16x32] = 16*32,
-    [MATRIX_16x64] = 16*64,
-    [MATRIX_32x16] = 32*16,
-    [MATRIX_32x32] = 32*32,
-    [MATRIX_32x64] = 32*64,
-    [MATRIX_64x16] = 64*16,
-    [MATRIX_64x32] = 64*32,
-    [MATRIX_64x64] = 64*64,
-    [MATRIX_64x128] = 64*128,
-    [MATRIX_128x64] = 128*64,
-    [MATRIX_128x128] = 128*128,
-    [MATRIX_256x256] = 256*256,
-    [MATRIX_512x256] = 512*256,
-    [MATRIX_256x512] = 256*512,
-    [MATRIX_512x512] = 512*512
-};
 
 #define matrix_assert_valid_size(_x) \
     g_assert(_x >= 0 && _x < MATRIX_N_SIZES)

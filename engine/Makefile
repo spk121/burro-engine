@@ -147,6 +147,7 @@ SRCS_C   = \
  y/lineedit.c \
  y/lisp.c \
  y/loop.c \
+ y/matrix.c \
  y/obj.c \
  y/pulseaudio.c \
  y/rand.c \

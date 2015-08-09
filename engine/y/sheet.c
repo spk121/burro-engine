@@ -7,14 +7,16 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-sheet_t ts[2];
+#define sheet_assert_valid_index(x)
+#define vram_assert_valid_index(x)
+sheet_t sheets[SHEET_COUNT];
 
 int
 sheet_get_height (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return matrix_get_height(ts[index].size);
+    return matrix_get_height(sheets[index].size);
 }
 
 int
@@ -22,7 +24,7 @@ sheet_get_width (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return matrix_get_width(ts[index].size);
+    return matrix_get_width(sheets[index].size);
 }
 
 int
@@ -30,7 +32,7 @@ sheet_get_height_in_tiles (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return matrix_get_height(ts[index].size) / TILE_HEIGHT;
+    return matrix_get_height(sheets[index].size) / TILE_HEIGHT;
 }
 
 int
@@ -38,7 +40,7 @@ sheet_get_width_in_tiles (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return matrix_get_width(ts[index].size) / TILE_WIDTH;
+    return matrix_get_width(sheets[index].size) / TILE_WIDTH;
 }
 
 int
@@ -46,7 +48,7 @@ sheet_get_u32_size (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return matrix_get_u32_width(ts[index].size);
+    return matrix_get_u32_size(sheets[index].size);
 } 
 
 uint32_t *
@@ -54,7 +56,7 @@ sheet_get_u32_storage (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return ts[index].storage;
+    return sheets[index].storage;
 }
 
 uint32_t **
@@ -62,7 +64,7 @@ sheet_get_u32_data (sheet_index_t index)
 {
     sheet_assert_valid_index (index);
 
-    return ts[index].data;
+    return sheets[index].data;
 }
 
 void
@@ -73,9 +75,9 @@ sheet_init (sheet_index_t index, matrix_size_t size,
     matrix_assert_valid_size(size);
     vram_assert_valid_index(bank);
 
-    ts[index].bank = bank;
-    ts[index].size = size;
-    matrix_attach_to_vram(size, bank, &(ts[index].storage), &(ts[index].data));
+    sheets[index].bank = bank;
+    sheets[index].size = size;
+    matrix_attach_to_vram(size, bank, &(sheets[index].storage), &(sheets[index].data));
 }
 
 void sheet_set_data_from_file (sheet_index_t id, const char *filename)
@@ -93,7 +95,7 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
     else
     {
         int img_width, img_height, img_stride;
-        int ts_width, ts_height;
+        int sheets_width, sheets_height;
         int width, height;
 
         xgdk_pixbuf_get_width_height_stride (pb,
@@ -101,20 +103,20 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
                                             &img_stride);
         uint32_t *img_store = xgdk_pixbuf_get_argb32_pixels (pb);
 
-        ts_width = sheet_width[ts[id].size];
-        ts_height = sheet_height[ts[id].size];
+        sheets_width = sheet_get_width(sheets[id].size);
+        sheets_height = sheet_get_height(sheets[id].size);
 
-        width = MIN(img_width, ts_width);
-        height = MIN(img_height, ts_height);
+        width = MIN(img_width, sheets_width);
+        height = MIN(img_height, sheets_height);
         
         for (unsigned j = 0; j < height; j ++)
         {
             for (unsigned i = 0; i < width ; i ++)
             {
-                ts[id].data[j][i] = img_store[j * img_stride + i];
+                sheets[id].data[j][i] = img_store[j * img_stride + i];
             }
         }
-        if (id == SHEET_MAIN)
+        if (id == SHEET_MAIN_OBJ)
             g_debug ("loaded pixbuf %s as bg main sheet", path);
         else
             g_debug ("loaded pixbuf %s as bg sub sheet", path);

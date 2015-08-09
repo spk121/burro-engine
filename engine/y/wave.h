@@ -5,8 +5,11 @@
 #ifndef BURRO_WAVE_H
 #define BURRO_WAVE_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 /** The max number of long samples */
-#define LONG_WAVE_COUNT_NUM (5)
+#define LONG_WAVE_COUNT (5)
 
 /** The maximum length, in samples, of a long sample */
 #define LONG_WAVE_I16_SIZE (44100 * 60)
