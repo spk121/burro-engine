@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------------------
-  audio_model.h
-  Copyright (C) 2014
+  audio_model.c
+  Copyright (C) 2014, 2015
   Michael L. Gran (spk121)
 
   GPL3+

@@ -34,7 +34,7 @@
 #define BG_SUB_BACKGROUNDS_COUNT 4
 
 /** Enumeration of the 8 background layer IDs */
-enum bg_index_tag {
+typedef enum {
     BG_MAIN_0 = 0,
     BG_MAIN_1 = 1,
     BG_MAIN_2 = 2,
@@ -43,9 +43,8 @@ enum bg_index_tag {
     BG_SUB_1 = 5,
     BG_SUB_2 = 6,
     BG_SUB_3 = 7
-  };
+} bg_index_t;
 
-typedef enum bg_index_tag bg_index_t;
 
 /** Allowed background types, used in bg_init */
 enum bg_type_tag {

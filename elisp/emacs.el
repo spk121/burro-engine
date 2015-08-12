@@ -23,6 +23,7 @@
 "
                )))
 (define-key ac-mode-map  [(control tab)] 'ac-complete-clang)
+(setq ac-sources '(ac-source-functions ac-source-variables ac-source-symbols))
 
 ;; C++ formatting
 (require 'cc-mode)
@@ -32,7 +33,7 @@
 
 ;; 
 (require 'autopair)
-(autopair-global-mode 1)
+;; (autopair-global-mode 1)
 (set autopair-autowrap t)
 
 ;; Hide and show blocks

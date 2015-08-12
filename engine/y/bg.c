@@ -1,35 +1,42 @@
+/** @file bg.c
+ *  @brief Background layers
+ */
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
 #include "bg.h"
-#include "eng.h"
 #include "matrix.h"
 #include "sheet.h"
 #include "vram.h"
-// #include "tga.h"
+
+
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-typedef struct bg_entry
+/** Information about a single layer of a multi-layer background. */
+typedef struct
 {
-    /* BG is displayed when true */
+    /** BG is displayed when true */
     bool enable;
 
-    /** tile and map, palette bmp, or true color bmp */
+    /** tile and map, or true color bmp */
     bg_type_t type;
 
-    /* z-level: 0 is foreground, 3 is background */
+    /** z-level: 0 is foreground, 3 is background */
     int priority;
 
     /** the "user" or screen location of the rotation center of the
      * background */
     double scroll_x, scroll_y;
 
-    /** the "device" location of the rotation center of the background*/
+    /** the "device" location of the rotation center of the
+     * background */
     double rotation_center_x, rotation_center_y;
 
-    /** the expansion factor of the background: 1.0 = 1 pixel per pixel */
+    /** the expansion factor of the background: 1.0 = 1 pixel per
+     * pixel */
     double expansion;
 
     /** the rotation angle of the background about its rotation
@@ -40,24 +47,45 @@ typedef struct bg_entry
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
      */
+
+    /** a matrix size of a matrix that can contain either the map or the
+     * bitmap */
     matrix_size_t size;
+
+    /** the pre-allocated memory buffer that will contain this map or
+     * bitmap */
     vram_bank_t bank;
-    uint32_t *storage;
+
+    /** a pointer to the memory buffer that contains this map or bitmap */
+    const uint32_t *storage;
+
+    /** an array of pointers to the beginnings of the rows in the memory
+     *  buffer that contains the map or bitmap.  */
     uint32_t **data;
 
 } bg_entry_t;
 
-typedef struct bg_tag
+/** Information about all the layers of a multi-layer background. */
+typedef struct
 {
-    /* The RGBA color displayed below all backgrounds and sprites */
+    /** When true, the colors of all the background layers have
+        their red and blue swapped. */
     bool colorswap;
-  
+
+    /** Factor to adjust the brightness or darkness of the background.
+        Default is 1.0.  When 0.0, all background colors are
+        black.  */
     double brightness;
 
+    /** Storage for info on the background layers */
     bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
+
+    /** Cache for the Cairo renderings of background layers.  */
     cairo_surface_t *surf[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
 } bg_t;
 
+/** Static storage for all the background layers and their Cairo
+ * renderings.  */
 bg_t bg;
 
 ////////////////////////////////////////////////////////////////
@@ -69,10 +97,18 @@ bg_render_map_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
 bg_render_bmp_to_cairo_surface (bg_index_t id);
 
+/** Apply the background colorswap and brightness properties to an ARGB32
+ *  colorval.
+ *  @param [in] c32 - original color
+ *  @return modified colorval
+ */   
 static uint32_t
 adjust_colorval (uint32_t c32)
 {
     uint32_t a, r, g, b;
+
+    if (bg.brightness == 1.0 && bg.brightness == 0.0)
+        return c32;
 
     a = (((uint32_t) c32 & 0xff000000) >> 24);
     r = (((uint32_t) c32 & 0x00ff0000) >> 16);
@@ -88,6 +124,9 @@ adjust_colorval (uint32_t c32)
     r = r * bg.brightness;
     g = g * bg.brightness;
     b = b * bg.brightness;
+    if (r > 0xFF) r = 0xFF;
+    if (g > 0xFF) g = 0xFF;
+    if (b > 0xFF) b = 0xFF;
     c32 = (a << 24) + (r << 16) + (g << 8) + b;
     return c32;
 }
@@ -98,7 +137,7 @@ bg_is_shown (bg_index_t id)
     return bg.bg[id].enable;
 }
 
-uint32_t *bg_get_data_ptr (bg_index_t id)
+const uint32_t *bg_get_data_ptr (bg_index_t id)
 {
     return bg.bg[id].storage;
 }
@@ -589,6 +628,7 @@ Returns a bytevector of data that holds the BG bitmap or map data")
         
     return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
 }
+
 
 SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
 {

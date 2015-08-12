@@ -19,6 +19,10 @@
 *.la
 *.a
 
+# Doxygen products
+doc/html/
+doc/latex/
+
 # Automake products
 # .deps/
 # .libs/
