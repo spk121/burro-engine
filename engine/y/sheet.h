@@ -32,9 +32,6 @@ typedef enum sheet_index_tag {
     SHEET_COUNT = 4
 } sheet_index_t;
 
-#define heet_assert_valid_index(_x) \
-    g_assert(_x >= 0 && _x < SHEET_COUNT)
-
 typedef struct sheet
 {
     matrix_size_t size;
@@ -42,6 +39,10 @@ typedef struct sheet
     uint32_t *storage;
     uint32_t **data;
 } sheet_t;
+
+/** Initialize the sheet subsystem.
+ */
+void sheet_init (void);
 
 /** Initializes a sheet's size and virtual memory.
     @param id
@@ -51,7 +52,7 @@ typedef struct sheet
     @param bank
         storage location for this background: VRAM_A, VRAM_B, etc
 */
-void sheet_init (sheet_index_t id, matrix_size_t siz,
+void sheet_assign_memory (sheet_index_t id, matrix_size_t siz,
                      vram_bank_t bank);
 
 /** Returns the 2D U32 pointer to tilesheeet data.

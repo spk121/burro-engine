@@ -9,7 +9,7 @@
 #include <stdint.h>
 
 /** Index of a VRAM bank. */
-enum vram_bank_tag {
+typedef enum {
     VRAM_0,                     /**< space for main tilesheet  */
     VRAM_1,                     /**< space for sub tilesheet  */
     VRAM_A,                     /**< 64k uint32, usually for main spritesheet  */
@@ -21,17 +21,14 @@ enum vram_bank_tag {
     VRAM_G,                     /**< 1k uint32, usually for bg maps  */
     VRAM_H,                     /**< 1k uint32, usually for bg maps  */
     VRAM_I,                     /**< 1k uint32, usually for bg maps  */
-    VRAM_ABCD,                  /**< 256k uint32, use A, B, C, and D
-                                 * as single block, main screen only  */
     VRAM_AB,                    /**< 128k uint32, use A and B as a
                                  * single block, main screen only  */
     VRAM_CD,                    /**< 128k uint32, use C and D as a
                                  * single block, main screen only  */
+    VRAM_ABCD,                  /**< 256k uint32, use A, B, C, and D
+                                 * as single block, main screen only  */
     VRAM_COUNT,
-};
-
-typedef enum vram_bank_tag vram_bank_t;
-
+} vram_bank_t;
 
 ////////////////////////////////////////////////////////////////
 //
@@ -41,11 +38,12 @@ typedef enum vram_bank_tag vram_bank_t;
 
 #define VRAM_0_U32_SIZE (512*512)
 #define VRAM_1_U32_SIZE (512*512)
+#define VRAM_01_U32_SIZE (VRAM_0_U32_SIZE + VRAM_1_U32_SIZE)
 
 #define VRAM_0_U32_OFFSET 0
 #define VRAM_1_U32_OFFSET (VRAM_0_U32_OFFSET + VRAM_0_U32_SIZE)
 
-uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligned (16)));
+extern uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligned (16)));
 
 #define VRAM_0_U32_PTR (vram_01 + VRAM_0_U32_OFFSET)
 #define VRAM_1_U32_PTR (vram_01 + VRAM_1_U32_OFFSET)
@@ -89,12 +87,14 @@ extern uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_S
 // VRAM EFGHI: 80kb of storage
 // Best used for BG MAP storage
 
-
 #define VRAM_E_U32_SIZE (128*128)
 #define VRAM_F_U32_SIZE (32*32)
 #define VRAM_G_U32_SIZE (32*32)
 #define VRAM_H_U32_SIZE (32*32)
 #define VRAM_I_U32_SIZE (32*32)
+#define VRAM_EFGHI_U32_SIZE \
+    (VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE \
+     + VRAM_I_U32_SIZE)
 
 #define VRAM_E_U32_OFFSET (0)
 #define VRAM_F_U32_OFFSET (VRAM_E_U32_OFFSET + VRAM_E_U32_SIZE)
@@ -112,6 +112,8 @@ extern uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_
 
 ////////////////////////////////////////////////////////////////
 
+bool vram_validate_int_as_vram_bank_t (int x);
+
 /** Return the size, in 32-bit words, of a VRAM bank.
  *  @param [in] bank
  *  @return size of bank of VRAM in 32-bit words
@@ -128,6 +130,11 @@ uint32_t *vram_get_u32_ptr (vram_bank_t bank);
  *  @param [in] bank index
  */
 void vram_zero_bank (vram_bank_t bank);
+
+////////////////////////////////////////////////////////////////
+SCM _scm_from_vram_bank_t (vram_bank_t x);
+vram_bank_t _scm_to_vram_bank_t (SCM x);
+bool _scm_is_vram_bank_t (SCM x);
 
 /** Register VRAM procedures with the script engine. */
 void vram_init_guile_procedures (void);

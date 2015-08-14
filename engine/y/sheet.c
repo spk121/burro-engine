@@ -7,9 +7,22 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
-#define sheet_assert_valid_index(x)
-#define vram_assert_valid_index(x)
 sheet_t sheets[SHEET_COUNT];
+
+void
+sheet_init ()
+{
+    memset(sheets, 0, sizeof(sheets));
+}
+
+void
+sheet_assign_memory (sheet_index_t index, matrix_size_t size,
+                     vram_bank_t bank)
+{
+    sheets[index].bank = bank;
+    sheets[index].size = size;
+    matrix_attach_to_vram(size, bank, &(sheets[index].storage), &(sheets[index].data));
+}
 
 int
 sheet_get_height (sheet_index_t index)
@@ -67,19 +80,6 @@ sheet_get_u32_data (sheet_index_t index)
     return sheets[index].data;
 }
 
-void
-sheet_init (sheet_index_t index, matrix_size_t size,
-                vram_bank_t bank)
-{
-    sheet_assert_valid_index(index);
-    matrix_assert_valid_size(size);
-    vram_assert_valid_index(bank);
-
-    sheets[index].bank = bank;
-    sheets[index].size = size;
-    matrix_attach_to_vram(size, bank, &(sheets[index].storage), &(sheets[index].data));
-}
-
 void sheet_set_data_from_file (sheet_index_t id, const char *filename)
 {
     char *path = xg_find_data_file (filename);
@@ -125,11 +125,11 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
     }
 }
 
-SCM_DEFINE (G_sheet_init, "sheet-init", 3, 0, 0,
+SCM_DEFINE (G_sheet_assign_memory, "sheet-assign-memory", 3, 0, 0,
             (SCM id, SCM size, SCM bank), "\
 Set the size and VRAM storage of a given sheet")
 {
-    sheet_init (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
+    sheet_assign_memory (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
     return SCM_UNSPECIFIED;
 }
 
@@ -153,7 +153,7 @@ void
 sheet_init_guile_procedures (void)
 {
 #include "sheet.x"
-    scm_c_export ("sheet-init",
+    scm_c_export ("sheet-assign-memory",
                   "sheet-set-data-from-file",
                   "sheet-get-width",
                   "sheet-get-height",

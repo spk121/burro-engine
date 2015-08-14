@@ -97,6 +97,42 @@ bg_render_map_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
 bg_render_bmp_to_cairo_surface (bg_index_t id);
 
+
+////////////////
+
+bool bg_validate_int_as_bg_index_t (int x)
+{
+    return (x >= BG_MAIN_0 && x <= BG_SUB_3);
+}
+
+bool bg_validate_int_as_bg_type_t (int x)
+{
+    return (x >= BG_TYPE_NONE && x <= BG_TYPE_BMP);
+}
+
+void bg_init ()
+{
+    bg.colorswap = false;
+    bg.brightness = 1.0;
+    for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT; i ++)
+    {
+        bg.bg[i].enable = false;
+        bg.bg[i].type = BG_TYPE_NONE;
+        bg.bg[i].priority = i % 4;
+        bg.bg[i].scroll_x = 0.0;
+        bg.bg[i].scroll_y = 0.0;
+        bg.bg[i].rotation_center_x = 0.0;
+        bg.bg[i].rotation_center_y = 0.0;
+        bg.bg[i].expansion = 1.0;
+        bg.bg[i].rotation = 0.0;
+    }
+}
+
+void bg_assign_memory (bg_index_t id, matrix_size_t siz, vram_bank_t bank)
+{
+    matrix_attach_to_vram (siz, bank, &(bg.bg[id].storage), &(bg.bg[id].data));
+}
+
 /** Apply the background colorswap and brightness properties to an ARGB32
  *  colorval.
  *  @param [in] c32 - original color
@@ -131,6 +167,8 @@ adjust_colorval (uint32_t c32)
     return c32;
 }
 
+
+
 bool
 bg_is_shown (bg_index_t id)
 {
@@ -150,38 +188,6 @@ int bg_get_priority (bg_index_t id)
 void bg_hide (bg_index_t id)
 {
     bg.bg[id].enable = FALSE;
-}
-
-void bg_init (bg_index_t id, bg_type_t type, matrix_size_t siz, vram_bank_t bank)
-{
-    bg.bg[id].enable = false;
-    bg.bg[id].type = type;
-    bg.bg[id].priority = id % 4;
-    bg.bg[id].scroll_x = 0.0;
-    bg.bg[id].scroll_y = 0.0;
-    bg.bg[id].rotation_center_x = 0.0;
-    bg.bg[id].rotation_center_y = 0.0;
-    bg.bg[id].expansion = 1.0;
-    bg.bg[id].rotation = 0.0;
-    matrix_attach_to_vram (siz, bank, &(bg.bg[id].storage), &(bg.bg[id].data));
-}
-
-void bg_init_all_to_default ()
-{
-    bg.colorswap = false;
-    bg.brightness = 1.0;
-    for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT; i ++)
-    {
-        bg.bg[i].enable = false;
-        bg.bg[i].type = BG_TYPE_NONE;
-        bg.bg[i].priority = i % 4;
-        bg.bg[i].scroll_x = 0.0;
-        bg.bg[i].scroll_y = 0.0;
-        bg.bg[i].rotation_center_x = 0.0;
-        bg.bg[i].rotation_center_y = 0.0;
-        bg.bg[i].expansion = 1.0;
-        bg.bg[i].rotation = 0.0;
-    }
 }
 
 void bg_reset (bg_index_t id)
@@ -504,6 +510,24 @@ void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
     *expansion = bg.bg[id].expansion;
 }
 
+////////////////////////////////////////////////////////////////
+
+SCM_DEFINE (G_bg_assign_memory, "bg-assign-memory", 3, 0, 0, (SCM id, SCM matrix_size, SCM vram_bank), "\
+Assign a memory location and a VRAM bank to a BG layer.")
+{
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-assign-memory");
+    SCM_ASSERT(_scm_is_matrix_size_t(matrix_size), matrix_size, SCM_ARG2, "bg-assign-memory");
+    SCM_ASSERT(_scm_is_vram_bank_t(vram_bank), vram_bank, SCM_ARG3, "bg-assign-memory");
+
+    // FIXME: throw errors is VRAM bank is used or if matrix and vram sizes
+    // don't make sense.
+    
+    bg_assign_memory(_scm_to_bg_index_t(id),
+                     _scm_to_matrix_size_t(matrix_size),
+                     _scm_to_vram_bank_t(vram_bank));
+    return SCM_UNSPECIFIED;
+}
+
 SCM_DEFINE (G_bg_get_priority, "bg-get-priority", 1, 0, 0, (SCM id), "\
 return the z-ordering of a given background layer.")
 {
@@ -655,7 +679,7 @@ void
 bg_init_guile_procedures (void)
 {
 #include "bg.x"
-    scm_c_export ("bg-init",
+    scm_c_export ("bg-assign-memory",
                   "bg-set-bmp-from-file",
                   "bg-set-map-from-file",
 

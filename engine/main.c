@@ -78,11 +78,13 @@ initialize (GtkApplication *app)
     /* Create drawing surface */
     backdrop_set_color (BACKDROP_MAIN, 0x00000000);
     backdrop_set_color (BACKDROP_SUB, 0x00000000);
+    sheet_init ();
+    sheet_assign_memory (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
+    sheet_assign_memory (SHEET_SUB_BG, MATRIX_512x512, VRAM_1);
+    sheet_assign_memory (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
+    sheet_assign_memory (SHEET_SUB_OBJ, MATRIX_256x256, VRAM_B);
+    bg_init ();
 #if 0
-    sheet_init (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
-    sheet_init (SHEET_SUB_BG, MATRIX_512x512, VRAM_1);
-    sheet_init (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
-    sheet_init (SHEET_SUB_OBJ, MATRIX_256x256, VRAM_B);
     for (int i = 0; i < 8; i ++) {
         bg_init(i, BG_TYPE_NONE, MATRIX_16x16, VRAM_I);
         bg_hide(i);

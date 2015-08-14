@@ -57,6 +57,11 @@ static int matrix_u32_size[MATRIX_N_SIZES] = {
     [MATRIX_512x512] = 512*512
 };
 
+bool
+matrix_validate_int_as_matrix_size_t (int x)
+{
+    return (x >= (int) MATRIX_16x16 && x <= (int) MATRIX_512x512);
+}
 
 int matrix_get_width (matrix_size_t size)
 {
@@ -145,6 +150,21 @@ void       submatrix_attach_to_vram_with_offset (matrix_size_t full_matrix_size,
     
 }
 
+////////////////////////////////////////////////////////////////
+SCM _scm_from_matrix_size_t (matrix_size_t x)
+{
+    return scm_from_int ((int) x);
+}
+
+matrix_size_t _scm_to_matrix_size_t (SCM x)
+{
+    return (matrix_size_t) scm_to_int (x);
+}
+
+bool _scm_is_matrix_size_t (SCM x)
+{
+    return scm_is_integer(x) && matrix_validate_int_as_matrix_size_t (scm_to_int (x));
+}
 
 SCM_VARIABLE_INIT (G_MATRIX_16x16, "MATRIX_16x16", scm_from_int (MATRIX_16x16));
 SCM_VARIABLE_INIT (G_MATRIX_16x32, "MATRIX_16x32", scm_from_int (MATRIX_16x32));
@@ -166,23 +186,19 @@ SCM_VARIABLE_INIT (G_MATRIX_512x512, "MATRIX_512x512", scm_from_int (MATRIX_512x
 SCM_DEFINE (G_matrix_get_width, "matrix-get-width", 1, 0, 0, (SCM matrix_size), "\
 Returns the width of a matrix, given its size category")
 {
-    SCM_ASSERT (scm_is_integer (matrix_size), matrix_size, SCM_ARG1, "matrix-get-width");
+    SCM_ASSERT (_scm_is_matrix_size_t (matrix_size), matrix_size, SCM_ARG1, "matrix-get-width");
     
-    int i = scm_to_int (matrix_size);
-    /* if (i < MATRIX_16x16 || i > MATRIX_512x512) */
-    /*     scm_out_of_range_error ("matrix-get-width", matrix_size); */
+    matrix_size_t siz = _scm_to_matrix_size_t (matrix_size);
 
-    return scm_from_int (matrix_width[i]);
+    return scm_from_int (matrix_width[siz]);
 }
 
 SCM_DEFINE (G_matrix_get_height, "matrix-get-height", 1, 0, 0, (SCM matrix_size), "\
 Returns the height of a matrix, given its size category")
 {
-    SCM_ASSERT (scm_is_integer (matrix_size), matrix_size, SCM_ARG1, "matrix-get-width");
+    SCM_ASSERT (_scm_is_matrix_size_t (matrix_size), matrix_size, SCM_ARG1, "matrix-get-height");
     
-    int i = scm_to_int (matrix_size);
-    /* if (i < MATRIX_16x16 || i > MATRIX_512x512) */
-    /*     scm_out_of_range_error ("matrix-get-width", matrix_size); */
+    matrix_size_t i = _scm_to_matrix_size_t (matrix_size);
 
     return scm_from_int (matrix_height[i]);    
 }
@@ -190,86 +206,58 @@ Returns the height of a matrix, given its size category")
 SCM_DEFINE (G_matrix_get_u32_size, "matrix-get-u32-size", 1, 0, 0, (SCM matrix_size), "\
 Returns the size of a matrix in 4-byte words, given its size category")
 {
-    SCM_ASSERT (scm_is_integer (matrix_size), matrix_size, SCM_ARG1, "matrix-get-width");
+    SCM_ASSERT (_scm_is_matrix_size_t (matrix_size), matrix_size, SCM_ARG1, "matrix-get-u32-size");
     
-    int i = scm_to_int (matrix_size);
-    /* if (i < MATRIX_16x16 || i > MATRIX_512x512) */
-    /*     scm_out_of_range_error ("matrix-get-width", matrix_size); */
-
+    matrix_size_t i = _scm_to_matrix_size_t (matrix_size);
     return scm_from_int (matrix_u32_size[i]);    
     
 }
 
 SCM_DEFINE (G_matrix_to_bytevector, "matrix->bytevector", 2, 0, 0, (SCM matrix_size, SCM vram), "\
-Returns a uint32 bytevector pointing to the contents of a matrix overlayed on a given VRAM bank")
+Returns a uint32 bytevector pointing to the contents of a matrix overlayed\n\
+on a given VRAM bank.")
 {
-    SCM_ASSERT (scm_is_integer (matrix_size), matrix_size, SCM_ARG1, "matrix->bytevector");
-    SCM_ASSERT (scm_is_integer (vram), vram, SCM_ARG1, "matrix->bytevector");
-    int i = scm_to_int (matrix_size);
-    int v = scm_to_int (vram);
-
-    /* if (i < MATRIX_16x16 || i > MATRIX_512x512) */
-    /*     scm_out_of_range_error ("matrix->bytevector", matrix_size); */
-    /* if (v < VRAM_0 || v > VRAM_I) */
-    /*     scm_out_of_range_error ("matrix->bytevector", vram); */
+    SCM_ASSERT (_scm_is_matrix_size_t (matrix_size), matrix_size, SCM_ARG1, "matrix->bytevector");
+    SCM_ASSERT (_scm_is_vram_bank_t (vram), vram, SCM_ARG1, "matrix->bytevector");
     
+    matrix_size_t i = _scm_to_matrix_size_t (matrix_size);
+    vram_bank_t v = _scm_to_vram_bank_t (vram);
+
     // First make a pointer
-    SCM pointer = scm_from_pointer (vram_get_u32_ptr (i), NULL);
+    SCM pointer = scm_from_pointer (vram_get_u32_ptr (v), NULL);
 
     // Then make a bytevector
-    SCM len = scm_from_size_t (matrix_u32_size[i]);
+    SCM len = scm_from_int (matrix_u32_size[i]);
     SCM zero_offset = scm_from_size_t (0);
-    SCM uvec_type = scm_from_int (SCM_ARRAY_ELEMENT_TYPE_U32);
+    SCM uvec_type = scm_from_locale_symbol("u32");
         
     return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
     
 }
 
-#if 0
-// FIXME: build up the list row by row...
-
-SCM_DEFINE (G_matrix_to_list_of_bytevector, "matrix->list-of-bytevectors", 2, 0, 0, (SCM matrix_size, SCM vram), "\
-Returns a list of uint32 bytevectors pointing to the rows of a matrix overlayed on a given VRAM bank")
-{
-    SCM_ASSERT (scm_is_integer (matrix_size), matrix_size, SCM_ARG1, "matrix->list-of-bytevectors");
-    SCM_ASSERT (scm_is_integer (vram), vram, SCM_ARG1, "matrix->list-of-bytevectors");
-    int i = scm_to_int (matrix_size);
-    int v = scm_to_int (vram);
-
-    if (i < MATRIX_16x16 || i > MATRIX_512x512)
-        scm_out_of_range_error ("matrix->list-of-bytevectors", matrix_size);
-    if (v < VRAM_0 || v > VRAM_I)
-        scm_out_of_range_error ("matrix->list-of-bytevectors", vram);
-    
-    // First make a pointer
-    bg_index_t i = scm_to_int (id);
-    SCM pointer = scm_from_pointer (vram_get_u32ptr (i), NULL);
-
-    // Then make a bytevector
-    SCM len = scm_from_size_t (matrix_u32_size[i]);
-    SCM zero_offset = scm_from_size_t (0);
-    SCM uvec_type = SCM_ARRAY_ELEMENT_U32;
-        
-    return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
-}
-#endif
-
-SCM_DEFINE (G_submatrix_to_list_of_bytevectors, "submatrix->list-of-bytevectors", 2, 0, 0,
-            (SCM matrix_size, SCM vram, SCM submatrix_size, SCM col_offset, SCM row_offset), "\
-Returns a list of uint32 bytevectors pointing to the rows of a submatrix overlayed on a matrix overlayed on a given VRAM bank")
-{
-    return SCM_UNSPECIFIED;
-}
-
-
-void       matrix_init_guile_procedures ()
+void matrix_init_guile_procedures ()
 {
 #include "matrix.x"
-    scm_c_export ("matrix-get-width",
+    scm_c_export ("MATRIX_16x16",
+                  "MATRIX_16x32",
+                  "MATRIX_16x64",
+                  "MATRIX_32x16",
+                  "MATRIX_32x32",
+                  "MATRIX_32x64",
+                  "MATRIX_64x16",
+                  "MATRIX_64x32",
+                  "MATRIX_64x64",
+                  "MATRIX_64x128",
+                  "MATRIX_128x64",
+                  "MATRIX_128x128",
+                  "MATRIX_256x256",
+                  "MATRIX_512x256",
+                  "MATRIX_256x512",
+                  "MATRIX_512x512",
+                  "matrix-get-width",
                   "matrix-get-height",
                   "matrix-get-u32-size",
                   "matrix->bytevector",
-                  // "submatrix->list-of-bytevectors",
                   NULL);
 }
 

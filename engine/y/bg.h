@@ -47,17 +47,32 @@ typedef enum {
 
 
 /** Allowed background types, used in bg_init */
-enum bg_type_tag {
+typedef enum {
     BG_TYPE_NONE,
     BG_TYPE_MAP, 
     BG_TYPE_BMP,
-};
+} bg_type_t;
 
-typedef enum bg_type_tag bg_type_t;
+bool bg_validate_int_as_bg_index_t (int x);
+bool bg_validate_int_as_bg_type_t (int x);
+
+/** Initializes the BG subsystem.
+ */
+void bg_init (void);
+
+/**  Initializes a memory store for a background layers.
+    @param id
+        background layer to init. Must be BG_MAIN_0 , 1, 2, 3 or BG_SUB_0, 1, 2, 3
+    @param size
+        size of the BG, MATRIX_16x16, etc
+    @param bank
+        storage location for this background: VRAM_A, VRAM_B, etc
+*/
+void bg_assign_memory (bg_index_t id, matrix_size_t siz, vram_bank_t bank);
 
 /**  Returns the pointer to the map or bmp data
  */
-uint32_t *bg_get_data_ptr (bg_index_t id);
+const uint32_t *bg_get_data_ptr (bg_index_t id);
 
 /**  Gets the priority of the background layer.
     @param id
@@ -72,24 +87,6 @@ int bg_get_priority (bg_index_t id);
         background layer ID. e.g. BG_MAIN_0
 */ 
 void bg_hide (bg_index_t id);
-
-/**  Initializes a background on either the main or sub displays
-           Sets up the format and size of a background layer.  Also resets its
-           rotation and scaling back to 1:1 and 0 degress of rotation.  Any
-           bitmap resource associated with the background will be reset.
-           The priority will be reset to 0, 1, 2 or 3 respectively.
-    @param id
-        background layer to init. Must be BG_MAIN_0 , 1, 2, 3 or BG_SUB_0, 1, 2, 3
-    @param type
-        the type of background to init: BG_TYPE_MAP, BG_TYPE_BMP
-    @param size
-        size of the BG, MATRIX_16x16, etc
-    @param bank
-        storage location for this background: VRAM_A, VRAM_B, etc
-*/
-void bg_init (bg_index_t id, bg_type_t type, matrix_size_t siz, vram_bank_t bank);
-
-void bg_init_all_to_default ();
 
 /**  Performs a cumulative rotation of the background by the specified angle. 
     @param id

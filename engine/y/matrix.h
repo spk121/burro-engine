@@ -7,7 +7,7 @@
 #include "../x.h"
 #include "vram.h"
 
-typedef enum matrix_size_tag {
+typedef enum {
     MATRIX_16x16 = 0,             /**< 1x1 16px block, 1k VRAM  */
     MATRIX_16x32,             /**< 1x2 16px blocks, 2k VRAM  */
     MATRIX_16x64,             /**< 1x4 16px blocks, 4k VRAM  */
@@ -26,6 +26,8 @@ typedef enum matrix_size_tag {
     MATRIX_512x512,           /**< 32x32 16px blocks, 1024k VRAM */
     MATRIX_N_SIZES
 } matrix_size_t;
+
+bool matrix_validate_int_as_matrix_size_t (int x);
 
 #define matrix_assert_valid_size(_x) \
     g_assert(_x >= 0 && _x < MATRIX_N_SIZES)
@@ -68,6 +70,11 @@ void       submatrix_attach_to_vram_with_offset (matrix_size_t full_matrix_size,
                                                  int col_offset,
                                                  int row_offset,
                                                  uint32_t ***rows);
+
+////////////////////////////////////////////////////////////////
+SCM _scm_from_matrix_size_t (matrix_size_t x);
+matrix_size_t _scm_to_matrix_size_t (SCM x);
+bool _scm_is_matrix_size_t (SCM x);
 
 void       matrix_init_guile_procedures ();
 

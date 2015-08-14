@@ -26,7 +26,9 @@ _burroscript_init (void *unused)
     console_init_guile_procedures();
     eng_init_guile_procedures();
     loop_init_guile_procedures();
+    matrix_init_guile_procedures();
     sheet_init_guile_procedures();
+    vram_init_guile_procedures();
 }
 
 void
@@ -61,6 +63,7 @@ init_lisp (void)
     scm_c_use_module ("burro");
     scm_c_use_module ("engine");
     scm_c_use_module ("system repl repl");
+    scm_c_eval_string("(use-modules (rnrs bytevectors))");
   
 }
 
