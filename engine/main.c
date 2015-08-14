@@ -76,6 +76,7 @@ initialize (GtkApplication *app)
     /* Load player's game options and saved game files */
     
     /* Create drawing surface */
+    vram_init ();
     backdrop_set_color (BACKDROP_MAIN, 0x00000000);
     backdrop_set_color (BACKDROP_SUB, 0x00000000);
     sheet_init ();
@@ -84,6 +85,14 @@ initialize (GtkApplication *app)
     sheet_assign_memory (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
     sheet_assign_memory (SHEET_SUB_OBJ, MATRIX_256x256, VRAM_B);
     bg_init ();
+    bg_assign_memory (BG_MAIN_0, MATRIX_256x256, VRAM_C);
+    bg_assign_memory (BG_MAIN_1, MATRIX_256x256, VRAM_D);
+    bg_assign_memory (BG_MAIN_2, MATRIX_128x128, VRAM_E);
+    bg_assign_memory (BG_MAIN_3, MATRIX_32x32, VRAM_F);
+    bg_assign_memory (BG_SUB_0, MATRIX_32x32, VRAM_G);
+    bg_assign_memory (BG_SUB_1, MATRIX_32x32, VRAM_H);
+    bg_assign_memory (BG_SUB_2, MATRIX_32x32, VRAM_I);
+    bg_assign_memory (BG_SUB_3, MATRIX_32x32, VRAM_J);
 #if 0
     for (int i = 0; i < 8; i ++) {
         bg_init(i, BG_TYPE_NONE, MATRIX_16x16, VRAM_I);

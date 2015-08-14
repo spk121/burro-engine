@@ -37,7 +37,7 @@ typedef struct sheet
     matrix_size_t size;
     vram_bank_t bank;
     uint32_t *storage;
-    uint32_t **data;
+    uint32_t *data[512];
 } sheet_t;
 
 /** Initialize the sheet subsystem.

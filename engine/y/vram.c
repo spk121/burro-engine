@@ -4,7 +4,7 @@
 
 alignas(16) uint32_t vram_01[VRAM_01_U32_SIZE];
 alignas(16) uint32_t vram_ABCD_store[VRAM_ABCD_U32_SIZE];
-alignas(16) uint32_t vram_EFGHI_store[VRAM_EFGHI_U32_SIZE];
+alignas(16) uint32_t vram_EFGHIJ_store[VRAM_EFGHIJ_U32_SIZE];
 
 static int vram_size[VRAM_COUNT] = {
     [VRAM_0] = VRAM_0_U32_SIZE,
@@ -18,6 +18,7 @@ static int vram_size[VRAM_COUNT] = {
     [VRAM_G] = VRAM_G_U32_SIZE,
     [VRAM_H] = VRAM_H_U32_SIZE,
     [VRAM_I] = VRAM_I_U32_SIZE,
+    [VRAM_J] = VRAM_J_U32_SIZE,
     [VRAM_AB] = VRAM_AB_U32_SIZE,
     [VRAM_CD] = VRAM_CD_U32_SIZE,
     [VRAM_ABCD] = VRAM_ABCD_U32_SIZE
@@ -35,6 +36,7 @@ static uint32_t *vram_ptr[VRAM_COUNT] = {
     [VRAM_G] = VRAM_G_U32_PTR,
     [VRAM_H] = VRAM_H_U32_PTR,
     [VRAM_I] = VRAM_I_U32_PTR,
+    [VRAM_J] = VRAM_J_U32_PTR,
     [VRAM_AB] = VRAM_AB_U32_PTR,
     [VRAM_CD] = VRAM_D_U32_PTR,
     [VRAM_ABCD] = VRAM_ABCD_U32_PTR,
@@ -44,6 +46,18 @@ bool
 vram_validate_int_as_vram_bank_t (int x)
 {
     return (x >= (int) VRAM_0 && x <= (int) VRAM_ABCD);
+}
+
+void
+vram_init (void)
+{
+    vram_zero_bank(VRAM_ABCD);
+    vram_zero_bank(VRAM_E);
+    vram_zero_bank(VRAM_F);
+    vram_zero_bank(VRAM_G);
+    vram_zero_bank(VRAM_H);
+    vram_zero_bank(VRAM_I);
+    vram_zero_bank(VRAM_J);
 }
 
 int
@@ -91,6 +105,7 @@ SCM_VARIABLE_INIT (G_VRAM_F, "VRAM_F", _scm_from_vram_bank_t (VRAM_F));
 SCM_VARIABLE_INIT (G_VRAM_G, "VRAM_G", _scm_from_vram_bank_t (VRAM_G));
 SCM_VARIABLE_INIT (G_VRAM_H, "VRAM_H", _scm_from_vram_bank_t (VRAM_H));
 SCM_VARIABLE_INIT (G_VRAM_I, "VRAM_I", _scm_from_vram_bank_t (VRAM_I));
+SCM_VARIABLE_INIT (G_VRAM_J, "VRAM_J", _scm_from_vram_bank_t (VRAM_J));
 SCM_VARIABLE_INIT (G_VRAM_AB, "VRAM_AB", _scm_from_vram_bank_t (VRAM_AB));
 SCM_VARIABLE_INIT (G_VRAM_CD, "VRAM_CD", _scm_from_vram_bank_t (VRAM_CD));
 SCM_VARIABLE_INIT (G_VRAM_ABCD, "VRAM_ABCD", _scm_from_vram_bank_t (VRAM_ABCD));
@@ -106,6 +121,7 @@ SCM_VARIABLE_INIT (G_VRAM_INDEX_LIST, "VRAM_INDEX_LIST",
                               G_VRAM_G,
                               G_VRAM_H,
                               G_VRAM_I,
+                              G_VRAM_J,
                               G_VRAM_AB,
                               G_VRAM_CD,
                               G_VRAM_ABCD,
@@ -125,6 +141,7 @@ SCM_VARIABLE_INIT (G_vram_F_bv, "vram-F-bv", SCM_BV(F));
 SCM_VARIABLE_INIT (G_vram_G_bv, "vram-G-bv", SCM_BV(G));
 SCM_VARIABLE_INIT (G_vram_H_bv, "vram-H-bv", SCM_BV(H));
 SCM_VARIABLE_INIT (G_vram_I_bv, "vram-I-bv", SCM_BV(I));
+SCM_VARIABLE_INIT (G_vram_J_bv, "vram-J-bv", SCM_BV(J));
 SCM_VARIABLE_INIT (G_vram_AB_bv, "vram-AB-bv", SCM_BV(AB));
 SCM_VARIABLE_INIT (G_vram_CD_bv, "vram-CD-bv", SCM_BV(CD));
 SCM_VARIABLE_INIT (G_vram_ABCD_bv, "vram-ABCD-bv", SCM_BV(ABCD));
@@ -140,6 +157,7 @@ SCM_VARIABLE_INIT (G_vram_bv_list, "vram-bv-list",
                               G_vram_G_bv,
                               G_vram_H_bv,
                               G_vram_I_bv,
+                              G_vram_J_bv,
                               G_vram_AB_bv,
                               G_vram_CD_bv,
                               G_vram_ABCD_bv,
@@ -170,6 +188,7 @@ vram_init_guile_procedures (void)
                   "VRAM_G",
                   "VRAM_H",
                   "VRAM_I",
+                  "VRAM_J",
                   "VRAM_AB",
                   "VRAM_CD",
                   "VRAM_ABCD",
@@ -185,6 +204,7 @@ vram_init_guile_procedures (void)
                   "vram-G-bv",
                   "vram-H-bv",
                   "vram-I-bv",
+                  "vram-J-bv",
                   "vram-AB-bv",
                   "vram-CD-bv",
                   "vram-ABCD-bv",

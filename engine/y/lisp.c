@@ -1,10 +1,12 @@
 #include "../x.h"
+#include <glib.h>
 #include "audio_model.h"
 #include "backdrop.h"
 #include "bg.h"
 #include "console.h"
 #include "eng.h"
 #include "guile.h"
+#include "lisp.h"
 #include "loop.h"
 #include "sheet.h"
 #include <libguile.h>
@@ -25,6 +27,7 @@ _burroscript_init (void *unused)
     bg_init_guile_procedures();
     console_init_guile_procedures();
     eng_init_guile_procedures();
+    lisp_init_guile_procedures();
     loop_init_guile_procedures();
     matrix_init_guile_procedures();
     sheet_init_guile_procedures();
@@ -67,6 +70,52 @@ init_lisp (void)
   
 }
 
+////////////////////////////////////////////////////////////////
+// Here are some random functions for use with the console
+
+SCM_DEFINE (G_list_data_directory_contents, "dir", 0, 1, 0, (SCM regex), "\
+List the contents of the data directory.  If a parameter is provided, \n\
+it is used as a regular expression for matching.\n")
+{
+    GError *error = NULL;
+    
+    const char *assets_dir = g_getenv("BURRO_DATA_DIR");
+    const char *user_dir = g_get_user_data_dir ();
+    char *path;
+    if (assets_dir != NULL)
+        path = assets_dir;
+    else if (user_dir != NULL)
+        path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", NULL);
+
+    GDir *dir = g_dir_open (path, 0, &error);
+    if (dir == NULL)
+    {
+        g_critical ("can't read BURRO data dir: %s", error->message);
+        g_error_free (error);
+        return SCM_UNSPECIFIED;
+    }
+
+    console_write_utf8_string("in ");
+    console_write_utf8_string(path);
+    console_move_down(1);
+    console_move_to_column(0);
+    console_write_utf8_string("-----------------------------");
+    console_move_down(1);
+    console_move_to_column(0);
+
+    const char *fname;
+    while ((fname = g_dir_read_name (dir)) != NULL)
+    {
+        console_write_utf8_string (fname);
+        console_move_down(1);
+        console_move_to_column(0);
+    }
+
+    g_dir_close (dir);
+    return SCM_UNSPECIFIED;
+}
+
+
 #if 0
 SCM_DEFINE (G_console, "console", 0, 0, 0, (void), "\
 Suspend the editor and bring up the REPL for this buffer's module.")
@@ -104,9 +153,10 @@ Suspend the editor and bring up the REPL for this buffer's module.")
 #endif
 
 void
-init_guile_lisp_procedures (void)
+lisp_init_guile_procedures (void)
 {
 #include "lisp.x"
+    scm_c_export("dir", NULL);
 }
 
 /*

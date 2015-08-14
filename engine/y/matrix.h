@@ -52,7 +52,7 @@ int       matrix_get_u32_size          (matrix_size_t size);
 void       matrix_attach_to_vram        (matrix_size_t size,
                                          vram_bank_t vram,
                                          uint32_t **storage,
-                                         uint32_t ***data);
+                                         uint32_t *data[512]);
 
 /** Finds the locations of rows of a submatrix within a VRAM bank
  *  @param [in] full_matrix_size - the size of the matrix of data overlayed on this VRAM bank

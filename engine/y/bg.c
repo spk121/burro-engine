@@ -43,6 +43,10 @@ typedef struct
      * center, in radians */
     double rotation;
 
+    /** when true, there are changes to the background that need
+     *  to be rendered. */
+    double dirty;
+    
     /** The width, height, and data of either the map or the bitmap.
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
@@ -61,7 +65,7 @@ typedef struct
 
     /** an array of pointers to the beginnings of the rows in the memory
      *  buffer that contains the map or bitmap.  */
-    uint32_t **data;
+    uint32_t *data[512];
 
 } bg_entry_t;
 
@@ -96,6 +100,8 @@ static cairo_surface_t *
 bg_render_map_to_cairo_surface (bg_index_t id);
 static cairo_surface_t *
 bg_render_bmp_to_cairo_surface (bg_index_t id);
+static void
+bg_update (bg_index_t id);
 
 
 ////////////////
@@ -125,12 +131,15 @@ void bg_init ()
         bg.bg[i].rotation_center_y = 0.0;
         bg.bg[i].expansion = 1.0;
         bg.bg[i].rotation = 0.0;
+        bg.bg[i].dirty = false;
     }
 }
 
 void bg_assign_memory (bg_index_t id, matrix_size_t siz, vram_bank_t bank)
 {
     matrix_attach_to_vram (siz, bank, &(bg.bg[id].storage), &(bg.bg[id].data));
+    bg.bg[id].size = siz;
+    bg.bg[id].bank = bank;
 }
 
 /** Apply the background colorswap and brightness properties to an ARGB32
@@ -166,8 +175,6 @@ adjust_colorval (uint32_t c32)
     c32 = (a << 24) + (r << 16) + (g << 8) + b;
     return c32;
 }
-
-
 
 bool
 bg_is_shown (bg_index_t id)
@@ -341,6 +348,7 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 void bg_set_data_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
     set_from_image_file (id, type, filename);
+    bg_update (id);
 }
 
 #if 0
@@ -511,6 +519,22 @@ void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
 }
 
 ////////////////////////////////////////////////////////////////
+
+SCM _scm_from_bg_index_t (bg_index_t x)
+{
+    return scm_from_int ((int) x);
+}
+
+bg_index_t _scm_to_bg_index_t (SCM x)
+{
+    return (bg_index_t) scm_to_int (x);
+}
+
+bool _scm_is_bg_index_t (SCM x)
+{
+    return scm_is_integer(x) && bg_validate_int_as_bg_index_t (scm_to_int (x));
+}
+
 
 SCM_DEFINE (G_bg_assign_memory, "bg-assign-memory", 3, 0, 0, (SCM id, SCM matrix_size, SCM vram_bank), "\
 Assign a memory location and a VRAM bank to a BG layer.")

@@ -27,56 +27,42 @@ sheet_assign_memory (sheet_index_t index, matrix_size_t size,
 int
 sheet_get_height (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return matrix_get_height(sheets[index].size);
 }
 
 int
 sheet_get_width (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return matrix_get_width(sheets[index].size);
 }
 
 int
 sheet_get_height_in_tiles (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return matrix_get_height(sheets[index].size) / TILE_HEIGHT;
 }
 
 int
 sheet_get_width_in_tiles (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return matrix_get_width(sheets[index].size) / TILE_WIDTH;
 }
 
 int
 sheet_get_u32_size (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return matrix_get_u32_size(sheets[index].size);
 } 
 
 uint32_t *
 sheet_get_u32_storage (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return sheets[index].storage;
 }
 
 uint32_t **
 sheet_get_u32_data (sheet_index_t index)
 {
-    sheet_assert_valid_index (index);
-
     return sheets[index].data;
 }
 
@@ -153,13 +139,17 @@ void
 sheet_init_guile_procedures (void)
 {
 #include "sheet.x"
-    scm_c_export ("sheet-assign-memory",
+    scm_c_export ("SHEET_MAIN_BG",
+                  "SHEET_SUB_BG",
+                  "SHEET_MAIN_OBJ",
+                  "SHEET_SUB_OBJ",
+                  "sheet-assign-memory",
                   "sheet-set-data-from-file",
                   "sheet-get-width",
                   "sheet-get-height",
                   "sheet-get-u32-size",
-                  "sheet->bytevector",
-                  "sheet->list-of-bytevectors",
+                  // "sheet->bytevector",
+                  // "sheet->list-of-bytevectors",
                   NULL);
 }
 

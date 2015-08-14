@@ -6,6 +6,7 @@
 #ifndef BURRO_VRAM_H
 #define BURRO_VRAM_H
 
+#include <stdalign.h>
 #include <stdint.h>
 
 /** Index of a VRAM bank. */
@@ -21,6 +22,7 @@ typedef enum {
     VRAM_G,                     /**< 1k uint32, usually for bg maps  */
     VRAM_H,                     /**< 1k uint32, usually for bg maps  */
     VRAM_I,                     /**< 1k uint32, usually for bg maps  */
+    VRAM_J,                     /**< 1k uint32, usually for bg maps  */
     VRAM_AB,                    /**< 128k uint32, use A and B as a
                                  * single block, main screen only  */
     VRAM_CD,                    /**< 128k uint32, use C and D as a
@@ -72,7 +74,7 @@ extern uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligne
 #define VRAM_AB_U32_OFFSET (VRAM_A_U32_OFFSET)
 #define VRAM_CD_U32_OFFSET (VRAM_C_U32_OFFSET)
 
-extern uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_SIZE + VRAM_D_U32_SIZE] __attribute__ ((aligned (16)));
+extern alignas(16) uint32_t vram_ABCD_store[VRAM_ABCD_U32_SIZE];
 
 #define VRAM_A_U32_PTR    (vram_ABCD_store + VRAM_A_U32_OFFSET)
 #define VRAM_B_U32_PTR    (vram_ABCD_store + VRAM_B_U32_OFFSET)
@@ -92,27 +94,33 @@ extern uint32_t vram_ABCD_store[VRAM_A_U32_SIZE + VRAM_B_U32_SIZE + VRAM_C_U32_S
 #define VRAM_G_U32_SIZE (32*32)
 #define VRAM_H_U32_SIZE (32*32)
 #define VRAM_I_U32_SIZE (32*32)
-#define VRAM_EFGHI_U32_SIZE \
+#define VRAM_J_U32_SIZE (32*32)
+#define VRAM_EFGHIJ_U32_SIZE \
     (VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE \
-     + VRAM_I_U32_SIZE)
+     + VRAM_I_U32_SIZE + VRAM_J_U32_SIZE)
 
 #define VRAM_E_U32_OFFSET (0)
 #define VRAM_F_U32_OFFSET (VRAM_E_U32_OFFSET + VRAM_E_U32_SIZE)
 #define VRAM_G_U32_OFFSET (VRAM_F_U32_OFFSET + VRAM_F_U32_SIZE)
 #define VRAM_H_U32_OFFSET (VRAM_G_U32_OFFSET + VRAM_G_U32_SIZE)
 #define VRAM_I_U32_OFFSET (VRAM_H_U32_OFFSET + VRAM_H_U32_SIZE)
+#define VRAM_J_U32_OFFSET (VRAM_I_U32_OFFSET + VRAM_I_U32_SIZE)
 
-extern uint32_t vram_EFGHI_store[VRAM_E_U32_SIZE + VRAM_F_U32_SIZE + VRAM_G_U32_SIZE + VRAM_H_U32_SIZE + VRAM_I_U32_SIZE] __attribute__ ((aligned (16)));
+extern alignas(16) uint32_t vram_EFGHIJ_store[VRAM_EFGHIJ_U32_SIZE];
 
-#define VRAM_E_U32_PTR (vram_EFGHI_store + VRAM_E_U32_OFFSET)
-#define VRAM_F_U32_PTR (vram_EFGHI_store + VRAM_F_U32_OFFSET)
-#define VRAM_G_U32_PTR (vram_EFGHI_store + VRAM_G_U32_OFFSET)
-#define VRAM_H_U32_PTR (vram_EFGHI_store + VRAM_H_U32_OFFSET)
-#define VRAM_I_U32_PTR (vram_EFGHI_store + VRAM_I_U32_OFFSET)
+#define VRAM_E_U32_PTR (vram_EFGHIJ_store + VRAM_E_U32_OFFSET)
+#define VRAM_F_U32_PTR (vram_EFGHIJ_store + VRAM_F_U32_OFFSET)
+#define VRAM_G_U32_PTR (vram_EFGHIJ_store + VRAM_G_U32_OFFSET)
+#define VRAM_H_U32_PTR (vram_EFGHIJ_store + VRAM_H_U32_OFFSET)
+#define VRAM_I_U32_PTR (vram_EFGHIJ_store + VRAM_I_U32_OFFSET)
+#define VRAM_J_U32_PTR (vram_EFGHIJ_store + VRAM_J_U32_OFFSET)
 
 ////////////////////////////////////////////////////////////////
 
 bool vram_validate_int_as_vram_bank_t (int x);
+
+
+void vram_init (void);
 
 /** Return the size, in 32-bit words, of a VRAM bank.
  *  @param [in] bank

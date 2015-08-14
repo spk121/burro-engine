@@ -99,7 +99,7 @@ int matrix_get_u32_size (matrix_size_t size)
 void       matrix_attach_to_vram        (matrix_size_t size,
                                          vram_bank_t vram,
                                          uint32_t **storage,
-                                         uint32_t ***data)
+                                         uint32_t *data[512])
 {
     matrix_assert_valid_size (size);
     // vram_assert_valid_index (vram);
@@ -108,10 +108,8 @@ void       matrix_attach_to_vram        (matrix_size_t size,
     g_assert_cmpint (matrix_get_u32_size(size), <=, vram_get_u32_size(vram));
 
     *storage = vram_get_u32_ptr (vram);
-    g_free (*data);
-    *data = g_new0(uint32_t *, (size_t) matrix_get_height(size));
     for (int j = 0; j < matrix_get_height (size); j ++)
-        *data[j] = *storage + j * matrix_get_width(size);
+        *(data + j) = *storage + j * matrix_get_width(size);
 }
 
 /** Finds the locations of rows of a submatrix within a VRAM bank
