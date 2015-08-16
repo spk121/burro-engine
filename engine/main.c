@@ -62,20 +62,6 @@ initialize (GtkApplication *app)
     g_log_set_handler ("Gtk", debug_flags, console_log_handler, NULL);
 
     /* Initialize memory cache */
-    /* Create the window */
-    init_lisp();
-    ecma48_init ();
-    mainwin = eng_initialize();
-    xgtk_window_set_application (GTK_WINDOW (mainwin), app);
-    gtk_widget_show_all (mainwin);
-
-    /* Initialize the audio system */
-    audio_model_initialize ();
-    pulse_initialize_audio_step_1 ();
-
-    /* Load player's game options and saved game files */
-    
-    /* Create drawing surface */
     vram_init ();
     backdrop_set_color (BACKDROP_MAIN, 0x00000000);
     backdrop_set_color (BACKDROP_SUB, 0x00000000);
@@ -93,6 +79,21 @@ initialize (GtkApplication *app)
     bg_assign_memory (BG_SUB_1, MATRIX_32x32, VRAM_H);
     bg_assign_memory (BG_SUB_2, MATRIX_32x32, VRAM_I);
     bg_assign_memory (BG_SUB_3, MATRIX_32x32, VRAM_J);
+
+    /* Create the window */
+    init_lisp();
+    ecma48_init ();
+    mainwin = eng_initialize();
+    xgtk_window_set_application (GTK_WINDOW (mainwin), app);
+    gtk_widget_show_all (mainwin);
+
+    /* Initialize the audio system */
+    audio_model_initialize ();
+    pulse_initialize_audio_step_1 ();
+
+    /* Load player's game options and saved game files */
+    
+    /* Create drawing surface */
 #if 0
     for (int i = 0; i < 8; i ++) {
         bg_init(i, BG_TYPE_NONE, MATRIX_16x16, VRAM_I);

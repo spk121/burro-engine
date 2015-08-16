@@ -132,6 +132,7 @@ void bg_init ()
         bg.bg[i].expansion = 1.0;
         bg.bg[i].rotation = 0.0;
         bg.bg[i].dirty = false;
+        bg.surf[i] = NULL;
     }
 }
 
@@ -347,6 +348,12 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 
 void bg_set_data_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
+    // BEGIN: Temporary memory corruption checks
+    vram_bank_t bank_index = bg.bg[id].bank;
+    uint32_t bank_pointer = bg.bg[id].storage;
+    g_assert_cmpuint ((uint64_t) bg.bg[id].storage, ==, (uint64_t) vram_get_u32_ptr(bank_index));
+    // END
+    
     set_from_image_file (id, type, filename);
     bg_update (id);
 }
@@ -365,6 +372,8 @@ bg_get_cairo_surface (bg_index_t id)
 {
     g_assert (bg.bg[id].type != BG_TYPE_NONE);
     g_assert (bg.surf[id] != NULL);
+    g_assert (cairo_surface_get_reference_count (bg.surf[id]) > 0);
+    g_assert (cairo_surface_get_reference_count (bg.surf[id]) < 10);
 
     return bg.surf[id];
 }
@@ -624,7 +633,7 @@ Set BG priority")
 SCM_DEFINE (G_bg_set_rotation, "bg-set-rotation", 2, 0, 0, (SCM id, SCM rotation), "\
 Set BG rotation")
 {
-    bg_set_rotation (scm_to_int (id), scm_to_int (rotation));
+    bg_set_rotation (scm_to_int (id), scm_to_double (rotation));
     return SCM_UNSPECIFIED;
 }
 

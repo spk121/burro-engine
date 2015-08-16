@@ -155,7 +155,7 @@ static void draw_background_layer (bg_index_t layer)
         paint_transformed_image (main_screen_context, &matrix, surf);
     else
         paint_transformed_image (sub_screen_context, &matrix, surf);
-    xcairo_surface_destroy (surf);
+    // xcairo_surface_destroy (surf);
 }
 
 static void draw_obj (int id)
