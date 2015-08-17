@@ -1,15 +1,15 @@
 /* Guile interaction helper functions
 
-   Copyright (c) 2011, 2012, 2013 Michael L. Gran
+   Copyright (c) 2011, 2012, 2013, 2015 Michael L. Gran
 
-   This file is part of Michael's fork of GNU Zile.
+   This file is part of Project Burro.
 
-   GNU Zile is free software; you can redistribute it and/or modify it
+   Project Burro is free software; you can redistribute it and/or modify it
    under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3, or (at your option)
    any later version.
 
-   GNU Zile is distributed in the hope that it will be useful, but
+   Project Burro is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
@@ -24,6 +24,8 @@
 #define NAME_LEN_MAX (200)
 #include "../x.h"
 #include "guile.h"
+#include "vram.h"
+#include "bg.h"
 
 scm_t_bits minibuf_port_type;
 SCM minibuf_port;
@@ -459,6 +461,15 @@ guile_is_nil_or_unspecified (SCM x)
  ****************************************************************/
 
 /* ERRORS */
+
+/* Thrown during faulty operation involving the pre-allocated
+   memory buffers */
+SCM_SYMBOL (guile_vram_error_key, "burro-vram-error");
+
+/* Thrown when trying to show an bmp or map that is 
+ * not assigned yet. */
+SCM_SYMBOL (guile_show_unassigned_bg_error_key, "burro-show-unassigned-bg-error");
+
 SCM_SYMBOL (guile_error_key, "burro-error");
 
 SCM_SYMBOL (guile_beginning_of_buffer_error_key,
@@ -493,6 +504,39 @@ guile_append_newline_if_necessary (SCM s_msg)
 					    (SCM_MAKE_CHAR ('\n')))));
   return s_msg;
 }
+
+void
+guile_vram_error (const char *function_name, vram_bank_t bank)
+{
+    SCM s_function_name = scm_from_locale_string (function_name);
+    SCM s_msg = scm_from_locale_string ("bad vram operation on ~A");
+    SCM s_bank_name = scm_from_locale_string (vram_get_bank_name (bank));
+    
+    s_msg = guile_append_newline_if_necessary (s_msg);
+
+    scm_throw (guile_vram_error_key,
+               scm_list_4 (s_function_name,
+                           s_msg,
+                           scm_list_1 (s_bank_name),
+                           SCM_BOOL_F));
+}
+
+void
+guile_show_unassigned_bg_error (const char *function_name, bg_index_t bg)
+{
+    SCM s_function_name = scm_from_locale_string (function_name);
+    SCM s_msg = scm_from_locale_string ("tried to show unassigned bg ~A");
+    SCM s_bg_name = scm_from_locale_string (bg_get_index_name (bg));
+    
+    s_msg = guile_append_newline_if_necessary (s_msg);
+
+    scm_throw (guile_show_unassigned_bg_error_key,
+               scm_list_4 (s_function_name,
+                           s_msg,
+                           scm_list_1 (s_bg_name),
+                           SCM_BOOL_F));
+}
+
 
 void
 guile_error (const char *function_name, const char *msg)
@@ -1053,7 +1097,7 @@ guile_to_long_or_error (const char *function_name, int position, SCM n)
 /****************************************************************/
 
 void
-init_guile_guile_procedures (void)
+guile_init_guile_procedures (void)
 {
   stderr_port = scm_current_error_port ();
   minibuf_port_type = scm_make_port_type ("minibuf-port",

@@ -42,6 +42,32 @@ static uint32_t *vram_ptr[VRAM_COUNT] = {
     [VRAM_ABCD] = VRAM_ABCD_U32_PTR,
 };
 
+static const char 
+vram_bank_name[VRAM_COUNT][10] = {
+    [VRAM_0] = "VRAM_0",
+    [VRAM_1] = "VRAM_1",
+    [VRAM_A] = "VRAM_A",
+    [VRAM_B] = "VRAM_B",
+    [VRAM_C] = "VRAM_C",
+    [VRAM_D] = "VRAM_D",
+    [VRAM_E] = "VRAM_E",
+    [VRAM_F] = "VRAM_F",
+    [VRAM_G] = "VRAM_G",
+    [VRAM_H] = "VRAM_H",
+    [VRAM_I] = "VRAM_I",
+    [VRAM_J] = "VRAM_J",
+    [VRAM_AB] = "VRAM_AB",
+    [VRAM_CD] = "VRAM_CD",
+    [VRAM_ABCD] = "VRAM_ABCD",
+};
+
+static bool
+vram_validate_vram_bank_t (vram_bank_t x)
+{
+    return (x >= VRAM_0 && x <= VRAM_ABCD);
+}
+
+
 bool
 vram_validate_int_as_vram_bank_t (int x)
 {
@@ -60,21 +86,31 @@ vram_init (void)
     vram_zero_bank(VRAM_J);
 }
 
+const char *
+vram_get_bank_name (vram_bank_t bank)
+{
+    g_assert (vram_validate_vram_bank_t (bank));
+    return vram_bank_name[bank];
+}
+
 int
 vram_get_u32_size (vram_bank_t bank)
 {
+    g_assert (vram_validate_vram_bank_t (bank));
     return vram_size[bank];
 }
 
 uint32_t *
 vram_get_u32_ptr (vram_bank_t bank)
 {
+    g_assert (vram_validate_vram_bank_t (bank));
     return vram_ptr[bank];
 }
 
 void
 vram_zero_bank (vram_bank_t bank)
 {
+    g_assert (vram_validate_vram_bank_t (bank));
     memset (vram_ptr[bank], 0, vram_size[bank] * sizeof(uint32_t));
 }
 

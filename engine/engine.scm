@@ -8,4 +8,12 @@
   (bg-set-bmp-from-file 0 "brick_0.png")
   (bg-show 0))
 
-(engine-init)
+(define (default-handler key . args)
+  (write key) (newline)
+  (write args) (newline)
+  (backtrace))
+
+(catch #t
+       engine-init
+       default-handler)
+       

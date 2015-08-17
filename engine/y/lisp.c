@@ -27,6 +27,7 @@ _burroscript_init (void *unused)
     bg_init_guile_procedures();
     console_init_guile_procedures();
     eng_init_guile_procedures();
+    guile_init_guile_procedures();
     lisp_init_guile_procedures();
     loop_init_guile_procedures();
     matrix_init_guile_procedures();

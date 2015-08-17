@@ -119,8 +119,10 @@ extern alignas(16) uint32_t vram_EFGHIJ_store[VRAM_EFGHIJ_U32_SIZE];
 
 bool vram_validate_int_as_vram_bank_t (int x);
 
-
 void vram_init (void);
+
+const char *
+vram_get_bank_name (vram_bank_t bank);
 
 /** Return the size, in 32-bit words, of a VRAM bank.
  *  @param [in] bank

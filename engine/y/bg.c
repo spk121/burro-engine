@@ -9,7 +9,7 @@
 #include "matrix.h"
 #include "sheet.h"
 #include "vram.h"
-
+#include "guile.h"
 
 
 #pragma GCC diagnostic push
@@ -92,6 +92,19 @@ typedef struct
  * renderings.  */
 bg_t bg;
 
+const char
+bg_index_name[BG_SUB_3 + 1][11] = {
+    [BG_MAIN_0] = "BG_MAIN_0",
+    [BG_MAIN_1] = "BG_MAIN_1",
+    [BG_MAIN_2] = "BG_MAIN_2",
+    [BG_MAIN_3] = "BG_MAIN_3",
+    [BG_SUB_0] = "BG_SUB_0",
+    [BG_SUB_1] = "BG_SUB_1",
+    [BG_SUB_2] = "BG_SUB_2",
+    [BG_SUB_3] = "BG_SUB_3",
+};
+
+
 ////////////////////////////////////////////////////////////////
 
 static cairo_surface_t *
@@ -108,12 +121,24 @@ bg_update (bg_index_t id);
 
 bool bg_validate_int_as_bg_index_t (int x)
 {
-    return (x >= BG_MAIN_0 && x <= BG_SUB_3);
+    return (x >= (int) BG_MAIN_0 && x <= (int) BG_SUB_3);
 }
 
 bool bg_validate_int_as_bg_type_t (int x)
 {
-    return (x >= BG_TYPE_NONE && x <= BG_TYPE_BMP);
+    return (x >= (int) BG_TYPE_NONE && x <= (int) BG_TYPE_BMP);
+}
+
+bool bg_validate_bg_index_t (bg_index_t x)
+{
+    return (x >= BG_MAIN_0 && x <= BG_SUB_3);
+}
+
+const char *
+bg_get_index_name (bg_index_t index)
+{
+    g_assert (bg_validate_bg_index_t (index));
+    return bg_index_name[index];
 }
 
 void bg_init ()
@@ -554,22 +579,91 @@ Assign a memory location and a VRAM bank to a BG layer.")
 
     // FIXME: throw errors is VRAM bank is used or if matrix and vram sizes
     // don't make sense.
+    matrix_size_t c_matrix_size = _scm_to_matrix_size_t (matrix_size);
+    vram_bank_t c_vram_bank = _scm_to_vram_bank_t (vram_bank);
     
-    bg_assign_memory(_scm_to_bg_index_t(id),
-                     _scm_to_matrix_size_t(matrix_size),
-                     _scm_to_vram_bank_t(vram_bank));
+    if (matrix_get_u32_size(c_matrix_size) > vram_get_u32_size(c_vram_bank))
+        guile_vram_error ("bg-assign-memory", c_vram_bank);
+    
+    bg_assign_memory(_scm_to_bg_index_t(id), c_matrix_size, c_vram_bank);
+
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_bg_dump, "bg-dump", 1, 0, 0, (SCM sid), "\
+Print to the console information about a background.")
+{
+    bg_index_t id = _scm_to_bg_index_t (sid);
+    char str[80];
+    sprintf(str, "BG %s %dx%d %s %s %s  priority %d",
+            bg_get_index_name(id),
+            matrix_get_width(bg.bg[id].size),
+            matrix_get_height(bg.bg[id].size),
+            bg.bg[id].type == BG_TYPE_MAP ? "MAP" :
+            (bg.bg[id].type == BG_TYPE_BMP ? "BMP" : "NONE"),
+            (bg.bg[id].enable ? "SHOWN" : "HIDDEN"),
+            vram_get_bank_name(bg.bg[id].bank),
+            bg.bg[id].priority);
+    console_write_latin1_string(str);
+    console_move_down(1);
+    console_move_to_column(0);
+    sprintf(str,"X %4.1f, Y %4.1f, ROTX %4.1f, ROTY %4.1f",
+            bg.bg[id].scroll_x, bg.bg[id].scroll_y,
+            bg.bg[id].rotation_center_x, bg.bg[id].rotation_center_y);
+    console_write_latin1_string(str);
+    console_move_down(1);
+    console_move_to_column(0);
+    sprintf(str,"expansion %4.1f, rotation %4.1f",
+            bg.bg[id].expansion, bg.bg[id].rotation);
+    console_write_latin1_string(str);
+    console_move_down(1);
+    console_move_to_column(0);
+        
+    return SCM_UNSPECIFIED;
+            
+    // enable, type, priority, scroll_x, scroll_y
+    // rotation_center_x, rotatioN_center_y
+    // expansion, rotation
+    // matrix_size, vram_bank
+    // name of last resource assignment
+}
+
+SCM_DEFINE (G_bg_get_memory_assignment, "bg-dump-memory-assignment", 0, 0, 0, (void), "\
+Returns the matrix size and VRAM bank of the BG layer.")
+{
+    for (bg_index_t i = BG_MAIN_0; i <= BG_SUB_3; i++)
+    {
+        char *c_str = g_strdup_printf("%s %dx%d %s",
+                                      bg_get_index_name(i),
+                                      matrix_get_width(bg.bg[i].size),
+                                      matrix_get_height(bg.bg[i].size),
+                                      vram_get_bank_name(bg.bg[i].bank));
+        console_write_latin1_string(c_str);
+        console_move_down(1);
+        console_move_to_column(0);
+    }
     return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_bg_get_priority, "bg-get-priority", 1, 0, 0, (SCM id), "\
 return the z-ordering of a given background layer.")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-get-priority");
     return scm_from_int (bg_get_priority (scm_to_int (id)));
+}
+
+SCM_DEFINE (G_bg_set_priority, "bg-set-priority", 2, 0, 0, (SCM id, SCM priority), "\
+Set BG priority")
+{
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-priority");
+    bg_set_priority (scm_to_int (id), scm_to_int (priority));
+    return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_bg_hide, "bg-hide", 1, 0, 0, (SCM id), "\
 Set background later ID to not be drawn")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-hide");
     bg_hide (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
@@ -578,6 +672,7 @@ SCM_DEFINE (G_bg_reset, "bg-reset", 1, 0, 0,
             (SCM id), "\
 Reset a background to hidden with nominal status")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-reset");
     bg_reset (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
@@ -585,6 +680,7 @@ Reset a background to hidden with nominal status")
 SCM_DEFINE (G_bg_rotate, "bg-rotate", 2, 0, 0, (SCM id, SCM angle), "\
 Rotate the background about its rotation center")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-rotate");
     bg_rotate (scm_to_int (id), scm_to_double (angle));
     return SCM_UNSPECIFIED;
 }
@@ -592,6 +688,7 @@ Rotate the background about its rotation center")
 SCM_DEFINE (G_bg_scroll, "bg-scroll", 3, 0, 0, (SCM id, SCM dx, SCM dy), "\
 Move the background")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-scroll");
     bg_scroll (scm_to_int (id), scm_to_double (dx), scm_to_double (dy));
     return SCM_UNSPECIFIED;
 }
@@ -600,6 +697,8 @@ SCM_DEFINE (G_bg_set, "bg-set", 7, 0, 0,
             (SCM id, SCM rotation, SCM expansion, SCM scroll_x, SCM scroll_y, SCM center_x, SCM center_y), "\
 Set the position, rotation, expansion, and rotation center of a background.")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set");
+
     bg_set (scm_to_int(id), scm_to_double(rotation), scm_to_double (expansion), scm_to_double (scroll_x),
             scm_to_double (scroll_y), scm_to_double (center_x), scm_to_double (center_y));
     return SCM_UNSPECIFIED;
@@ -610,6 +709,8 @@ SCM_DEFINE (G_bg_set_bmp_from_file, "bg-set-bmp-from-file",
 Set BG to be a bitmap-type background using the data from FILE in the data\n\
 directory")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-bmp-from-file");
+
     char *str = scm_to_locale_string (filename);
     bg_set_data_from_image_file (scm_to_int (id), BG_TYPE_BMP, str);
     free (str);
@@ -619,20 +720,18 @@ directory")
 SCM_DEFINE (G_bg_set_expansion, "bg-set-expansion", 2, 0, 0, (SCM id, SCM expansion), "\
 Set BG expansion")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-expansion");
+
     bg_set_expansion (scm_to_int (id), scm_to_double (expansion));
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_bg_set_priority, "bg-set-priority", 2, 0, 0, (SCM id, SCM priority), "\
-Set BG priority")
-{
-    bg_set_priority (scm_to_int (id), scm_to_int (priority));
-    return SCM_UNSPECIFIED;
-}
 
 SCM_DEFINE (G_bg_set_rotation, "bg-set-rotation", 2, 0, 0, (SCM id, SCM rotation), "\
 Set BG rotation")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-rotation");
+
     bg_set_rotation (scm_to_int (id), scm_to_double (rotation));
     return SCM_UNSPECIFIED;
 }
@@ -640,6 +739,8 @@ Set BG rotation")
 SCM_DEFINE (G_bg_set_rotation_center, "bg-set-rotation-center", 3, 0, 0, (SCM id, SCM x, SCM y), "\
 Move the rotation center of the background")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-rotation-center");
+
     bg_set_rotation_center (scm_to_int (id), scm_to_double (x), scm_to_double (y));
     return SCM_UNSPECIFIED;
 }
@@ -647,6 +748,8 @@ Move the rotation center of the background")
 SCM_DEFINE (G_bg_set_rotation_expansion, "bg-set-rotation-expansion", 3, 0, 0, (SCM id, SCM r, SCM e), "\
 Set the rotation angle and expansion of a BG")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-rotation-expansion");
+
     bg_set_rotation_expansion (scm_to_int (id), scm_to_double (r), scm_to_double (e));
     return SCM_UNSPECIFIED;
 }
@@ -654,6 +757,12 @@ Set the rotation angle and expansion of a BG")
 SCM_DEFINE (G_bg_show, "bg-show", 1, 0, 0, (SCM id), "\
 Set background later ID to be drawn")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-show");
+
+    bg_index_t c_id = _scm_to_bg_index_t (id);
+    if (bg.bg[c_id].type == BG_TYPE_NONE)
+        guile_show_unassigned_bg_error ("bg-show", c_id);
+    
     bg_show (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
@@ -661,12 +770,15 @@ Set background later ID to be drawn")
 SCM_DEFINE (G_bg_shown_p, "bg-shown?", 1, 0, 0, (SCM id), "\
 Return #t if indicated background layer is visible.")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-shown?");
+
     return scm_from_bool (bg_is_shown (scm_to_int (id)));
 }
 
 SCM_DEFINE (G_bg_update, "bg-update", 1, 0, 0, (SCM id), "\
 Apply all changes to this background layer since the last call to 'bg-update'")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-update");
     bg_update (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
@@ -674,6 +786,8 @@ Apply all changes to this background layer since the last call to 'bg-update'")
 SCM_DEFINE (G_bg_modify, "bg-get-bytevector", 1, 0, 0, (SCM id), "\
 Returns a bytevector of data that holds the BG bitmap or map data")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-get-bytevector");
+
     // First make a pointer
     bg_index_t i = scm_to_int (id);
     SCM pointer = scm_from_pointer (bg_get_data_ptr (i), NULL);
@@ -689,6 +803,8 @@ Returns a bytevector of data that holds the BG bitmap or map data")
 
 SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
 {
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-get-dimensions");
+
     matrix_size_t siz = bg.bg[scm_to_int(id)].size;
     return scm_list_3 (scm_from_int (matrix_get_width (siz)),
                        scm_from_int (matrix_get_height (siz)),
@@ -713,6 +829,10 @@ bg_init_guile_procedures (void)
 {
 #include "bg.x"
     scm_c_export ("bg-assign-memory",
+                  "bg-dump-memory-assignment",
+                  "bg-dump",
+                  "bg-set-priority",
+                  "bg-get-priority",
                   "bg-set-bmp-from-file",
                   "bg-set-map-from-file",
 

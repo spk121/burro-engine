@@ -90,9 +90,9 @@ static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
     const pa_timing_info *timing = pa_stream_get_timing_info (p);
     unsigned n = nbytes / sizeof (uint16_t);
 
-    if (timing != NULL)
-        g_debug("Pulseaudio requests %d samples, %u microseconds to live",
-                n, timing->transport_usec + timing->sink_usec);
+    /* if (timing != NULL) */
+    /*     g_debug("Pulseaudio requests %d samples, %u microseconds to live", */
+    /*             n, timing->transport_usec + timing->sink_usec); */
     pa_stream_update_timing_info (p, NULL, NULL);
     if (n > AUDIO_BUFFER_SIZE)
     {

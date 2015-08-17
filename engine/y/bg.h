@@ -55,6 +55,7 @@ typedef enum {
 
 bool bg_validate_int_as_bg_index_t (int x);
 bool bg_validate_int_as_bg_type_t (int x);
+const char *bg_get_index_name (bg_index_t index);
 
 /** Initializes the BG subsystem.
  */
