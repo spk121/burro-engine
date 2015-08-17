@@ -46,7 +46,7 @@ typedef struct
     /** when true, there are changes to the background that need
      *  to be rendered. */
     double dirty;
-    
+
     /** The width, height, and data of either the map or the bitmap.
      *  If this is a map, data contains indices.  If this is a bitmap,
      *  data contains colorrefs.
@@ -172,7 +172,7 @@ void bg_assign_memory (bg_index_t id, matrix_size_t siz, vram_bank_t bank)
  *  colorval.
  *  @param [in] c32 - original color
  *  @return modified colorval
- */   
+ */
 static uint32_t
 adjust_colorval (uint32_t c32)
 {
@@ -289,7 +289,7 @@ void bg_set_rotation_expansion (bg_index_t id, double rotation, double expansion
 void bg_show (bg_index_t id)
 {
     g_assert (bg.bg[id].type != BG_TYPE_NONE);
-    
+
     bg.bg[id].enable = TRUE;
 }
 
@@ -356,12 +356,22 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 
         width = MIN(img_width, bg_width);
         height = MIN(img_height, bg_height);
-        
+
         for (int j = 0; j < height; j ++)
         {
             for (int i = 0; i < width ; i ++)
             {
-                bg.bg[id].data[j][i] = c32[j * img_stride + i];
+                uint32_t val = c32[j * img_stride + i];
+                // Convert from GDKPixbuf ABGR to Cairo ARGB
+                val = (val & 0xFF00FF00) | ((val >> 16) & 0xFF) | ((val & 0xFF) << 16);
+
+                // Convert from GDK un-premultiplied alpha to Cairo pre-multiplied alpha
+                unsigned a = val >> 24;
+                unsigned r = (((val >> 16) & 0xFF) * a) / 256 * 0;
+                unsigned g = (((val >> 8) & 0xFF) * a) / 256;
+                unsigned b = (((val >> 0) & 0xFF) * a) / 256 * 0;
+
+                bg.bg[id].data[j][i] = a << 24 | r << 16 | g << 8 | b;
             }
         }
         bg.bg[id].type = type;
@@ -378,7 +388,7 @@ void bg_set_data_from_image_file (bg_index_t id, bg_type_t type, const char *fil
     uint32_t bank_pointer = bg.bg[id].storage;
     g_assert_cmpuint ((uint64_t) bg.bg[id].storage, ==, (uint64_t) vram_get_u32_ptr(bank_index));
     // END
-    
+
     set_from_image_file (id, type, filename);
     bg_update (id);
 }
@@ -415,7 +425,7 @@ static cairo_surface_t *
 bg_render_to_cairo_surface (bg_index_t id)
 {
     g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
-    
+
     switch (bg.bg[id].type)
     {
     case BG_TYPE_NONE:
@@ -447,7 +457,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
         sheet_id = SHEET_MAIN_BG;
     else
         sheet_id = SHEET_SUB_BG;
-    
+
     width = matrix_get_width(bg.bg[id].size);
     height = matrix_get_height(bg.bg[id].size);
 
@@ -464,12 +474,12 @@ bg_render_map_to_cairo_surface (bg_index_t id)
         {
             /* Fill in the tile brush */
             map_index = (int) bg.bg[id].data[map_j][map_i];
-            
+
             // FIXME -- IS THIS RIGHT??
             // vflip = map_index & (1 << 31);
             // hflip = map_index & (1 << 30);
             // map_index = map_index & 0x0fffffff;
-            
+
             delta_tile_j = (map_index / sheet_get_width_in_tiles(sheet_id)) * TILE_HEIGHT;
             delta_tile_i = (map_index % sheet_get_width_in_tiles(sheet_id)) * TILE_WIDTH;
             for (tile_j = 0; tile_j < TILE_HEIGHT; tile_j ++)
@@ -487,7 +497,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
                     {
                         uint32_t c32;
                         c32 = sheet_get_u32_data(sheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
-                        
+
                         c = adjust_colorval (c32);
                         data[(map_j * TILE_HEIGHT + tile_j) * stride
                              + (map_i * TILE_WIDTH + tile_i)] = c;
@@ -517,7 +527,7 @@ bg_render_bmp_to_cairo_surface (bg_index_t id)
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
-    if (bg.brightness == 1.0 && bg.colorswap == false /* && hflip == false && vflip == false */)
+    if ((bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
     {
         // FAST PATH, use memcpy.
         g_assert (stride == width);
@@ -581,10 +591,10 @@ Assign a memory location and a VRAM bank to a BG layer.")
     // don't make sense.
     matrix_size_t c_matrix_size = _scm_to_matrix_size_t (matrix_size);
     vram_bank_t c_vram_bank = _scm_to_vram_bank_t (vram_bank);
-    
+
     if (matrix_get_u32_size(c_matrix_size) > vram_get_u32_size(c_vram_bank))
         guile_vram_error ("bg-assign-memory", c_vram_bank);
-    
+
     bg_assign_memory(_scm_to_bg_index_t(id), c_matrix_size, c_vram_bank);
 
     return SCM_UNSPECIFIED;
@@ -618,9 +628,9 @@ Print to the console information about a background.")
     console_write_latin1_string(str);
     console_move_down(1);
     console_move_to_column(0);
-        
+
     return SCM_UNSPECIFIED;
-            
+
     // enable, type, priority, scroll_x, scroll_y
     // rotation_center_x, rotatioN_center_y
     // expansion, rotation
@@ -762,7 +772,7 @@ Set background later ID to be drawn")
     bg_index_t c_id = _scm_to_bg_index_t (id);
     if (bg.bg[c_id].type == BG_TYPE_NONE)
         guile_show_unassigned_bg_error ("bg-show", c_id);
-    
+
     bg_show (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
@@ -796,7 +806,7 @@ Returns a bytevector of data that holds the BG bitmap or map data")
     SCM len = scm_from_size_t (matrix_get_u32_size (i));
     SCM zero_offset = scm_from_size_t (0);
     SCM uvec_type = scm_from_int (SCM_ARRAY_ELEMENT_TYPE_U32);
-        
+
     return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
 }
 
@@ -836,7 +846,7 @@ bg_init_guile_procedures (void)
                   "bg-set-bmp-from-file",
                   "bg-set-map-from-file",
 
-                  "bg-hide", 
+                  "bg-hide",
                   "bg-show",
 
                   "bg-set",
@@ -852,14 +862,14 @@ bg_init_guile_procedures (void)
                   "bg-set-brightness",
 
                   "bg-update",
-                  
+
                   "bg-get-width",
                   "bg-get-height",
                   "bg-get-u32-size",
                   "bg->bytevector",
                   "bg->list-of-bytevectors",
 
-                  
+
                   "BG_TYPE_BMP",
                   "BG_TYPE_MAP",
                   "BG_MAIN_0",
