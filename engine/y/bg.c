@@ -178,7 +178,7 @@ adjust_colorval (uint32_t c32)
 {
     uint32_t a, r, g, b;
 
-    if (bg.brightness == 1.0 && bg.brightness == 0.0)
+    if (bg.brightness == 1.0 && bg.colorswap == false)
         return c32;
 
     a = (((uint32_t) c32 & 0xff000000) >> 24);
@@ -367,9 +367,9 @@ static void set_from_image_file (bg_index_t id, bg_type_t type, const char *file
 
                 // Convert from GDK un-premultiplied alpha to Cairo pre-multiplied alpha
                 unsigned a = val >> 24;
-                unsigned r = (((val >> 16) & 0xFF) * a) / 256 * 0;
+                unsigned r = (((val >> 16) & 0xFF) * a) / 256;
                 unsigned g = (((val >> 8) & 0xFF) * a) / 256;
-                unsigned b = (((val >> 0) & 0xFF) * a) / 256 * 0;
+                unsigned b = (((val >> 0) & 0xFF) * a) / 256;
 
                 bg.bg[id].data[j][i] = a << 24 | r << 16 | g << 8 | b;
             }
@@ -484,7 +484,7 @@ bg_render_map_to_cairo_surface (bg_index_t id)
             delta_tile_i = (map_index % sheet_get_width_in_tiles(sheet_id)) * TILE_WIDTH;
             for (tile_j = 0; tile_j < TILE_HEIGHT; tile_j ++)
             {
-                if (false && (bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
+                if ((bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
                 {
                     // FAST PATH, use memcpy to copy an entire row
                     // from the sheet
@@ -821,6 +821,36 @@ SCM_DEFINE (G_bg_get_dimensions,"bg-get-dimensions", 1, 0, 0, (SCM id), "")
                        scm_from_int (matrix_get_u32_size(siz)));
 }
 
+SCM_DEFINE(G_bg_get_colorswap, "bg-get-colorswap", 0, 0, 0, (void), "\
+return the status of the colorswap flag for backgrounds.")
+{
+    return scm_from_bool(bg.colorswap);
+}
+
+SCM_DEFINE(G_bg_set_colorswap, "bg-set-colorswap", 1, 0, 0, (SCM flag), "\
+set the colorswap boolean flag for backgrounds.")
+{
+    if (scm_is_true(flag))
+        bg.colorswap = true;
+    else if (scm_is_false(flag))
+        bg.colorswap = false;
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE(G_bg_get_brightness, "bg-get-brightness", 0, 0, 0, (void), "\
+Return the brightness factor for backgrounds.")
+{
+    return scm_from_double(bg.brightness);
+}
+
+SCM_DEFINE(G_bg_set_brightness, "bg-set-brightness", 1, 0, 0, (SCM x), "\
+Adjusts the brightness of all the colors used in backgrounds. Usually \n\
+a value between 0.0 (black) and 1.0 (unmodified colors).")
+{
+    bg.brightness = scm_to_double(x);
+    return SCM_UNSPECIFIED;
+}
+
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
 SCM_VARIABLE_INIT (G_BG_TYPE_MAP, "BG_TYPE_MAP", scm_from_int (BG_TYPE_MAP));
 
@@ -859,7 +889,9 @@ bg_init_guile_procedures (void)
                   "bg-set-rotation-expansion",
 
                   "bg-set-colorswap",
+                  "bg-get-colorswap",
                   "bg-set-brightness",
+                  "bg-get-brightness",
 
                   "bg-update",
 
