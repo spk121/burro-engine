@@ -1,11 +1,20 @@
-#include <stdint.h>
+ #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
 #include "sheet.h"
+#include "matrix.h"
 #include "vram.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
+
+const char
+sheet_index_name[SHEET_SUB_OBJ + 1][16] = {
+    [SHEET_MAIN_BG] = "SHEET_MAIN_BG",
+    [SHEET_MAIN_OBJ] = "SHEET_MAIN_OBJ",
+    [SHEET_SUB_BG] = "SHEET_SUB_BG",
+    [SHEET_SUB_OBJ] = "SHEET_SUB_OBJ",
+};
 
 sheet_t sheets[SHEET_COUNT];
 
@@ -111,6 +120,25 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
     }
 }
 
+////////////////////////////////////////////////////////////////
+bool sheet_validate_int_as_sheet_index_t (int x)
+{
+    return (x >= (int) SHEET_MAIN_BG && x <= (int) SHEET_SUB_OBJ);
+}
+
+bool sheet_validate_sheet_index_t (sheet_index_t x)
+{
+    return (x >= SHEET_MAIN_BG && x <= SHEET_SUB_OBJ);
+}
+
+const char *
+sheet_get_index_name (sheet_index_t index)
+{
+    g_assert (sheet_validate_sheet_index_t (index));
+    return sheet_index_name[index];
+}
+
+
 SCM_DEFINE (G_sheet_assign_memory, "sheet-assign-memory", 3, 0, 0,
             (SCM id, SCM size, SCM bank), "\
 Set the size and VRAM storage of a given sheet")
@@ -118,6 +146,25 @@ Set the size and VRAM storage of a given sheet")
     sheet_assign_memory (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
     return SCM_UNSPECIFIED;
 }
+
+SCM_DEFINE (G_sheet_dump_memory_assignment, "sheet-dump-memory-assignment", 0, 0, 0, (void), "\
+Returns the matrix size and VRAM bank of the BG layer.")
+{
+    for (sheet_index_t i = SHEET_MAIN_BG; i <= SHEET_SUB_OBJ; i++)
+    {
+        char *c_str = g_strdup_printf("%s %dx%d %s",
+                                      sheet_get_index_name(i),
+                                      matrix_get_width(sheets[i].size),
+                                      matrix_get_height(sheets[i].size),
+                                      vram_get_bank_name(sheets[i].bank));
+        console_write_latin1_string(c_str);
+        console_move_down(1);
+        console_move_to_column(0);
+        g_free(c_str);
+    }
+    return SCM_UNSPECIFIED;
+}
+
 
 SCM_DEFINE (G_sheet_set_data_from_file, "sheet-set-data-from-file",
             2, 0, 0, (SCM id, SCM filename), "\
@@ -144,6 +191,7 @@ sheet_init_guile_procedures (void)
                   "SHEET_MAIN_OBJ",
                   "SHEET_SUB_OBJ",
                   "sheet-assign-memory",
+                  "sheet-dump-memory-assignment",
                   "sheet-set-data-from-file",
                   "sheet-get-width",
                   "sheet-get-height",
