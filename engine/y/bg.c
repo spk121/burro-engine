@@ -225,6 +225,7 @@ void bg_hide (bg_index_t id)
 
 void bg_reset (bg_index_t id)
 {
+    bg.bg[id].enable = false;
     bg.bg[id].type = BG_TYPE_NONE;
     bg.bg[id].scroll_x = 0.0;
     bg.bg[id].scroll_y = 0.0;
@@ -678,15 +679,6 @@ Set background later ID to not be drawn")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_bg_reset, "bg-reset", 1, 0, 0,
-            (SCM id), "\
-Reset a background to hidden with nominal status")
-{
-    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-reset");
-    bg_reset (scm_to_int (id));
-    return SCM_UNSPECIFIED;
-}
-
 SCM_DEFINE (G_bg_rotate, "bg-rotate", 2, 0, 0, (SCM id, SCM angle), "\
 Rotate the background about its rotation center")
 {
@@ -724,6 +716,31 @@ directory")
     char *str = scm_to_locale_string (filename);
     bg_set_data_from_image_file (scm_to_int (id), BG_TYPE_BMP, str);
     free (str);
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_bg_set_to_map, "bg-set-to-map",
+            1, 0, 0, (SCM id), "\
+Set BG to be a map-and-tile type background.\n\
+The tilesheet to be used will be either SHEET_MAIN_BG\n\
+or SHEET_SUB_BG, set by using the sheet API.\n\
+\n\
+The map data is set or modified by directly using the BG's\n\
+bytevector, accessed with bg-get-bytevector.")
+{
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-to-map");
+
+    bg.bg[scm_to_int(id)].type = BG_TYPE_MAP;
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_bg_reset, "bg-reset", 1, 0, 0,
+            (SCM id), "\
+Reset a background be hidden, disable, and with nominal\n\
+scaling, rotation, and priority.")
+{
+    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-reset");
+    bg_reset (scm_to_int (id));
     return SCM_UNSPECIFIED;
 }
 
@@ -803,9 +820,9 @@ Returns a bytevector of data that holds the BG bitmap or map data")
     SCM pointer = scm_from_pointer (bg_get_data_ptr (i), NULL);
 
     // Then make a bytevector
-    SCM len = scm_from_size_t (matrix_get_u32_size (i));
+    SCM len = scm_from_size_t (matrix_get_u32_size (bg.bg[i].size));
     SCM zero_offset = scm_from_size_t (0);
-    SCM uvec_type = scm_from_int (SCM_ARRAY_ELEMENT_TYPE_U32);
+    SCM uvec_type = scm_from_locale_symbol("u32");
 
     return scm_pointer_to_bytevector (pointer, len, zero_offset, uvec_type);
 }
@@ -873,8 +890,10 @@ bg_init_guile_procedures (void)
                   "bg-dump",
                   "bg-set-priority",
                   "bg-get-priority",
+
                   "bg-set-bmp-from-file",
-                  "bg-set-map-from-file",
+                  "bg-set-to-map",
+                  "bg-reset",
 
                   "bg-hide",
                   "bg-show",
@@ -898,8 +917,8 @@ bg_init_guile_procedures (void)
                   "bg-get-width",
                   "bg-get-height",
                   "bg-get-u32-size",
-                  "bg->bytevector",
-                  "bg->list-of-bytevectors",
+                  "bg-get-bytevector",
+                  // "bg->list-of-bytevectors",
 
 
                   "BG_TYPE_BMP",
