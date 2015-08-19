@@ -314,7 +314,9 @@ SCM_DEFINE (G_am_add_tone, "tone", 3, 0, 0, (SCM channel, SCM start_time, SCM to
 }
 
 
-SCM_DEFINE (G_am_add_simple_tone, "simple-tone", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "")
+SCM_DEFINE (G_am_add_simple_tone, "simple-tone", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "\
+Generate a tone on a channel at a given start time.  The simple tone is defined\n\
+by a list of 5 values D_DECAY, D_SUSTAIN, FREQ, A_ATTACK, and A_SUSTAIN")
 {
     audio_model_add_tone (scm_to_int (channel),
                           scm_to_double (start_time),
