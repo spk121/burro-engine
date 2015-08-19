@@ -1,6 +1,7 @@
  #include <stdint.h>
 #include <stdbool.h>
 #include "../x.h"
+#include "console.h"
 #include "sheet.h"
 #include "matrix.h"
 #include "vram.h"
@@ -17,6 +18,9 @@ sheet_index_name[SHEET_SUB_OBJ + 1][16] = {
 };
 
 sheet_t sheets[SHEET_COUNT];
+
+static const char *sheet_get_index_name (sheet_index_t index);
+
 
 void
 sheet_init ()
@@ -108,13 +112,20 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
         {
             for (unsigned i = 0; i < width ; i ++)
             {
-                sheets[id].data[j][i] = img_store[j * img_stride + i];
+                uint32_t val = img_store[j * img_stride + i];
+                // Convert from GDKPixbuf ABGR to Cairo ARGB
+                val = (val & 0xFF00FF00) | ((val >> 16) & 0xFF) | ((val & 0xFF) << 16);
+
+                // Convert from GDK un-premultiplied alpha to Cairo pre-multiplied alpha
+                unsigned a = val >> 24;
+                unsigned r = (((val >> 16) & 0xFF) * a) / 256;
+                unsigned g = (((val >> 8) & 0xFF) * a) / 256;
+                unsigned b = (((val >> 0) & 0xFF) * a) / 256;
+
+                sheets[id].data[j][i] = a << 24 | r << 16 | g << 8 | b;
             }
         }
-        if (id == SHEET_MAIN_OBJ)
-            g_debug ("loaded pixbuf %s as bg main sheet", path);
-        else
-            g_debug ("loaded pixbuf %s as bg sub sheet", path);
+        g_debug ("loaded pixbuf %s as %s", path, sheet_get_index_name (id));
         g_free (path);
         g_object_unref (pb);
     }
@@ -131,7 +142,23 @@ bool sheet_validate_sheet_index_t (sheet_index_t x)
     return (x >= SHEET_MAIN_BG && x <= SHEET_SUB_OBJ);
 }
 
-const char *
+SCM _scm_from_sheet_index_t (sheet_index_t x)
+{
+    return scm_from_int ((int) x);
+}
+
+sheet_index_t _scm_to_sheet_index_t (SCM x)
+{
+    return (sheet_index_t) scm_to_int (x);
+}
+
+bool _scm_is_sheet_index_t (SCM x)
+{
+    return scm_is_integer(x) && sheet_validate_int_as_sheet_index_t (scm_to_int (x));
+}
+
+
+static const char *
 sheet_get_index_name (sheet_index_t index)
 {
     g_assert (sheet_validate_sheet_index_t (index));
@@ -143,6 +170,10 @@ SCM_DEFINE (G_sheet_assign_memory, "sheet-assign-memory", 3, 0, 0,
             (SCM id, SCM size, SCM bank), "\
 Set the size and VRAM storage of a given sheet")
 {
+    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheet-assign-memory");
+    SCM_ASSERT(_scm_is_matrix_size_t (size), size, SCM_ARG2, "sheet-assign-memory");
+    SCM_ASSERT(_scm_is_vram_bank_t (bank), bank, SCM_ARG3, "sheet-assign-memory");
+
     sheet_assign_memory (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
     return SCM_UNSPECIFIED;
 }
@@ -165,12 +196,30 @@ Returns the matrix size and VRAM bank of the BG layer.")
     return SCM_UNSPECIFIED;
 }
 
+SCM_DEFINE (G_sheet_get_height, "sheet-get-height", 1, 0, 0, (SCM id), "\
+return the height, in pixels, of a data sheet.")
+{
+    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheet-get-height");
 
-SCM_DEFINE (G_sheet_set_data_from_file, "sheet-set-data-from-file",
+    return scm_from_int (sheet_get_height (_scm_to_sheet_index_t (id)));
+}
+
+SCM_DEFINE (G_sheet_get_width, "sheet-get-width", 1, 0, 0, (SCM id), "\
+return the width, in pixels, of a data sheet.")
+{
+    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheet-get-width");
+
+    return scm_from_int (sheet_get_width (_scm_to_sheet_index_t (id)));
+}
+
+SCM_DEFINE (G_sheet_set_data_from_file, "sheet-set-bmp-from-file",
             2, 0, 0, (SCM id, SCM filename), "\
 Copies the contents of an ARGB32 image into the sheet.  Note that the \n\
 sheet's size and VRAM must first be set using 'sheet-init'")
 {
+    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheet-set-data-from-file");
+    SCM_ASSERT(scm_is_string (filename), filename, SCM_ARG2, "sheet-set-data-from-file");
+    
     char *str = scm_to_locale_string (filename);
     sheet_set_data_from_file (scm_to_int (id), str);
     free (str);
@@ -181,6 +230,8 @@ SCM_VARIABLE_INIT (G_SHEET_MAIN_BG, "SHEET_MAIN_BG", scm_from_int (SHEET_MAIN_BG
 SCM_VARIABLE_INIT (G_SHEET_MAIN_OBJ, "SHEET_MAIN_OBJ", scm_from_int (SHEET_MAIN_OBJ));
 SCM_VARIABLE_INIT (G_SHEET_SUB_BG, "SHEET_SUB_BG", scm_from_int (SHEET_SUB_BG));
 SCM_VARIABLE_INIT (G_SHEET_SUB_OBJ, "SHEET_SUB_OBJ", scm_from_int (SHEET_SUB_OBJ));
+SCM_VARIABLE_INIT (G_TILE_WIDTH, "TILE_WIDTH", scm_from_int (TILE_WIDTH));
+SCM_VARIABLE_INIT (G_TILE_WIDTH, "TILE_HEIGHT", scm_from_int (TILE_HEIGHT));
 
 void
 sheet_init_guile_procedures (void)
@@ -190,14 +241,13 @@ sheet_init_guile_procedures (void)
                   "SHEET_SUB_BG",
                   "SHEET_MAIN_OBJ",
                   "SHEET_SUB_OBJ",
+                  "TILE_WIDTH",
+                  "TILE_HEIGHT",
                   "sheet-assign-memory",
                   "sheet-dump-memory-assignment",
-                  "sheet-set-data-from-file",
+                  "sheet-set-bmp-from-file",
                   "sheet-get-width",
                   "sheet-get-height",
-                  "sheet-get-u32-size",
-                  // "sheet->bytevector",
-                  // "sheet->list-of-bytevectors",
                   NULL);
 }
 
