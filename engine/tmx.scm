@@ -71,6 +71,19 @@
 ;; Take care to strip off and then re-apply the tile flip flags
 (hash-ref L "data")
 
+;; To move the TMX map indices to Burro map indices
+(bg-set-to-map BG_MAIN_0)
+(define bv (bg-get-bytevector BG_MAIN_0))
+(bytevector-u32-set! bv (* 4 map-location-index) tilesheet-index-and-flags)
+;; the '4' is for sizeof(uint32_t)
+;; the map-location-index is the location of an entry on the BG_XXX_X map
+;; layer.
+;; The tilesheet-index-and-flags is the 32-bit location of a tile in the
+;; associated tilesheet, along with the associated vert, horiz, and diag
+;; flip flags
+;; The update the whole rendering of the bg layer with an explicit call
+;; 'bg-update'
+(bg-update BG_MAIN_0)
 
 ;; Burro only allows one "objectgroup" layer per TMX map
 
