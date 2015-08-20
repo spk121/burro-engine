@@ -6,10 +6,14 @@
 *.slo
 *.lo
 *.o
+a.out
 
 # Intermediate source files
 *.x
 *.d
+*.map
+nxfonts_myfont.h
+TAGS
 
 # Compiled Dynamic libraries
 *.so
@@ -22,6 +26,11 @@
 # Doxygen products
 doc/html/
 doc/latex/
+
+# Misc
+nohup.out
+tmp
+
 
 # Automake products
 # .deps/
