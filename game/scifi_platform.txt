@@ -1,0 +1,10 @@
+I got these tilesets from opengameart.org/content/sci-fi-platform-tiles
+
+the author is Eris
+
+The license is CC0 Public Domain
+
+The original, unremixed files were
+scifi_platformTiles_16x16.png
+scifi_platformTiles_32x32.png
+scifi_platform_BG1.jpg
