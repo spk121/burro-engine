@@ -40,6 +40,160 @@ SCM_SYMBOL (guile_quit_error_key, "burro-quit-error");
 static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
 
 /****************************************************************
+ *
+ ****************************************************************/
+
+/* Search the data directory for a file named FILENAME.
+   The file must be a regular file.
+   If found, return its full pathname, otherwise return
+   NULL.
+*/
+
+
+char *
+guile_filename_to_c_data_path_in_fn_encoding (SCM filename)
+{
+    // Remember that the encoding of filenames is probably
+    // UTF-8 or sometimes one of the Latin encodings.
+    // We'll rely on GLib to figure this out for us.
+
+    const gchar *data_dir_fn_string = NULL;
+    char *filename_utf8_string = NULL;
+    gchar *filename_fn_string = NULL;
+    gchar *full_filename_fn_string = NULL;
+    gchar *full_filename_utf8_string = NULL;
+    gsize bytes_read, bytes_written;
+    GError *error = NULL;
+    gboolean test = false;
+    
+    // First get the BURRO_DATA_DIR from the environment.
+    // The encoding is the "filename" encoding, not necessarily
+    // UTF-8.
+    data_dir_fn_string = g_getenv("BURRO_DATA_DIR");
+    if (data_dir_fn_string == NULL)
+        data_dir_fn_string = ".";
+    
+    // Next, convert the Guile filename string to a NULL-terminated C
+    // UTF-8 string
+    filename_utf8_string = scm_to_utf8_string (filename);
+
+    // The C UTF-8 string has to be converted into the "filename"
+    // locale encoding
+    filename_fn_string = g_filename_from_utf8 (filename_utf8_string,
+                                               -1,
+                                               &bytes_read,
+                                               &bytes_written,
+                                               &error);
+    if (filename_fn_string == NULL)
+    {
+        g_critical ("Can't convert string to filename encoding %s",
+            error->message);
+        goto cleanup;
+    }
+
+    // Build up the full filename in the filename/locale encoding
+    full_filename_fn_string = g_build_filename (data_dir_fn_string,
+                                                filename_fn_string,
+                                                NULL);
+
+    // Is it there?
+    test = g_file_test (full_filename_fn_string,
+                        G_FILE_TEST_IS_REGULAR);
+    if (!test)
+    {
+        g_warning ("The '%s' does not exist or is not a regular file",
+                   filename_utf8_string);
+        goto cleanup;
+    }
+    
+cleanup:
+    g_free (full_filename_utf8_string);
+    g_free (filename_fn_string);
+    free (filename_utf8_string);
+    if (error)
+        g_error_free (error);
+    
+    if (test)
+        return full_filename_fn_string;
+
+    g_free (full_filename_fn_string);
+    return NULL;
+}
+
+SCM_DEFINE (G_data_path, "data-path", 1, 0, 0, (SCM filename), "\
+search for a file with the given FILENAME in the directory pointed\n\
+at the by the environment variable BURRO_DATA_DIR.  Return the\n\
+full path as a string if a regular file is found.\n\
+Return #f is the file is not found or on character conversion errors\n")
+{
+    SCM ret = SCM_BOOL_F;
+    GError *error = NULL;
+
+    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "search-data-path");
+    
+    char *full_filename_fn_string = 
+        guile_filename_to_c_data_path_in_fn_encoding (filename);
+
+    if (full_filename_fn_string == NULL)
+        goto cleanup;
+       
+    // Convert this string in filename encoding back to UTF-8.
+    char *full_filename_utf8_string =
+        g_filename_to_utf8(full_filename_fn_string,
+                           -1,
+                           NULL, NULL,
+                           &error);
+    if (full_filename_utf8_string == NULL)
+    {
+        g_critical ("filename can't be represented as a UTF-8 string");
+        goto cleanup;
+    }
+
+    ret = scm_from_utf8_string (full_filename_utf8_string);
+
+cleanup:
+    g_free (full_filename_fn_string);
+    g_free (full_filename_utf8_string);
+    if (error)
+        g_error_free (error);
+    
+    return ret;
+}
+
+SCM_DEFINE (G_data_image_size, "data-image-size", 1, 0, 0, (SCM filename), "\
+search for a file with the given FILENAME in the directory pointed\n\
+at the by the environment variable BURRO_DATA_DIR.  Return the\n\
+width and height of the image if a regular image file is found.\n\
+Return #f otherwise\n")
+{
+    char *full_filename_fn_string;
+    int width, height, stride;
+    SCM ret = SCM_BOOL_F;
+
+    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "search-data-path");
+    
+    full_filename_fn_string = 
+        guile_filename_to_c_data_path_in_fn_encoding (filename);
+    if (full_filename_fn_string == NULL)
+        goto cleanup;
+
+    GdkPixbuf *pbuf = xgdk_pixbuf_new_from_file (full_filename_fn_string);
+    if (pbuf == NULL)
+        goto cleanup;
+
+    xgdk_pixbuf_get_width_height_stride (pbuf, &width, &height, &stride);
+    if (width != 0 && height != 0)
+        ret = scm_list_2 (scm_from_int (width), scm_from_int (height));
+
+cleanup:
+    g_free (full_filename_fn_string);
+    if (pbuf)
+        g_object_unref(pbuf);
+    return ret;
+}
+
+
+/****************************************************************
  * PROCEDURE LOOKUP FUNCTIONS
  *
  * This is where we make lisp procedures available to the C
@@ -1109,6 +1263,9 @@ guile_init_guile_procedures (void)
   scm_set_current_error_port (minibuf_port);
   scm_set_current_output_port (minibuf_port);
   #include "guile.x"
+  scm_c_export ("data-path",
+                "data-image-size",
+                NULL);
 }
 
 /* Return the arity of a procedure: the number of its required and

@@ -30,6 +30,7 @@ doc/latex/
 # Misc
 nohup.out
 tmp
+*.tmp
 
 
 # Automake products

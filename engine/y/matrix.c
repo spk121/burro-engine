@@ -211,6 +211,34 @@ Returns the size of a matrix in 4-byte words, given its size category")
     
 }
 
+SCM_DEFINE (G_matrix_find_best_fit, "matrix-find-best-fit",
+            2, 0, 0, (SCM width, SCM height), "\
+Finds the fixed matrix size category that is best for a given\n\
+width and height.")
+{
+    SCM_ASSERT(scm_is_integer(width), width, SCM_ARG1, "matrix-find-best-fit");
+    SCM_ASSERT(scm_is_integer(height), height, SCM_ARG2, "matrix-find-best-fit");
+
+    int w = scm_to_int(width);
+    int h = scm_to_int(height);
+
+    matrix_size_t index = MATRIX_N_SIZES;
+    int size = INT_MAX;
+    for (matrix_size_t i = 0; i < MATRIX_N_SIZES; i ++)
+    {
+        if (w < matrix_get_width(i) && h < matrix_get_height(i)
+            && size > matrix_get_u32_size(i))
+        {
+            index = i;
+            size = matrix_get_u32_size(i);
+        }
+    }
+    if (index == MATRIX_N_SIZES)
+        return SCM_BOOL_F;
+
+    return scm_from_int ((int) index);
+}
+
 SCM_DEFINE (G_matrix_to_bytevector, "matrix->bytevector", 2, 0, 0, (SCM matrix_size, SCM vram), "\
 Returns a uint32 bytevector pointing to the contents of a matrix overlayed\n\
 on a given VRAM bank.")
@@ -255,6 +283,7 @@ void matrix_init_guile_procedures ()
                   "matrix-get-width",
                   "matrix-get-height",
                   "matrix-get-u32-size",
+                  "matrix-find-best-fit",
                   "matrix->bytevector",
                   NULL);
 }

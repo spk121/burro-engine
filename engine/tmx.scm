@@ -1,4 +1,55 @@
-(use-modules (json))
+(define-module (tmx)
+  #:use-module (json)
+  #:use-module (burro)
+  #:export (tmx-load-from-data-file
+            tmx-layer-types
+            tmx-best-fit-layer-sizes))
+
+(define (tmx-load-from-data-file filename)
+  "Unpack the JSON file named FILENAME which is in the
+path pointed to by the BURRO_DATA_DIR environment variable"
+  (let ([full-filename (data-path filename)])
+    (if full-filename
+        (let ([fp (open-file full-filename "r")])
+          (false-if-exception (json->scm fp)))
+        ;; else
+        #f)))
+
+(define (tmx-layer-types tmx)
+  "Return, as a list of strings, the types of layers in a TMX
+hashtable, listed in order of their appearance."
+  (append
+    (map-in-order (lambda (x)
+                    (let ([T (hash-ref x "type")])
+                      (if (string? T)
+                          T
+                          ;; else
+                          "unknown")))
+                  (hash-ref tmx "layers"))))
+
+
+(define (tmx-best-fit-layer-sizes tmx)
+  "Return, as a list of matrix-size-indices, the minimum size
+of layers required to hold the layer information in a TMX
+hashtable, listed in order of their appearance."
+
+  ;; for 'imagelayer', this is the image size according to GDK
+  ;; for 'tilelayer', the size is in the TMX JSON
+  ;; for 'objectlayer', the size is irrelevant
+  (append
+    (map-in-order (lambda (x)
+                    (let ([T (hash-ref x "type")])
+                      (cond
+                       ((string=? "imagelayer" T)
+                        (apply matrix-find-best-fit (data-image-size (hash-ref x "image"))))
+                       ((string=? "tilelayer" T)
+                        (matrix-find-best-fit (hash-ref x "width") (hash-ref x "height")))
+                       (else
+                        #f))))
+                  (hash-ref tmx "layers"))))
+
+#|
+
 
 (define fp (open-file "brickroom1.json" "r"))
 (define x (json->scm fp))
@@ -148,3 +199,5 @@
 (hash-ref O "objects")
 
 ;; Say OGL is the list of objects
+
+|#
