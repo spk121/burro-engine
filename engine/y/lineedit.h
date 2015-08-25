@@ -62,6 +62,7 @@ void  lineedit_delete_word_prev();
 void  lineedit_history_next();
 char* lineedit_get_text(void);
 void  lineedit_history_prev();
+void  lineedit_toggle_insert_mode();
 void  lineedit_move_end();
 void  lineedit_move_end();
 void  lineedit_move_home();

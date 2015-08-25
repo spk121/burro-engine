@@ -295,6 +295,8 @@ key_event_console (unsigned keysym, unsigned state)
         lineedit_move_end();
     else if (keysym == GDK_KEY_Home)
         lineedit_move_home();
+    else if ((keysym == GDK_KEY_Insert) || (keysym == GDK_KEY_KP_Insert))
+        lineedit_toggle_insert_mode();
     else if (keysym == GDK_KEY_Left)
         lineedit_move_left();
     else if (keysym == GDK_KEY_Right)

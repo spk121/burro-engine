@@ -41,11 +41,13 @@
  * ------------------------------------------------------------------------
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <wchar.h>
+#include <wctype.h>
 #include "lineedit.h"
 #include "console.h"
 #include "eng.h"
@@ -57,11 +59,12 @@ static linenoiseCompletionCallback *completionCallback = NULL;
 
 // Global state 
 struct linenoiseState l;
-
+static int insertmode = 1;
 static int mlmode = 0;  /* Multi line mode. Default is single line. */
 static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static wchar_t **history = NULL;
+static int history_new_check = 1;
 
 static void refreshLine(struct linenoiseState *l);
 static int linenoiseHistoryAdd(const wchar_t *line);
@@ -154,7 +157,7 @@ static int completeLine(struct linenoiseState *ls) {
                 default:
                     /* Update buffer and return */
                     if (i < lc.len) {
-                        nwritten = swprintf(ls->buf, ls->buflen, L"%s", lc.cvec[i]);
+                        nwritten = swprintf(ls->buf, ls->buflen, L"%ls", lc.cvec[i]);
                         ls->len = ls->pos = nwritten;
                     }
                     stop = 1;
@@ -390,10 +393,12 @@ void linenoiseEditMoveEnd(struct linenoiseState *l) {
 #define LINENOISE_HISTORY_PREV 1
 void linenoiseEditHistoryNext(struct linenoiseState *l, int dir) {
     if (history_len > 1) {
+        
         /* Update the current history entry before to
          * overwrite it with the next one. */
-        free(history[history_len - 1 - l->history_index]);
-        history[history_len - 1 - l->history_index] = wcsdup(l->buf);
+        // free(history[history_len - 1 - l->history_index]);
+        // history[history_len - 1 - l->history_index] = wcsdup(l->buf);
+
         /* Show the new entry */
         l->history_index += (dir == LINENOISE_HISTORY_PREV) ? 1 : -1;
         if (l->history_index < 0) {
@@ -493,7 +498,10 @@ void lineedit_stop()
     if (l.buflen > 0) {
         linenoiseHistoryAdd(l.buf); /* Add to the history. */
         linenoiseHistorySave("history.txt"); /* Save the history on disk. */
+        history_new_check = 1;
     }
+    if (mlmode)
+        linenoiseEditMoveEnd(&l);
 }
 
 void lineedit_finalize()
@@ -535,6 +543,7 @@ static void linenoiseAtExit(void)
 static int linenoiseHistoryAdd(const wchar_t *line)
 {
     wchar_t *linecopy;
+    int len;
 
     if (history_max_len == 0)
         return 0;
@@ -546,15 +555,48 @@ static int linenoiseHistoryAdd(const wchar_t *line)
             return 0;
     }
 
+    len = wcslen(line);
+
+    /* Ignore empty lines */
+    if (len == 0)
+        return 0;
+    
     /* Don't add duplicated lines. */
     if (history_len && !wcscmp(history[history_len-1], line))
         return 0;
 
+    /* Don't add lines that are just whitespace. */
+    int white_space_count = 0;
+    for (int i = 0; i < len; i ++)
+    {
+        if (!iswgraph(line[i]))
+            white_space_count ++;
+    }
+    if (white_space_count == wcslen(line))
+        return 0;
+
+    
     /* Add an heap allocated copy of the line in the history.
      * If we reached the max length, remove the older line. */
     linecopy = wcsdup(line);
     if (!linecopy)
         return 0;
+
+    /* Don't add any terminal newlines.  */
+    if (linecopy[len - 1] == L'\n')
+    {
+        linecopy[len - 1] = L'\0';
+        len --;
+    }
+
+    /* This case below should be impossible because of above tests,
+       but, I'll leave it in for now. */
+    if (len == 0)
+    {
+        free (linecopy);
+        return 0;
+    }
+
     if (history_len == history_max_len) {
         free(history[0]);
         memmove(history, history+1, sizeof(wchar_t *) * (history_max_len-1));
@@ -610,7 +652,9 @@ static int linenoiseHistorySave(const char *filename)
     
     if (fp == NULL) return -1;
     for (j = 0; j < history_len; j++)
-        fwprintf(fp, L"%s\n", history[j]);
+    {
+        fwprintf(fp, L"%ls\n", history[j]);
+    }
     fclose(fp);
     return 0;
 }
@@ -717,6 +761,13 @@ void lineedit_history_next()
 
 void lineedit_history_prev()
 {
+    if (history_new_check) {
+        if (l.buflen > 0)
+            linenoiseHistoryAdd(l.buf); /* Add to the history. */
+        else
+            linenoiseHistoryAdd(L"");
+        history_new_check = 0;
+    }
     linenoiseEditHistoryNext(&l, LINENOISE_HISTORY_PREV);
 }
 
@@ -752,6 +803,14 @@ void lineedit_swap_chars()
     }
 }
 
+void lineedit_toggle_insert_mode()
+{
+    if (insertmode != 0)
+        insertmode = 0;
+    else
+        insertmode = 1;
+}
+
 void lineedit_return(int retval)
 {
 }
@@ -763,7 +822,10 @@ void lineedit_autocomplete_text_input(wchar_t *str)
 void lineedit_text_input(wchar_t *str)
 {
     for (unsigned int i = 0; i < wcslen(str); i ++) {
-        linenoiseEditOverwrite(&l, str[i]);
+        if (insertmode)
+            linenoiseEditInsert(&l, str[i]);
+        else
+            linenoiseEditOverwrite(&l, str[i]);
     }
 }    
 
