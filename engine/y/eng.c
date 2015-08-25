@@ -254,52 +254,52 @@ key_event_console (unsigned keysym, unsigned state)
     // Here we process non-textual keys
     if (keysym == GDK_KEY_BackSpace)
         lineedit_backspace();
-    if (keysym == GDK_KEY_Tab)
+    else if (keysym == GDK_KEY_Tab)
         lineedit_autocomplete();
-    if (state & GDK_CONTROL_MASK)
+    else if ((state & GDK_CONTROL_MASK))
     {
-        if (keysym == GDK_KEY_A)
+        if ((keysym == GDK_KEY_A) || (keysym == GDK_KEY_a))
             lineedit_move_home();
-        if (keysym == GDK_KEY_B)
+        if (keysym == GDK_KEY_B || (keysym == GDK_KEY_b))
             lineedit_move_left();
-        if (keysym == GDK_KEY_C)
+        if (keysym == GDK_KEY_C || (keysym == GDK_KEY_c))
             lineedit_ctrl_c();
-        if (keysym == GDK_KEY_D)
+        if (keysym == GDK_KEY_D || (keysym == GDK_KEY_d))
             lineedit_delete_or_eof();
-        if (keysym == GDK_KEY_E)
+        if (keysym == GDK_KEY_E || (keysym == GDK_KEY_e))
             lineedit_move_end();
-        if (keysym == GDK_KEY_F)
+        if (keysym == GDK_KEY_F || (keysym == GDK_KEY_f))
             lineedit_move_right();
-        if (keysym == GDK_KEY_H)
+        if (keysym == GDK_KEY_G || (keysym == GDK_KEY_g))
             lineedit_backspace();
-        if (keysym == GDK_KEY_H)
+        if (keysym == GDK_KEY_H || (keysym == GDK_KEY_h))
             lineedit_delete_to_end();
-        if (keysym == GDK_KEY_L)
+        if (keysym == GDK_KEY_L || (keysym == GDK_KEY_l))
             lineedit_clear_screen();
-        if (keysym == GDK_KEY_N)
+        if (keysym == GDK_KEY_N || (keysym == GDK_KEY_n))
             lineedit_history_next();
-        if (keysym == GDK_KEY_P)
+        if (keysym == GDK_KEY_P || (keysym == GDK_KEY_p))
             lineedit_history_prev();
-        if (keysym == GDK_KEY_T)
+        if (keysym == GDK_KEY_T || (keysym == GDK_KEY_t))
             lineedit_swap_chars();
-        if (keysym == GDK_KEY_Y)
+        if (keysym == GDK_KEY_Y || (keysym == GDK_KEY_y))
             lineedit_delete_line();
-        if (keysym == GDK_KEY_W)
+        if (keysym == GDK_KEY_W || (keysym == GDK_KEY_w))
             lineedit_delete_word_prev();
     }
-    if (keysym == GDK_KEY_Delete)
+    else if (keysym == GDK_KEY_Delete)
         lineedit_delete();
-    if (keysym == GDK_KEY_Down)
+    else if (keysym == GDK_KEY_Down)
         lineedit_history_next();
-    if (keysym == GDK_KEY_End)
+    else if (keysym == GDK_KEY_End)
         lineedit_move_end();
-    if (keysym == GDK_KEY_Home)
+    else if (keysym == GDK_KEY_Home)
         lineedit_move_home();
-    if (keysym == GDK_KEY_Left)
+    else if (keysym == GDK_KEY_Left)
         lineedit_move_left();
-    if (keysym == GDK_KEY_Right)
+    else if (keysym == GDK_KEY_Right)
         lineedit_move_right();
-    if (keysym == GDK_KEY_Up)
+    else if (keysym == GDK_KEY_Up)
         lineedit_history_prev();
     else if (keysym == GDK_KEY_Tab)
         ;
@@ -310,7 +310,7 @@ key_event_console (unsigned keysym, unsigned state)
     else if (keysym == GDK_KEY_Delete)
     {
     }
-    if (keysym == GDK_KEY_Return) {
+    else if (keysym == GDK_KEY_Return) {
         // End this lineedit session
         // Act on the string
         // Maybe add the string to the history
@@ -339,11 +339,11 @@ key_event_console (unsigned keysym, unsigned state)
             lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
     }
-    if (keysym == GDK_KEY_grave) {
+    else if (keysym == GDK_KEY_grave) {
         console_hide();
         return TRUE;
     }
-    if (keysym >= GDK_KEY_space && keysym <= GDK_KEY_ydiaeresis)
+    else if (keysym >= GDK_KEY_space && keysym <= GDK_KEY_ydiaeresis)
     {
         wchar_t input[2];
         input[0] = keysym;

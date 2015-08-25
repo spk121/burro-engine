@@ -36,7 +36,7 @@ _burroscript_init (void *unused)
 }
 
 void
-init_lisp (void)
+init_lisp (const char *main_module)
 {
     /* Redirect output/error to console */
     // FIXME: do this
@@ -65,9 +65,12 @@ init_lisp (void)
     }
     
     scm_c_use_module ("burro");
-    scm_c_use_module ("engine");
+    scm_c_use_module ("rnrs bytevectors");
     scm_c_use_module ("system repl repl");
-    scm_c_eval_string("(use-modules (rnrs bytevectors))");
+    if (main_module)
+        scm_c_use_module (main_module);
+    else
+        scm_c_use_module ("engine");
   
 }
 

@@ -52,7 +52,7 @@
     (PRAM_J . #f)))
 
 (define (_pram_is_free sym)
-  (not (assv-ref *pram-state sym)))
+  (not (assv-ref *pram-state* sym)))
 
 (define (_pram_reserve sym)
   (set! *pram-state* (assv-set! *pram-state* sym #t)))

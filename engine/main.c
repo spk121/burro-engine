@@ -4,11 +4,13 @@
 static bool fullspeed = false;
 static uint32_t seed = (uint32_t) -1;
 static GtkWidget *mainwin = NULL;
+static char *scheme_file = NULL;
 
 static GOptionEntry entries[] =
 {
     { "full-speed", 0, 0, G_OPTION_ARG_NONE, &fullspeed, "Run at maximum frame rate", NULL },
-    { "seed", 0, 0, G_OPTION_ARG_INT, &seed, "Random number seed", "positive integer" },
+    { "seed", 0, 0, G_OPTION_ARG_INT, &seed, "Random number seed", "integer" },
+    { "load", '-', 0, G_OPTION_ARG_FILENAME, &scheme_file, "the main scheme file to run", "filename"},
     { NULL }
 };
 
@@ -81,7 +83,7 @@ initialize (GtkApplication *app)
     bg_assign_memory (BG_SUB_3, MATRIX_32x32, VRAM_J);
 
     /* Create the window */
-    init_lisp();
+    init_lisp(scheme_file);
     ecma48_init ();
     mainwin = eng_initialize();
     xgtk_window_set_application (GTK_WINDOW (mainwin), app);

@@ -235,6 +235,7 @@ loop_time()
 
 ////////////////////////////////////////////////////////////////
 
+
 SCM_DEFINE (G_loop_set_full_speed, "loop-set-full-speed", 0, 0, 0, (void), "")
 {
     loop_set_full_speed_flag ();
