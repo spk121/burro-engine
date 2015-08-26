@@ -1,9 +1,11 @@
 (define-module (tmx)
   #:use-module (json)
   #:use-module (burro)
+  #:use-module (srfi srfi-1)
   #:export (tmx-load-from-data-file
             tmx-layer-types
-            tmx-best-fit-layer-sizes))
+            tmx-best-fit-layer-sizes
+            tmx-best-fit-sheet-size))
 
 (define (tmx-load-from-data-file filename)
   "Unpack the JSON file named FILENAME which is in the
@@ -14,6 +16,67 @@ path pointed to by the BURRO_DATA_DIR environment variable"
           (false-if-exception (json->scm fp)))
         ;; else
         #f)))
+
+(define (tmx-has-sheet T)
+  (let ([sheet-list (has-ref tmx "tilesets")])
+    (if sheet-list
+        (let ([sheet-list-length (length sheet-list)])
+          (cond
+           ((> sheet-list-length 1)
+            (error "TMX has more than one tileset"))
+           ((= sheet-list-length 1)
+            #t)
+           (else
+            #f)))
+        ;; else "tilesets" not found
+        #f)))
+        
+(define (tmx-main-do T)
+  "Copy tmx layers to the main screen"
+  ;; First, assign memory
+  (let ([sheet-vram #f]
+        [layer-vram-list '()])
+    
+    (when (tmx-has-sheet T)
+          (set! sheet-vram (tmx-sheet-assign-memory T))
+          (unless sheet-vram
+                  (error "Can't find a free PRAM buffer for a TMX tilesheet"))
+          (unless (sheet-set-bmp-from-file (tmx-sheet-filename T))
+                  (pram-free sheet-pram)
+                  (error "Can't load ~a as a tilesheet"
+                         (tmx-sheet-filename T))))
+
+    (when (tmx-has-bmp-or-map-layers T)
+          (let ([layers (hash-ref tmx "layers")])
+
+            (let layer-loop ([layer-vram-list '()]
+                             [layer-cur (car layers)]
+                             [layer-rest (cdr layers)])
+              
+              (let ([T (hash-ref layer-cur "type")])
+                (cond
+                 ((string=? "imagelayer" T)
+                  (let ([matrix-size (apply matrix-find-best-fit (data-image-size (hash-ref layer-cur "image")))])
+                    (if matrix-size
+                        (let ([layer-vram (tmx-layer-assign-memory layer-index matrix-size)])
+                          (unless layer-vram
+                                  (error "Out of PRAM memory"))
+                          (unless (bg-set-bmp-from-file (tmx-bmp-layer-filename T))
+                                  (error "Can't load ~a as a bmp"
+                                         (tmx-bmp-layer-filename T))))
+                        ;; else
+                        (error "Image is too large for available PRAM"))))
+
+                 ((string=? "tilelayer" T)
+                  (let ([matrix-size (matrix-find-best-fit (hash-ref x "width") (hash-ref x "height"))])
+                    (if matrix-size
+                        (let ([layer-vram (tmx-layer-assign-memory matrix-size)])
+                          (unless layer-vram
+                                  (error "Out of PRAM memory"))
+                          (let ([layer-bv (bg->bytevector XXX)])
+                            
+                       (else
+                        #f))))
 
 (define (tmx-layer-types tmx)
   "Return, as a list of strings, the types of layers in a TMX
@@ -27,6 +90,22 @@ hashtable, listed in order of their appearance."
                           "unknown")))
                   (hash-ref tmx "layers"))))
 
+(define (tmx-best-fit-sheet-size tmx)
+  (let ([sheet (first (hash-ref tmx "tilesets"))])
+    (let ([tilewidth (hash-ref sheet "tilewidth")]
+          [tileheight (hash-ref sheet "tileheight")]
+          [imageheight (hash-ref sheet "imageheight")]
+          [imagewidth (hash-ref sheet "imagewidth")]
+          [filename (hash-ref sheet "image")])
+      (let* ([bmpsize (data-image-size filename)]
+             [matrixsize (apply matrix-find-best-fit bmpsize)])
+        (console-write-string
+         (format #f "~a tmx_size ~ax~a bmp_size ~a"
+                 filename
+                 imagewidth
+                 imageheight
+                 bmpsize))
+        matrixsize))))
 
 (define (tmx-best-fit-layer-sizes tmx)
   "Return, as a list of matrix-size-indices, the minimum size

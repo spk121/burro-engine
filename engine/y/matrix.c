@@ -226,8 +226,8 @@ width and height.")
     int size = INT_MAX;
     for (matrix_size_t i = 0; i < MATRIX_N_SIZES; i ++)
     {
-        if (w < matrix_get_width(i) && h < matrix_get_height(i)
-            && size > matrix_get_u32_size(i))
+        if (w <= matrix_get_width(i) && h <= matrix_get_height(i)
+            && size >= matrix_get_u32_size(i))
         {
             index = i;
             size = matrix_get_u32_size(i);
