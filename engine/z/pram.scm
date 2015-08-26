@@ -52,20 +52,45 @@
     (PRAM_J . #f)))
 
 (define (_pram_is_free sym)
+  "Check to see if a PRAM buffer is free by checking to see if its
+entry in the *pram-state* list is set to #f"
   (not (assv-ref *pram-state* sym)))
 
 (define (_pram_reserve sym)
-  (set! *pram-state* (assv-set! *pram-state* sym #t)))
+  "Label a PRAM buffer as reserved by setting its entry in the *pram-state*
+list to the symbol used to reserve it."
+  (set! *pram-state* (assv-set! *pram-state* sym sym)))
+
+(define (_pram_multi_reserve children sym)
+  (for-each (lambda (entry)
+              (set! *pram-state* (assv-set! *pram-state* entry sym)))
+            children))
 
 (define (_pram_free sym)
-  (set! *pram-state* (assv-set! *pram-state* sym #t)))
+  "Label a PRAM buffer as free by setting its entry in the *pram-state*
+list to #f.  If this buffer was allocated as part of a multi-buffer
+collection, the sibling buffers are also freed."
+  (let ([state (assv-ref *pram-state* sym)])
 
+    ;; If SYM is of a single buffer
+    (if state
+        (for-each (lambda (entry)
+                    (if (eqv? state (assv-ref *pram-state* (first entry)))
+                        (set! *pram-state* (assv-set! *pram-state* (first entry) #f))))
+                  *pram-state*)
+
+        ;; else if SYM is of a multi buffer, free all the children
+        (let ([multi-state (assv-ref *pram-multi-size* sym)])
+          (if multi-state
+              (let ([children (second multi-state)])
+                (for-each _pram_free children)))))))
+  
 (define (_sufficient sym desired-size)
   ;; First check the state alist to see if this sym is free
   (and (_pram_is_free sym)
        (<= desired-size (assv-ref *pram-size* sym))))
 
-(define (_mutli_sufficient sym desired-size)
+(define (_multi_sufficient sym desired-size)
   (let* ([info (assv-ref *pram-multi-size* sym)]
          [size (first info)]
          [children (second info)])
@@ -82,10 +107,33 @@ bytes, or #f if all the preallocated buffers are in use."
                        (_sufficient (car entry) size))
                      *pram-size*)])
     (if entry
-        (begin
-          (_pram_reserve (car entry))
-          (car entry))
+        (let ([entry-sym (first entry)])
+          (_pram_reserve entry-sym)
+          entry-sym)
+        ;; else
         #f)))
+
+(define (_pram_multi_alloc size)
+  "Returns the index of a compound memory buffer that has at least SIZE
+bytes, or #f if all the preallocated buffers are in use."
+
+  ;; Search through the *pram-multi-size* structure for
+  ;; an entry that is free and is big enough
+  (let ([entry (find (lambda (entry)
+                       (_multi_sufficient (car entry) size))
+                     *pram-multi-size*)])
+
+    ;; If you find an entry that is free and big enough,
+    ;; reserve all the sub-buffers and return its index
+    (if entry
+        (let ([entry-sym (first entry)]
+              [entry-children-list (third entry)])
+          (begin
+            (_pram_multi_reserve entry-children-list entry-sym)
+            entry-sym))
+        ;; else
+        #f)))
+
 
 (define (pram-alloc size)
   "Returns the index of a single memory buffer or a group of memory
@@ -93,7 +141,15 @@ buffers that has at least SIZE bytes, or #f if all the preallocated
 buffers are in use."
 
   ;; FIXME: handle multi-memory buffers
-  (_pram_single_alloc size))
+  (let ([single-pram (_pram_single_alloc size)])
+    (if (not single-pram)
+        (let ([multi-pram (_pram_multi_alloc size)])
+          (if (not multi-pram)
+              #f
+              ;; else
+              multi-pram))
+        ;; else
+        single-pram)))
   
 (define (pram-free sym)
   "Given the INDEX of a memory buffer, this procedure marks the buffer
