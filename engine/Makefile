@@ -118,14 +118,36 @@ LIBS = \
 ################################################################
 # TOP-LEVEL SOURCES
 
-SRCS_H = \
- xcairo.h \
- xgdk.h \
- xgdk-pixbuf.h \
- xgio.h \
- xgtk.h \
- xguile.h \
- xpulseaudio.h
+SRCS_X_H = \
+ x/xcairo.h \
+ x/xgdk.h \
+ x/xgdk-pixbuf.h \
+ x/xgio.h \
+ x/xgtk.h \
+ x/xguile.h \
+ x/xpulseaudio.h
+
+SRCS_Y_H = \
+ y/audio_model.h \
+ y/backdrop.h \
+ y/bg.h \
+ y/console.h \
+ y/draw.h \
+ y/ecma48.h \
+ y/eng.h \
+ y/guile.h \
+ y/lineedit.h \
+ y/lisp.h \
+ y/loop.h \
+ y/matrix.h \
+ y/obj.h \
+ y/proc.h \
+ y/pulseaudio.h \
+ y/rand.h \
+ y/repl.h \
+ y/sheet.h \
+ y/vram.h \
+ y/wave.h
 
 SRCS_C   = \
  x/xcairo.c \
@@ -196,11 +218,14 @@ DEPENDS = ${OBJS:.o=.d}
 ################################################################
 # MAJOR TARGETS
 
-burro: $(OBJS) x.pch
+burro: $(OBJS) x.pch y.pch
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
-x.pch: x.h x/xcairo.h x/xgdk.h x/xgdk-pixbuf.h x/xgio.h x/xgtk.h x/xguile.h x/xpulseaudio.h
-	$(CC) -o $@ $(CFLAGS) $<
+x.pch: x.h $(SRCS_X_H)
+	(CC) -o $@ $(CFLAGS) $<
+
+y.pch: y.h $(SRCS_Y_H)
+	$(CC) -o %@ $(CFLAGS) $<
 
 ################################################################
 # MINOR TARGETS

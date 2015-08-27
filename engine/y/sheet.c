@@ -166,13 +166,13 @@ sheet_get_index_name (sheet_index_t index)
 }
 
 
-SCM_DEFINE (G_sheet_assign_memory, "sheet-assign-memory", 3, 0, 0,
+SCM_DEFINE (G_sheet_assign_memory, "sheetAssignMemory", 3, 0, 0,
             (SCM id, SCM size, SCM bank), "\
 Set the size and VRAM storage of a given sheet")
 {
-    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheet-assign-memory");
-    SCM_ASSERT(_scm_is_matrix_size_t (size), size, SCM_ARG2, "sheet-assign-memory");
-    SCM_ASSERT(_scm_is_vram_bank_t (bank), bank, SCM_ARG3, "sheet-assign-memory");
+    SCM_ASSERT(_scm_is_sheet_index_t (id), id, SCM_ARG1, "sheetAssignMemory");
+    SCM_ASSERT(_scm_is_matrix_size_t (size), size, SCM_ARG2, "sheetAssignMemory");
+    SCM_ASSERT(_scm_is_vram_bank_t (bank), bank, SCM_ARG3, "sheetAssignMemory");
 
     sheet_assign_memory (scm_to_int (id), scm_to_int (size), scm_to_int (bank));
     return SCM_UNSPECIFIED;
@@ -243,7 +243,7 @@ sheet_init_guile_procedures (void)
                   "SHEET_SUB_OBJ",
                   "TILE_WIDTH",
                   "TILE_HEIGHT",
-                  "sheet-assign-memory",
+                  "sheetAssignMemory",
                   "sheet-dump-memory-assignment",
                   "sheet-set-bmp-from-file",
                   "sheet-get-width",

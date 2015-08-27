@@ -36,7 +36,7 @@ _burroscript_init (void *unused)
 }
 
 void
-init_lisp (const char *main_module)
+init_lisp (const char *main_script)
 {
     /* Redirect output/error to console */
     // FIXME: do this
@@ -49,29 +49,29 @@ init_lisp (const char *main_module)
     scm_set_current_module (burro_user_module);
 
     // Load scheme libraries
-    char *path = getenv("BURRO_SCHEME_PATH");
+    const char *path = g_getenv("BURRO_SCHEME_PATH");
     if (path == NULL)
         path = ".";
-    if (path != NULL)
+    if (g_file_test (path, G_FILE_TEST_IS_DIR) == TRUE)
     {
-        if (g_file_test (path, G_FILE_TEST_IS_DIR) == TRUE)
-        {
-            SCM old_path = scm_list_copy (scm_c_eval_string ("%load-path"));
-            scm_set_car_x (scm_c_eval_string ("%load-path"),
-                           scm_from_locale_string (path));
-            scm_set_cdr_x (scm_c_eval_string ("%load-path"),
-                           old_path);
-        }
+        SCM old_path = scm_list_copy (scm_c_eval_string ("%load-path"));
+        scm_set_car_x (scm_c_eval_string ("%load-path"),
+                       scm_from_locale_string (path));
+        scm_set_cdr_x (scm_c_eval_string ("%load-path"),
+                       old_path);
     }
     
     scm_c_use_module ("burro");
     scm_c_use_module ("rnrs bytevectors");
     scm_c_use_module ("system repl repl");
-    if (main_module)
-        scm_c_use_module (main_module);
+
+    char *cmd;
+    if (main_script)
+        cmd = g_strdup_printf("(load-from-path \"%s\")", main_script);
     else
-        scm_c_use_module ("engine");
-  
+        cmd = g_strdup_printf("(load-from-path \"engine.scm\")");
+    scm_c_eval_string(cmd);
+    g_free (cmd);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -87,7 +87,7 @@ it is used as a regular expression for matching.\n")
     const char *user_dir = g_get_user_data_dir ();
     char *path;
     if (assets_dir != NULL)
-        path = assets_dir;
+        path = g_strdup (assets_dir);
     else if (user_dir != NULL)
         path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", NULL);
 
@@ -116,6 +116,7 @@ it is used as a regular expression for matching.\n")
     }
 
     g_dir_close (dir);
+    g_free(path);
     return SCM_UNSPECIFIED;
 }
 

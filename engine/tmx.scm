@@ -1,41 +1,59 @@
-(define-module (tmx)
-  #:use-module (json)
-  #:use-module (burro)
-  #:use-module (srfi srfi-1)
-  #:export (tmx-load-from-data-file
-            tmx-layer-types
-            tmx-best-fit-layer-sizes
-            tmx-best-fit-sheet-size))
 
-(define (tmx-load-from-data-file filename)
+(define TMX_MAIN_BG_PRAM #f)
+
+(define (tmxLoadFromDataFile filename)
   "Unpack the JSON file named FILENAME which is in the
 path pointed to by the BURRO_DATA_DIR environment variable"
-  (let ([full-filename (data-path filename)])
-    (if full-filename
-        (let ([fp (open-file full-filename "r")])
-          (false-if-exception (json->scm fp)))
-        ;; else
-        #f)))
+  (let ([fullFilename (guileFullPathToDataFile filename)]
+        [filePort #f])
+    (cond
+     ((not fullFilename)
+      #f)
+     (else
+      (set! filePort (open-file fullFilename "r"))
+      (false-if-exception (json->scm filePort))))))
 
-(define (tmx-has-sheet T)
-  (let ([sheet-list (has-ref tmx "tilesets")])
-    (if sheet-list
-        (let ([sheet-list-length (length sheet-list)])
-          (cond
-           ((> sheet-list-length 1)
-            (error "TMX has more than one tileset"))
-           ((= sheet-list-length 1)
-            #t)
-           (else
-            #f)))
-        ;; else "tilesets" not found
-        #f)))
-        
+;; Tilesheet information
+
+(define (_tmx_ValidateSheetInfo T)
+  (let ([sheet-list (hash-ref tmx "tilesets")])
+    (cond
+     ((not sheet-list)
+      (error "No tilesheet information found in TMX"))
+     ((> (length sheet-list) 1)
+      (error "Multiple tilesheets found in TMX"))
+     ((
+
+(define (_tmx_GetSheetInfo T)
+  (car (hash-ref T "tilesets")))
+
+(define (_tmxSheetInfo_GetFilename TS)
+  (hash-ref TS "image"))
+
+(define (_tmxSheetInfo_GetMatrixSize TS)
+  (apply matrix-find-best-fit
+         (data-image-size
+          (_tmxSheetInfo_GetFilename TS))))
+
+(define (_tmx_UpdateMainBgSpritesheet T)
+  (let* ([sheetInfo (_tmx_GetSheetInfo T)]
+         [size (_tmxSheetInfo_GetMatrixSize sheetInfo)]
+         [pram (pram_Alloc size)])
+    (when TMX_MAIN_BG_PRAM
+          (pram_Free TMX_MAIN_BG_PRAM))
+    (set! TMX_MAIN_BG_PRAM pram)
+    (sheet_AssignMemory SHEET_BG_MAIN size pram)
+    (sheet_SetBmpFromFile SHEET_BG_MAIN filename)))
+
+
 (define (tmx-main-do T)
   "Copy tmx layers to the main screen"
+
+  (_tmx_ValidateSheetInfo T)
+
+  
   ;; First, assign memory
-  (let ([sheet-vram #f]
-        [layer-vram-list '()])
+  (let ([sheetInfo (_tmx_GetSheetInfo T)])
     
     (when (tmx-has-sheet T)
           (set! sheet-vram (tmx-sheet-assign-memory T))
@@ -77,6 +95,7 @@ path pointed to by the BURRO_DATA_DIR environment variable"
                             
                        (else
                         #f))))
+                    )))))))))
 
 (define (tmx-layer-types tmx)
   "Return, as a list of strings, the types of layers in a TMX

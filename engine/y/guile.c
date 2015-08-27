@@ -120,7 +120,7 @@ cleanup:
     return NULL;
 }
 
-SCM_DEFINE (G_data_path, "data-path", 1, 0, 0, (SCM filename), "\
+SCM_DEFINE (G_data_path, "guileFullPathToDataFile", 1, 0, 0, (SCM filename), "\
 search for a file with the given FILENAME in the directory pointed\n\
 at the by the environment variable BURRO_DATA_DIR.  Return the\n\
 full path as a string if a regular file is found.\n\
@@ -129,7 +129,7 @@ Return #f is the file is not found or on character conversion errors\n")
     SCM ret = SCM_BOOL_F;
     GError *error = NULL;
 
-    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "search-data-path");
+    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "guileFullPathToDataFile");
     
     char *full_filename_fn_string = 
         guile_filename_to_c_data_path_in_fn_encoding (filename);
@@ -170,7 +170,7 @@ Return #f otherwise\n")
     int width, height, stride;
     SCM ret = SCM_BOOL_F;
 
-    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "search-data-path");
+    SCM_ASSERT (scm_is_string (filename), filename, SCM_ARG1, "data-image-size");
     
     full_filename_fn_string = 
         guile_filename_to_c_data_path_in_fn_encoding (filename);
@@ -1263,7 +1263,7 @@ guile_init_guile_procedures (void)
   scm_set_current_error_port (minibuf_port);
   scm_set_current_output_port (minibuf_port);
   #include "guile.x"
-  scm_c_export ("data-path",
+  scm_c_export ("guileFullPathToDataFile",
                 "data-image-size",
                 NULL);
 }

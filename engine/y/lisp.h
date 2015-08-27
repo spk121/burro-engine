@@ -28,7 +28,7 @@
  *
  * @param main_module - a filename to a Guile module to be loaded.
  */
-void init_lisp (const char *main_module);
+void init_lisp (const char *main_script);
 
 
 void lisp_init_guile_procedures (void);
