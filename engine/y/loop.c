@@ -94,10 +94,8 @@ loop_set_after_draw_frame_func (SCM after_frame)
     do_after_draw_frame = ref;
 }
 
-void loop ()
+void loop_initialize ()
 {
-    active_flag = TRUE;
-
     timer = xg_timer_new();
     g_timer_start (timer);
     update_count = 0;
@@ -111,6 +109,12 @@ void loop ()
     main_screen_tick_id = gtk_widget_add_tick_callback (GTK_WIDGET(main_screen), tick_cb, NULL, NULL);
 
     initialized_flag = TRUE;
+
+}
+
+void loop ()
+{
+    active_flag = TRUE;
 
     xg_main_loop_run (main_loop);
     xg_main_loop_unref (main_loop);

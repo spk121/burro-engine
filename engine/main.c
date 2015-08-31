@@ -10,7 +10,7 @@ static GOptionEntry entries[] =
 {
     { "full-speed", 0, 0, G_OPTION_ARG_NONE, &fullspeed, "Run at maximum frame rate", NULL },
     { "seed", 0, 0, G_OPTION_ARG_INT, &seed, "Random number seed", "integer" },
-    { "load", '-', 0, G_OPTION_ARG_FILENAME, &scheme_file, "the main scheme file to run", "filename"},
+    { "load", 'L', 0, G_OPTION_ARG_FILENAME, &scheme_file, "the main scheme file to run", "filename"},
     { NULL }
 };
 
@@ -44,6 +44,17 @@ console_log_handler (const char *log_domain,
     }
 }
 
+static void
+stdio_log_handler (const gchar   *log_domain,
+             GLogLevelFlags log_level,
+             const gchar   *message,
+             gpointer       user_data)
+{
+  g_log_default_handler (log_domain, log_level, message, user_data);
+
+  if (log_level != G_LOG_LEVEL_DEBUG && log_level != G_LOG_LEVEL_INFO)
+      g_on_error_query ("BURRO");
+}
 
 static void
 initialize (GtkApplication *app)
@@ -59,9 +70,9 @@ initialize (GtkApplication *app)
 
     /* Load debugging options */
     const GLogLevelFlags debug_flags = (GLogLevelFlags) (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
-    g_log_set_handler (NULL, debug_flags, console_log_handler, NULL);
-    g_log_set_handler ("GLib", debug_flags, console_log_handler, NULL);
-    g_log_set_handler ("Gtk", debug_flags, console_log_handler, NULL);
+    g_log_set_handler (NULL, debug_flags, stdio_log_handler, NULL);
+    g_log_set_handler ("GLib", debug_flags, stdio_log_handler, NULL);
+    g_log_set_handler ("Gtk", debug_flags, stdio_log_handler, NULL);
 
     /* Initialize memory cache */
     vram_init ();
@@ -89,9 +100,6 @@ initialize (GtkApplication *app)
     xgtk_window_set_application (GTK_WINDOW (mainwin), app);
     gtk_widget_show_all (mainwin);
 
-    /* Initialize the audio system */
-    audio_model_initialize ();
-    pulse_initialize_audio_step_1 ();
 
     /* Load player's game options and saved game files */
     
@@ -113,6 +121,11 @@ initialize (GtkApplication *app)
     lineedit_initialize ();
     // init_guile_guile_procedures();
     // G_console();
+    loop_initialize();
+    
+    /* Initialize the audio system */
+    audio_model_initialize ();
+    pulse_initialize_audio_step_1 ();
     loop ();
     
 }

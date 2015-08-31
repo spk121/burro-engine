@@ -34,6 +34,9 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
 static void
 update_sum();
 
+// Initialize the audio model
+// N.B. since the audio model requires a loop time,
+// the loop has to be initialized first.
 void audio_model_initialize ()
 {
     for (int i = 0; i < AUDIO_CHANNEL_COUNT; i ++)

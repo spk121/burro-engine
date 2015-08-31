@@ -1,7 +1,12 @@
+;;; tmx.scm -- parse the JSON files generated from TMX files as created by
+;;             the TileD editor
+;;
+;;; Copyright 2015 Michael L. Gran <spk121@yahoo.com>
+;;; GPL3+
 
 (define TMX_MAIN_BG_PRAM #f)
 
-(define (tmxLoadFromDataFile filename)
+(define (tmx_LoadFromDataFile filename)
   "Unpack the JSON file named FILENAME which is in the
 path pointed to by the BURRO_DATA_DIR environment variable"
   (let ([fullFilename (guileFullPathToDataFile filename)]
@@ -16,13 +21,12 @@ path pointed to by the BURRO_DATA_DIR environment variable"
 ;; Tilesheet information
 
 (define (_tmx_ValidateSheetInfo T)
-  (let ([sheet-list (hash-ref tmx "tilesets")])
+  (let ([sheet-list (hash-ref T "tilesets")])
     (cond
      ((not sheet-list)
       (error "No tilesheet information found in TMX"))
      ((> (length sheet-list) 1)
-      (error "Multiple tilesheets found in TMX"))
-     ((
+      (error "Multiple tilesheets found in TMX")))))
 
 (define (_tmx_GetSheetInfo T)
   (car (hash-ref T "tilesets")))
@@ -46,9 +50,10 @@ path pointed to by the BURRO_DATA_DIR environment variable"
     (sheet_SetBmpFromFile SHEET_BG_MAIN filename)))
 
 
+#!
 (define (tmx-main-do T)
   "Copy tmx layers to the main screen"
-
+  
   (_tmx_ValidateSheetInfo T)
 
   
@@ -96,6 +101,7 @@ path pointed to by the BURRO_DATA_DIR environment variable"
                        (else
                         #f))))
                     )))))))))
+!#
 
 (define (tmx-layer-types tmx)
   "Return, as a list of strings, the types of layers in a TMX

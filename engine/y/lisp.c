@@ -11,6 +11,8 @@
 #include "sheet.h"
 #include <libguile.h>
 
+static char *lisp_main_script = NULL;
+
 // One route to defining C functions into a module is
 // scm_c_resolve_module to open and create if necessary a module
 // SCM val = scm_c_make_gsubr(subr args and such)  to make it
@@ -67,15 +69,30 @@ init_lisp (const char *main_script)
 
     char *cmd;
     if (main_script)
+    {
+        lisp_main_script = g_strdup(main_script);
         cmd = g_strdup_printf("(load-from-path \"%s\")", main_script);
+    }
     else
+    {
         cmd = g_strdup_printf("(load-from-path \"engine.scm\")");
+        lisp_main_script = g_strdup("engine.scm");
+    }
     scm_c_eval_string(cmd);
     g_free (cmd);
 }
 
 ////////////////////////////////////////////////////////////////
 // Here are some random functions for use with the console
+
+SCM_DEFINE (G_restart, "restart", 0, 0, 0, (void), "\
+Reload and re-eval the main script.\n")
+{
+    char *cmd = g_strdup_printf("(load-from-path \"%s\")", lisp_main_script);
+    SCM ret = scm_c_eval_string(cmd);
+    g_free (cmd);
+    return ret;
+}
 
 SCM_DEFINE (G_list_data_directory_contents, "dir", 0, 1, 0, (SCM regex), "\
 List the contents of the data directory.  If a parameter is provided, \n\
@@ -161,7 +178,7 @@ void
 lisp_init_guile_procedures (void)
 {
 #include "lisp.x"
-    scm_c_export("dir", NULL);
+    scm_c_export("dir", "restart", NULL);
 }
 
 /*
