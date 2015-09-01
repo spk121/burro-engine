@@ -35,7 +35,7 @@ console_log_handler (const char *log_domain,
             || log_level == G_LOG_LEVEL_CRITICAL
             || log_level == G_LOG_LEVEL_WARNING)) {
         console_write_latin1_string (message);
-        console_move_to_column(0);
+        console_move_to_column(0); 
         console_move_down(1);
     }
     else {
@@ -102,7 +102,7 @@ initialize (GtkApplication *app)
 
 
     /* Load player's game options and saved game files */
-    
+
     /* Create drawing surface */
 #if 0
     for (int i = 0; i < 8; i ++) {
@@ -122,12 +122,12 @@ initialize (GtkApplication *app)
     // init_guile_guile_procedures();
     // G_console();
     loop_initialize();
-    
+
     /* Initialize the audio system */
     audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
     loop ();
-    
+
 }
 
 static void
@@ -150,6 +150,11 @@ int main (int argc, char **argv)
     int status;
     GError *error = NULL;
 
+    // Use debug version of Scheme engine.
+    // FIXME: found this solution by diving Guile source.
+    // There is probably a more legit method.
+    extern void scm_c_set_default_vm_engine_x (int x);
+    scm_c_set_default_vm_engine_x (1);
     xscm_init_guile ();
 
     context = g_option_context_new ("- game options");
