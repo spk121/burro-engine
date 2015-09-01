@@ -7,7 +7,6 @@ SCM repl_server_object = SCM_UNSPECIFIED;
 void
 repl_init ()
 {
-    scm_c_eval_string ("(use-modules (system repl server) (system repl coop-server))");
     repl_server_socket = scm_c_eval_string("(make-tcp-server-socket #:port 37147)");
     repl_server_object = scm_call_1 (scm_c_eval_string ("spawn-coop-repl-server"),
                                          repl_server_socket);
@@ -17,7 +16,7 @@ void
 repl_tick ()
 {
     static int first = 1;
-    static SCM func = SCM_BOOL_F;;
+    static SCM func = SCM_BOOL_F;
     if (repl_server_object != SCM_UNSPECIFIED)
     {
         if (first == 1)

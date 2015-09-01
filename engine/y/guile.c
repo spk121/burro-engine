@@ -15,7 +15,7 @@
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with GNU Zile; see the file COPYING.  If not, write to the
+   along with Project Burro; see the file COPYING.  If not, write to the
    Free Software Foundation, Fifth Floor, 51 Franklin Street, Boston,
    MA 02111-1301, USA.  */
 
@@ -39,17 +39,11 @@ SCM_SYMBOL (guile_quit_error_key, "burro-quit-error");
 
 static SCM _guile_false_error_handler (void *data, SCM key, SCM exception);
 
-/****************************************************************
- *
- ****************************************************************/
-
 /* Search the data directory for a file named FILENAME.
    The file must be a regular file.
    If found, return its full pathname, otherwise return
    NULL.
 */
-
-
 char *
 guile_filename_to_c_data_path_in_fn_encoding (SCM filename)
 {
@@ -120,7 +114,7 @@ cleanup:
     return NULL;
 }
 
-SCM_DEFINE (G_data_path, "guileFullPathToDataFile", 1, 0, 0, (SCM filename), "\
+SCM_DEFINE (G_data_path, "burroFullPathToDataFile", 1, 0, 0, (SCM filename), "\
 search for a file with the given FILENAME in the directory pointed\n\
 at the by the environment variable BURRO_DATA_DIR.  Return the\n\
 full path as a string if a regular file is found.\n\
@@ -1253,17 +1247,17 @@ guile_to_long_or_error (const char *function_name, int position, SCM n)
 void
 guile_init_guile_procedures (void)
 {
-  stderr_port = scm_current_error_port ();
-  minibuf_port_type = scm_make_port_type ("minibuf-port",
-					  guile_error_port_fill_input,
-					  guile_error_port_write);
-  minibuf_port = scm_new_port_table_entry (minibuf_port_type);
-  SCM_SET_CELL_TYPE (minibuf_port, minibuf_port_type | SCM_OPN | SCM_WRTNG);
-  stderr_port = scm_current_error_port ();
-  scm_set_current_error_port (minibuf_port);
-  scm_set_current_output_port (minibuf_port);
+  /* stderr_port = scm_current_error_port (); */
+  /* minibuf_port_type = scm_make_port_type ("minibuf-port", */
+  /*   				  guile_error_port_fill_input, */
+  /*   				  guile_error_port_write); */
+  /* minibuf_port = scm_new_port_table_entry (minibuf_port_type); */
+  /* SCM_SET_CELL_TYPE (minibuf_port, minibuf_port_type | SCM_OPN | SCM_WRTNG); */
+  /* stderr_port = scm_current_error_port (); */
+  /* scm_set_current_error_port (minibuf_port); */
+  /* scm_set_current_output_port (minibuf_port); */
   #include "guile.x"
-  scm_c_export ("guileFullPathToDataFile",
+  scm_c_export ("burroFullPathToDataFile",
                 "data-image-size",
                 NULL);
 }

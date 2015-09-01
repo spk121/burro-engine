@@ -8,6 +8,7 @@
 #include "guile.h"
 #include "lisp.h"
 #include "loop.h"
+#include "repl.h"
 #include "sheet.h"
 #include <libguile.h>
 
@@ -66,7 +67,10 @@ init_lisp (const char *main_script)
     scm_c_use_module ("burro");
     scm_c_use_module ("rnrs bytevectors");
     scm_c_use_module ("system repl repl");
-
+    scm_c_use_module ("system repl server");
+    scm_c_use_module ("system repl coop-server");
+    scm_c_use_module ("system vm trap-state");
+    
     char *cmd;
     if (main_script)
     {
@@ -80,6 +84,7 @@ init_lisp (const char *main_script)
     }
     scm_c_eval_string(cmd);
     g_free (cmd);
+    repl_init ();
 }
 
 ////////////////////////////////////////////////////////////////
@@ -92,6 +97,18 @@ Reload and re-eval the main script.\n")
     SCM ret = scm_c_eval_string(cmd);
     g_free (cmd);
     return ret;
+}
+
+SCM_DEFINE (G_break, "break", 1, 0, 0, (SCM x), "\
+Add a breakpoint at a given procedure.")
+{
+    if (scm_is_true (scm_procedure_p(x)))
+    {
+        SCM func = scm_c_eval_string("add-trap-at-procedure-call!");
+        return scm_call_1(func, x);
+    }
+    scm_misc_error("break", "~a is not a procedure", scm_list_1 (x));
+    return SCM_UNSPECIFIED;
 }
 
 SCM_DEFINE (G_list_data_directory_contents, "dir", 0, 1, 0, (SCM regex), "\

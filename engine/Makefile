@@ -225,7 +225,7 @@ x.pch: x.h $(SRCS_X_H)
 	(CC) -o $@ $(CFLAGS) $<
 
 y.pch: y.h $(SRCS_Y_H)
-	$(CC) -o %@ $(CFLAGS) $<
+	$(CC) -o $@ $(CFLAGS) $<
 
 ################################################################
 # MINOR TARGETS
