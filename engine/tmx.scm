@@ -1,6 +1,6 @@
 ;;; tmx.scm -- parse the JSON files generated from TMX files as created by
-;;             the TileD editor
-;;
+;;;             the TileD editor
+;;;
 ;;; Copyright 2015 Michael L. Gran <spk121@yahoo.com>
 ;;; GPL3+
 
@@ -9,7 +9,7 @@
 (define (tmx_LoadFromDataFile filename)
   "Unpack the JSON file named FILENAME which is in the
 path pointed to by the BURRO_DATA_DIR environment variable"
-  (let ([fullFilename (guileFullPathToDataFile filename)]
+  (let ([fullFilename (burro_FullPathToDataFile filename)]
         [filePort #f])
     (cond
      ((not fullFilename)

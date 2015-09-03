@@ -15,12 +15,8 @@
   (write args) (newline)
   (backtrace))
 
-;; INCLUDE MODULES
-(use-modules (srfi srfi-1)
-             (json))
-
-(include-from-path "pram.scm")
-(include-from-path "tmx.scm")
+(load-from-path "pram.scm")
+(load-from-path "tmx.scm")
 
 (define (engine-init)
   (backdrop-set-color 0 #xff334455)

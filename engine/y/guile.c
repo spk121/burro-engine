@@ -114,7 +114,7 @@ cleanup:
     return NULL;
 }
 
-SCM_DEFINE (G_data_path, "burroFullPathToDataFile", 1, 0, 0, (SCM filename), "\
+SCM_DEFINE (G_data_path, "burro_FullPathToDataFile", 1, 0, 0, (SCM filename), "\
 search for a file with the given FILENAME in the directory pointed\n\
 at the by the environment variable BURRO_DATA_DIR.  Return the\n\
 full path as a string if a regular file is found.\n\
@@ -1257,7 +1257,7 @@ guile_init_guile_procedures (void)
   /* scm_set_current_error_port (minibuf_port); */
   /* scm_set_current_output_port (minibuf_port); */
   #include "guile.x"
-  scm_c_export ("burroFullPathToDataFile",
+  scm_c_export ("burro_FullPathToDataFile",
                 "data-image-size",
                 NULL);
 }

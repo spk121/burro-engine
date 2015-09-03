@@ -65,11 +65,14 @@ init_lisp (const char *main_script)
     }
     
     scm_c_use_module ("burro");
+    scm_c_use_module ("ice-9 readline");
+    scm_c_use_module ("srfi srfi-1");
     scm_c_use_module ("rnrs bytevectors");
     scm_c_use_module ("system repl repl");
     scm_c_use_module ("system repl server");
     scm_c_use_module ("system repl coop-server");
     scm_c_use_module ("system vm trap-state");
+    scm_c_use_module ("json");
     
     char *cmd;
     if (main_script)
@@ -84,13 +87,14 @@ init_lisp (const char *main_script)
     }
     scm_c_eval_string(cmd);
     g_free (cmd);
+    scm_c_eval_string ("(activate-readline)");
     repl_init ();
 }
 
 ////////////////////////////////////////////////////////////////
 // Here are some random functions for use with the console
 
-SCM_DEFINE (G_restart, "restart", 0, 0, 0, (void), "\
+SCM_DEFINE (G_restart, "burro_Restart", 0, 0, 0, (void), "\
 Reload and re-eval the main script.\n")
 {
     char *cmd = g_strdup_printf("(load-from-path \"%s\")", lisp_main_script);
@@ -99,19 +103,7 @@ Reload and re-eval the main script.\n")
     return ret;
 }
 
-SCM_DEFINE (G_break, "break", 1, 0, 0, (SCM x), "\
-Add a breakpoint at a given procedure.")
-{
-    if (scm_is_true (scm_procedure_p(x)))
-    {
-        SCM func = scm_c_eval_string("add-trap-at-procedure-call!");
-        return scm_call_1(func, x);
-    }
-    scm_misc_error("break", "~a is not a procedure", scm_list_1 (x));
-    return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_list_data_directory_contents, "dir", 0, 1, 0, (SCM regex), "\
+SCM_DEFINE (G_list_data_directory_contents, "burro_Dir", 0, 1, 0, (SCM regex), "\
 List the contents of the data directory.  If a parameter is provided, \n\
 it is used as a regular expression for matching.\n")
 {
@@ -133,6 +125,7 @@ it is used as a regular expression for matching.\n")
         return SCM_UNSPECIFIED;
     }
 
+#if 0    
     console_write_utf8_string("in ");
     console_write_utf8_string(path);
     console_move_down(1);
@@ -148,7 +141,21 @@ it is used as a regular expression for matching.\n")
         console_move_down(1);
         console_move_to_column(0);
     }
+    
+#else
+    scm_display(scm_from_utf8_string("in "), scm_current_output_port());
+    scm_display(scm_from_utf8_string(path), scm_current_output_port());
+    scm_newline(scm_current_output_port());
+    scm_display(scm_from_utf8_string("-----------------------------"), scm_current_output_port());
+    scm_newline(scm_current_output_port());
 
+    const char *fname;
+    while ((fname = g_dir_read_name (dir)) != NULL)
+    {
+        scm_display(scm_from_utf8_string(fname), scm_current_output_port());
+        scm_newline(scm_current_output_port());
+    }
+#endif
     g_dir_close (dir);
     g_free(path);
     return SCM_UNSPECIFIED;
@@ -195,7 +202,7 @@ void
 lisp_init_guile_procedures (void)
 {
 #include "lisp.x"
-    scm_c_export("dir", "restart", NULL);
+    scm_c_export("burro_Dir", "burro_Restart", NULL);
 }
 
 /*
