@@ -6,6 +6,7 @@
 
 (define TMX_MAIN_BG_PRAM #f)
 
+#|
 (define (tmx_LoadFromDataFile filename)
   "Unpack the JSON file named FILENAME which is in the
 path pointed to by the BURRO_DATA_DIR environment variable"
@@ -49,8 +50,8 @@ path pointed to by the BURRO_DATA_DIR environment variable"
     (sheet_AssignMemory SHEET_BG_MAIN size pram)
     (sheet_SetBmpFromFile SHEET_BG_MAIN filename)))
 
-
-#!
+|#
+#|
 (define (tmx-main-do T)
   "Copy tmx layers to the main screen"
   
@@ -101,8 +102,8 @@ path pointed to by the BURRO_DATA_DIR environment variable"
                        (else
                         #f))))
                     )))))))))
-!#
-
+|#
+#|
 (define (tmx-layer-types tmx)
   "Return, as a list of strings, the types of layers in a TMX
 hashtable, listed in order of their appearance."
@@ -151,7 +152,7 @@ hashtable, listed in order of their appearance."
                        (else
                         #f))))
                   (hash-ref tmx "layers"))))
-
+!#
 #|
 
 

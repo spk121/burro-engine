@@ -82,7 +82,7 @@ uint32_t *
 xgdk_pixbuf_get_argb32_pixels(GdkPixbuf *pb)
 {
   g_return_val_if_fail (pb != NULL, NULL);
-  g_return_val_if_fail (xgdk_pixbuf_is_argb32 (pb) == true, NULL);
+  g_return_val_if_fail (xgdk_pixbuf_is_argb32 (pb) == true || xgdk_pixbuf_is_xrgb32 (pb) == true, NULL);
   
   return (uint32_t *) gdk_pixbuf_get_pixels (pb);
 }

@@ -25,24 +25,17 @@
 #include <stdint.h>
 #include "../x.h"
 #include "matrix.h"
-#include "sheet.h"
 #include "vram.h"
 
 /** The number of background layers for the main screen */
 #define BG_MAIN_BACKGROUNDS_COUNT 4
-/** The number of background layers for the sub screen */
-#define BG_SUB_BACKGROUNDS_COUNT 4
 
-/** Enumeration of the 8 background layer IDs */
+/** Enumeration of the 4 background layer IDs */
 typedef enum {
     BG_MAIN_0 = 0,
     BG_MAIN_1 = 1,
     BG_MAIN_2 = 2,
     BG_MAIN_3 = 3,
-    BG_SUB_0 = 4,
-    BG_SUB_1 = 5,
-    BG_SUB_2 = 6,
-    BG_SUB_3 = 7
 } bg_index_t;
 
 
@@ -63,7 +56,7 @@ void bg_init (void);
 
 /**  Initializes a memory store for a background layers.
     @param id
-        background layer to init. Must be BG_MAIN_0 , 1, 2, 3 or BG_SUB_0, 1, 2, 3
+        background layer to init. Must be BG_MAIN_0 , 1, 2, 3
     @param size
         size of the BG, MATRIX_16x16, etc
     @param bank
@@ -209,14 +202,6 @@ void bg_reset (bg_index_t id);
 */
 void bg_set_map_from_resource (bg_index_t id, const char *resource);
 
-/**  Sets the tilesheet of a BG_TYPE_MAP map-and-tile background from a resource.
-        The tilesheet is interpreted as 8x8 pixel blocks, numbered sequentially rowwise.
-    @param id
-        background layer ID, e.g. BG_MAIN_0
-    @param
-        name of image resource in the GResource bundle
-*/
-void bg_set_tilesheet_from_resource (bg_index_t id, const char *resource);
 
 /**  Sets the a BG_TYPE_BMP background from a resource.
     @param id
@@ -225,7 +210,6 @@ void bg_set_tilesheet_from_resource (bg_index_t id, const char *resource);
         name of image resource in the GResource bundle
 */
 void bg_set_bmp_from_file (bg_index_t id, const char *filename);
-void bg_set_bmp_from_resource (bg_index_t id, const char *resource);
 
 void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
                        double *rotation_center_x, double *rotation_center_y,

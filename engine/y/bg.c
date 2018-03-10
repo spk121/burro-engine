@@ -7,9 +7,10 @@
 #include "../x.h"
 #include "bg.h"
 #include "matrix.h"
-#include "sheet.h"
 #include "vram.h"
 #include "guile.h"
+#include "pixbuf.h"
+#include "console.h"
 
 
 #pragma GCC diagnostic push
@@ -82,10 +83,10 @@ typedef struct
     double brightness;
 
     /** Storage for info on the background layers */
-    bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
+    bg_entry_t bg[BG_MAIN_BACKGROUNDS_COUNT];
 
     /** Cache for the Cairo renderings of background layers.  */
-    cairo_surface_t *surf[BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT];
+    cairo_surface_t *surf[BG_MAIN_BACKGROUNDS_COUNT];
 } bg_t;
 
 /** Static storage for all the background layers and their Cairo
@@ -93,15 +94,11 @@ typedef struct
 bg_t bg;
 
 const char
-bg_index_name[BG_SUB_3 + 1][11] = {
+bg_index_name[BG_MAIN_3 + 1][11] = {
     [BG_MAIN_0] = "BG_MAIN_0",
     [BG_MAIN_1] = "BG_MAIN_1",
     [BG_MAIN_2] = "BG_MAIN_2",
     [BG_MAIN_3] = "BG_MAIN_3",
-    [BG_SUB_0] = "BG_SUB_0",
-    [BG_SUB_1] = "BG_SUB_1",
-    [BG_SUB_2] = "BG_SUB_2",
-    [BG_SUB_3] = "BG_SUB_3",
 };
 
 
@@ -121,7 +118,7 @@ bg_update (bg_index_t id);
 
 bool bg_validate_int_as_bg_index_t (int x)
 {
-    return (x >= (int) BG_MAIN_0 && x <= (int) BG_SUB_3);
+    return (x >= (int) BG_MAIN_0 && x <= (int) BG_MAIN_3);
 }
 
 bool bg_validate_int_as_bg_type_t (int x)
@@ -131,7 +128,7 @@ bool bg_validate_int_as_bg_type_t (int x)
 
 bool bg_validate_bg_index_t (bg_index_t x)
 {
-    return (x >= BG_MAIN_0 && x <= BG_SUB_3);
+    return (x >= BG_MAIN_0 && x <= BG_MAIN_3);
 }
 
 const char *
@@ -145,7 +142,7 @@ void bg_init ()
 {
     bg.colorswap = false;
     bg.brightness = 1.0;
-    for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT; i ++)
+    for (int i = 0; i < BG_MAIN_BACKGROUNDS_COUNT; i ++)
     {
         bg.bg[i].enable = false;
         bg.bg[i].type = BG_TYPE_NONE;
@@ -311,26 +308,6 @@ static void bg_set_map_from_tga (bg_index_t id, targa_image_t *t)
 }
 #endif
 
-#if 0
-static void bg_set_sheet_from_tga (bg_index_t id, targa_image_t *t)
-{
-    unsigned width, height;
-    int first = targa_get_color_map_first_index (t);
-
-    targa_get_image_dimensions (t, &width, &height);
-
-    for (unsigned j = 0; j < height; j ++)
-    {
-        for (unsigned i = 0; i < width ; i ++)
-        {
-            bg.bg[id].map.sheet[j][i] = tga_get_image_data_u8_ptr(t)[j * width + i];
-        }
-    }
-
-    for (unsigned i = 0; i < targa_get_color_map_length (t) - first; i ++)
-        bg.bg[id].map.palette[i] = tga_get_color_map_data_u16_ptr(t)[i + first];
-}
-#endif
 
 static void set_from_image_file (bg_index_t id, bg_type_t type, const char *filename)
 {
@@ -425,15 +402,12 @@ bg_update (bg_index_t id)
 static cairo_surface_t *
 bg_render_to_cairo_surface (bg_index_t id)
 {
-    g_return_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT + BG_SUB_BACKGROUNDS_COUNT);
+    g_return_val_if_fail (id >= 0 && id < BG_MAIN_BACKGROUNDS_COUNT, NULL);
 
     switch (bg.bg[id].type)
     {
     case BG_TYPE_NONE:
         return NULL;
-        break;
-    case BG_TYPE_MAP:
-        return bg_render_map_to_cairo_surface (id);
         break;
     case BG_TYPE_BMP:
         return bg_render_bmp_to_cairo_surface (id);
@@ -442,74 +416,6 @@ bg_render_to_cairo_surface (bg_index_t id)
     g_return_val_if_reached (NULL);
 }
 
-static cairo_surface_t *
-bg_render_map_to_cairo_surface (bg_index_t id)
-{
-    cairo_surface_t *surf;
-    uint32_t *data;
-    int stride;
-    int tile_j, tile_i, delta_tile_i, delta_tile_j;
-    int map_index;
-    uint32_t c;
-    int width, height;
-    sheet_index_t sheet_id;
-
-    if (id >= BG_MAIN_0 && id <= BG_MAIN_3)
-        sheet_id = SHEET_MAIN_BG;
-    else
-        sheet_id = SHEET_SUB_BG;
-
-    width = matrix_get_width(bg.bg[id].size);
-    height = matrix_get_height(bg.bg[id].size);
-
-    surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
-                                        width * TILE_WIDTH,
-                                        height * TILE_HEIGHT);
-    data = xcairo_image_surface_get_argb32_data (surf);
-    stride = xcairo_image_surface_get_argb32_stride (surf);
-    xcairo_surface_flush (surf);
-
-    for (int map_j = 0; map_j < height; map_j ++)
-    {
-        for (int map_i = 0; map_i < width; map_i ++)
-        {
-            /* Fill in the tile brush */
-            map_index = (int) bg.bg[id].data[map_j][map_i];
-
-            // FIXME -- IS THIS RIGHT??
-            // vflip = map_index & (1 << 31);
-            // hflip = map_index & (1 << 30);
-            // map_index = map_index & 0x0fffffff;
-
-            delta_tile_j = (map_index / sheet_get_width_in_tiles(sheet_id)) * TILE_HEIGHT;
-            delta_tile_i = (map_index % sheet_get_width_in_tiles(sheet_id)) * TILE_WIDTH;
-            for (tile_j = 0; tile_j < TILE_HEIGHT; tile_j ++)
-            {
-                if ((bg.brightness == 1.0) && (bg.colorswap == false) /* && hflip == false && vflip == false */)
-                {
-                    // FAST PATH, use memcpy to copy an entire row
-                    // from the sheet
-                }
-                else
-                {
-                    // SLOW PATH, copy a row pixel-by-pixel, adjusting
-                    // brighness, colorswap, (FIXME flipping too)
-                    for (tile_i = 0; tile_i < TILE_WIDTH; tile_i ++)
-                    {
-                        uint32_t c32;
-                        c32 = sheet_get_u32_data(sheet_id)[delta_tile_j + tile_j][delta_tile_i + tile_i];
-
-                        c = adjust_colorval (c32);
-                        data[(map_j * TILE_HEIGHT + tile_j) * stride
-                             + (map_i * TILE_WIDTH + tile_i)] = c;
-                    }
-                }
-            }
-        }
-    }
-    xcairo_surface_mark_dirty (surf);
-    return surf;
-}
 
 static cairo_surface_t *
 bg_render_bmp_to_cairo_surface (bg_index_t id)
@@ -642,7 +548,7 @@ Print to the console information about a background.")
 SCM_DEFINE (G_bg_get_memory_assignment, "bg-dump-memory-assignment", 0, 0, 0, (void), "\
 Returns the matrix size and VRAM bank of the BG layer.")
 {
-    for (bg_index_t i = BG_MAIN_0; i <= BG_SUB_3; i++)
+    for (bg_index_t i = BG_MAIN_0; i <= BG_MAIN_3; i++)
     {
         char *c_str = g_strdup_printf("%s %dx%d %s",
                                       bg_get_index_name(i),
@@ -719,20 +625,81 @@ directory")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_bg_set_to_map, "bg-set-to-map",
-            1, 0, 0, (SCM id), "\
-Set BG to be a map-and-tile type background.\n\
-The tilesheet to be used will be either SHEET_MAIN_BG\n\
-or SHEET_SUB_BG, set by using the sheet API.\n\
-\n\
-The map data is set or modified by directly using the BG's\n\
-bytevector, accessed with bg-get-bytevector.")
+SCM_DEFINE (G_bg_set_from_pixbuf, "bg-set-from-pixbuf",
+            2, 0, 0, (SCM s_id, SCM pixbuf), "\
+Set BG to a bitmap-type background using the data from PIXBUF.")
 {
-    SCM_ASSERT(_scm_is_bg_index_t(id), id, SCM_ARG1, "bg-set-to-map");
+    SCM_ASSERT(_scm_is_bg_index_t(s_id), s_id, SCM_ARG1, "bg-set-from-pixbuf");
+    scm_assert_foreign_object_type (pixbuf_tag, pixbuf);
 
-    bg.bg[scm_to_int(id)].type = BG_TYPE_MAP;
+    pixbuf_t *pb = scm_foreign_object_ref (pixbuf, 0);
+
+    int id = scm_to_int(s_id);
+    int img_width = pb->width;
+    int img_height = pb->height;
+    int img_stride = pb->stride;
+    int bg_width, bg_height;
+    int width, height;
+
+    uint32_t *c32 = pb->data;
+    bg_width = matrix_get_width(bg.bg[id].size);
+    bg_height = matrix_get_height(bg.bg[id].size);
+
+    width = MIN(img_width, bg_width);
+    height = MIN(img_height, bg_height);
+
+    for (int j = 0; j < height; j ++)
+    {
+        for (int i = 0; i < width ; i ++)
+        {
+            uint32_t val = c32[j * img_stride + i];
+            bg.bg[id].data[j][i] = val;
+        }
+    }
+    bg.bg[id].type = BG_TYPE_BMP;
     return SCM_UNSPECIFIED;
 }
+
+SCM_DEFINE (G_bg_copy_region_from_pixbuf, "pixbuf-copy-to-bg",
+            6, 2, 0, (SCM source, SCM istart, SCM jstart, SCM isize, SCM jsize, SCM s_id, SCM istart2, SCM jstart2), "\
+Copy a rectangular region from PIXBUF into the specificied location of BG.")
+{
+    scm_assert_foreign_object_type (pixbuf_tag, source);
+    pixbuf_t *pb = scm_foreign_object_ref (source, 0);
+    SCM_ASSERT (scm_is_unsigned_integer (istart, 0, pb->width), istart, SCM_ARG2, "pixbuf-copy-to-bg");
+    SCM_ASSERT (scm_is_unsigned_integer (jstart, 0, pb->height), jstart, SCM_ARG3, "pixbuf-copy-to-bg");
+    SCM_ASSERT (scm_is_unsigned_integer (isize, 1, pb->width), jstart, SCM_ARG4, "pixbuf-copy-to-bg");
+    SCM_ASSERT (scm_is_unsigned_integer (jsize, 1, pb->height), jstart, SCM_ARG5, "pixbuf-copy-to-bg");
+    SCM_ASSERT(_scm_is_bg_index_t(s_id), s_id, SCM_ARG6, "pixbuf-copy-to-bg");
+    int id = scm_to_int(s_id);
+    int bg_width = matrix_get_width(bg.bg[id].size);
+    int bg_height = matrix_get_height(bg.bg[id].size);
+    SCM_ASSERT (scm_is_signed_integer (istart2, 0, bg_width), istart2, SCM_ARG7, "pixbuf-copy-to-bg");
+    SCM_ASSERT (scm_is_signed_integer (jstart2, 0, bg_height), jstart2, 8, "pixbuf-copy-to-bg");
+
+    size_t c_istart = scm_to_size_t (istart);
+    size_t c_jstart = scm_to_size_t (jstart);
+    size_t c_istart2 = scm_to_size_t (istart2);
+    size_t c_jstart2 = scm_to_size_t (jstart2);
+    size_t c_isize = scm_to_size_t (isize);
+    size_t c_jsize = scm_to_size_t (jsize);
+    if ((c_istart + c_isize > pb->width)
+        || (c_jstart + c_jsize > pb->height))
+        scm_misc_error ("pixbuf-copy-to-bg", "source region is invalid", SCM_EOL);
+    else if ((c_istart2 + c_isize > bg_width)
+             || (c_jstart2 + c_jsize > bg_height))
+        scm_misc_error ("pixbuf-copy-to-bg", "destination region is invalid", SCM_EOL);
+
+    for (int j = 0; j < c_jsize; j ++)
+    {
+        memmove(&(bg.bg[id].data[c_jstart2 + j][c_istart2]),
+               &(pb->data[(c_jstart + j) * pb->stride + c_istart]),
+               c_isize * sizeof(uint32_t));
+    }
+    bg.bg[id].type = BG_TYPE_BMP;
+    return SCM_UNSPECIFIED;
+}
+
 
 SCM_DEFINE (G_bg_reset, "bg-reset", 1, 0, 0,
             (SCM id), "\
@@ -868,6 +835,7 @@ a value between 0.0 (black) and 1.0 (unmodified colors).")
     return SCM_UNSPECIFIED;
 }
 
+
 SCM_VARIABLE_INIT (G_BG_TYPE_BMP, "BG_TYPE_BMP", scm_from_int (BG_TYPE_BMP));
 SCM_VARIABLE_INIT (G_BG_TYPE_MAP, "BG_TYPE_MAP", scm_from_int (BG_TYPE_MAP));
 
@@ -875,11 +843,6 @@ SCM_VARIABLE_INIT (G_BG_MAIN_0, "BG_MAIN_0", scm_from_int (BG_MAIN_0));
 SCM_VARIABLE_INIT (G_BG_MAIN_1, "BG_MAIN_1", scm_from_int (BG_MAIN_1));
 SCM_VARIABLE_INIT (G_BG_MAIN_2, "BG_MAIN_2", scm_from_int (BG_MAIN_2));
 SCM_VARIABLE_INIT (G_BG_MAIN_3, "BG_MAIN_3", scm_from_int (BG_MAIN_3));
-
-SCM_VARIABLE_INIT (G_BG_SUB_0, "BG_SUB_0", scm_from_int (BG_SUB_0));
-SCM_VARIABLE_INIT (G_BG_SUB_1, "BG_SUB_1", scm_from_int (BG_SUB_1));
-SCM_VARIABLE_INIT (G_BG_SUB_2, "BG_SUB_2", scm_from_int (BG_SUB_2));
-SCM_VARIABLE_INIT (G_BG_SUB_3, "BG_SUB_3", scm_from_int (BG_SUB_3));
 
 void
 bg_init_guile_procedures (void)
@@ -892,7 +855,6 @@ bg_init_guile_procedures (void)
                   "bg-get-priority",
 
                   "bg-set-bmp-from-file",
-                  "bg-set-to-map",
                   "bg-reset",
 
                   "bg-hide",
@@ -912,6 +874,9 @@ bg_init_guile_procedures (void)
                   "bg-set-brightness",
                   "bg-get-brightness",
 
+                  "bg-set-from-pixbuf",
+                  "pixbuf-copy-to-bg",
+
                   "bg-update",
 
                   "bg-get-width",
@@ -927,10 +892,6 @@ bg_init_guile_procedures (void)
                   "BG_MAIN_1",
                   "BG_MAIN_2",
                   "BG_MAIN_3",
-                  "BG_SUB_0",
-                  "BG_SUB_1",
-                  "BG_SUB_2",
-                  "BG_SUB_3",
                   NULL);
 }
 

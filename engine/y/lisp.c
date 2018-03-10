@@ -9,7 +9,6 @@
 #include "lisp.h"
 #include "loop.h"
 #include "repl.h"
-#include "sheet.h"
 #include <libguile.h>
 
 static char *lisp_main_script = NULL;
@@ -34,8 +33,9 @@ _burroscript_init (void *unused)
     lisp_init_guile_procedures();
     loop_init_guile_procedures();
     matrix_init_guile_procedures();
-    sheet_init_guile_procedures();
     vram_init_guile_procedures();
+    pixbuf_init_guile_procedures();
+    obj_init_guile_procedures();
 }
 
 void
@@ -72,7 +72,7 @@ init_lisp (const char *main_script)
     scm_c_use_module ("system repl server");
     scm_c_use_module ("system repl coop-server");
     scm_c_use_module ("system vm trap-state");
-    scm_c_use_module ("json");
+    // scm_c_use_module ("json");
     
     char *cmd;
     if (main_script)

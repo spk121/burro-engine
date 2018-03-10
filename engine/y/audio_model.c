@@ -30,7 +30,9 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                    double D_release, double F_initial, double F_attack,
                    double F_sustain, double F_release, double A_attack,
                    double A_sustain, double duty, _Bool noise, int waveform,
-                   int16_t *buffer, size_t *length);
+                   int channel, int start, int length);
+
+
 static void
 update_sum();
 
@@ -56,7 +58,7 @@ void audio_model_add_tone(int channel, double start_time,
                           double A_sustain, double duty, int noise,
                           int waveform)
 {
-    size_t length;
+    size_t max_sample_count;
     double now = loop_time();
     double time_since_last_update = now - am_last_update_time;
     double delta_t;
@@ -70,13 +72,15 @@ void audio_model_add_tone(int channel, double start_time,
             F_initial, channel, delta_t, time_since_last_update);
 
     int delta_t_in_samples = delta_t * AUDIO_SAMPLE_RATE_IN_HZ;
-    length = AUDIO_BUFFER_SIZE - delta_t_in_samples;
-    
-    generate_tone_data(D_attack, D_decay, D_sustain, D_release,
-                       F_initial, F_attack, F_sustain, F_release,
-                       A_attack, A_sustain,
-                       duty, noise, waveform,
-                       &(am_channels[channel][delta_t_in_samples]), &length);
+    if (delta_t_in_samples < AUDIO_BUFFER_SIZE)
+    {
+        max_sample_count = AUDIO_BUFFER_SIZE - delta_t_in_samples;
+        generate_tone_data(D_attack, D_decay, D_sustain, D_release,
+                           F_initial, F_attack, F_sustain, F_release,
+                           A_attack, A_sustain,
+                           duty, noise, waveform,
+                           channel, delta_t_in_samples, max_sample_count);
+    }
 
     update_sum();
 }
@@ -149,39 +153,43 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                    double D_release, double F_initial, double F_attack,
                    double F_sustain, double F_release, double A_attack,
                    double A_sustain, double duty, _Bool noise, int waveform,
-                   int16_t *buffer, size_t *length)
+                   int channel, int start, int max_sample_count)
 {
     /* D = duration in sec
        F = frequency in Hz
        A = amplitude, from 0.0 to 1.0 */
-    double t, t_start, amplitude, frequency, period;
-    double duration;
-    size_t i;
+    double t, start_of_period_in_seconds, amplitude, frequency, period;
+    double end_of_period_in_seconds;
+    double duration_in_seconds;
+    size_t sample_cur;
     int first;
     int level_a, level_b;
     static int count = 0;
     count ++;
   
-    duration = D_attack + D_decay + D_sustain + D_release;
-    size_t tone_length = (size_t) ceil(duration * (double) AUDIO_SAMPLE_RATE_IN_HZ);
-    if (*length > tone_length)
-        tone_length = *length;
- 
+    duration_in_seconds = D_attack + D_decay + D_sustain + D_release;
+    int duration_in_samples = (int) ceil(duration_in_seconds * (double) AUDIO_SAMPLE_RATE_IN_HZ);
+    if (duration_in_samples < max_sample_count)
+        duration_in_samples = max_sample_count;
+
     t = 0.0;
-    t_start = 0.0;
-    i = 0;
+    start_of_period_in_seconds = 0.0;
+    sample_cur = 0;
     period = 0.0;
     first = TRUE;
-    while (i < tone_length)
+    while (sample_cur < duration_in_samples)
     {
-        if(first || t - t_start >= period)
+        // We're staring a new period in the waveform, so we compute
+        // the current amplitude and frequency values.
+        if(first || t >= end_of_period_in_seconds)
         {
             if (first)
                 first = FALSE;
             else
-                while (t - t_start >= period)
-                    t_start += period;
-	  
+                start_of_period_in_seconds = end_of_period_in_seconds;
+            //while (t - start_of_period_in_seconds >= period)
+            //        start_of_period_in_seconds += period;
+#if 1	  
             if (t < D_attack)
             {
                 amplitude = (A_attack / D_attack) * t;
@@ -207,9 +215,18 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                 amplitude = 0;
                 frequency = F_release;
             }
+#else
+            amplitude = A_sustain;
+            frequency = F_sustain;
+#endif
             period = 1.0 / frequency;
+            end_of_period_in_seconds = start_of_period_in_seconds + period;
             if (noise)
             {
+                // Level A is the amplitude of the 1st half-period.
+                // Level B is the second half-period.  For "tone",
+                // obviously it will be positive then negative.  The
+                // noise generator uses a random amplitude sign.
                 if(rand_int_range (0, 2))
                     level_a = AUDIO_CHANNEL_AMPLITUDE_MAX_F * amplitude;
                 else
@@ -226,21 +243,28 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
             }
 
         }
-        if (t - t_start < period * duty)
+
+        if (t - start_of_period_in_seconds < period * duty)
         {
-            if(waveform == 0)
-                buffer[i] = level_a;
+            // The first half-period of the waveform.
+            if (waveform == 0)
+                // square wave
+                am_channels[channel][start + sample_cur] = level_a;
             else if (waveform == 1)
-                buffer[i] = level_a * sin(M_PI * (t - t_start) / (period * duty));
+                // sine wave
+                am_channels[channel][start + sample_cur] = level_a * sin(M_PI * (t - start_of_period_in_seconds) / (period * duty));
         }
-        else if (t - t_start < period)
+        else if (t - start_of_period_in_seconds < period)
         {
+            // The second half-period of the waveform.
             if(waveform == 0)
-                buffer[i] = level_b;
+                // square wave
+                am_channels[channel][start + sample_cur]  = level_b;
             else if (waveform == 1)
-                buffer[i] = level_b * sin(M_PI * ((t - t_start) - period * duty) / (period * (1.0 - duty)));
+                // sine wave
+                am_channels[channel][start + sample_cur]  = level_b * sin(M_PI * ((t - start_of_period_in_seconds) - period * duty) / (period * (1.0 - duty)));
         }
-        i ++;
+        sample_cur ++;
         t += 1.0 / (double) AUDIO_SAMPLE_RATE_IN_HZ;
     }
 #if 1
@@ -251,8 +275,8 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
                 fp = fopen("noise.txt", "wt");
             else
                 fp = fopen("wave.txt", "wt");
-            for(unsigned i2 = 0; i2 < *length; i2++)
-                fprintf(fp, "%u %d\n", i2, (int)buffer[i2]);
+            for(unsigned i2 = 0; i2 < duration_in_samples; i2++)
+                fprintf(fp, "%u %d\n", i2, (int)am_channels[channel][start + i2]);
             fclose(fp);
         }
     }
@@ -272,9 +296,8 @@ update_sum()
             am_working[i] += (float) am_channels[j][i];
         }
     }
-    
-    min = (float) INT16_MAX;
-    max = (float) INT16_MIN;
+
+#if 0
     for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
         if (am_working[i] > max)
             max = am_working[i];
@@ -289,6 +312,12 @@ update_sum()
     for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
         am_sum[i] = (int16_t)(am_working[i] * scale);
     }
+#else
+    float scale = 0.1;
+    for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
+        am_sum[i] = (int16_t)(am_working[i] * scale);
+    }
+#endif
 }
 
 SCM_DEFINE (G_am_add_tone, "tone", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "")

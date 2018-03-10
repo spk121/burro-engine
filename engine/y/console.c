@@ -1232,6 +1232,29 @@ console_test_pattern (void)
 
 ////////////////////////////////////////////////////////////////
 
+#define SCMVAR(x) SCM_VARIABLE_INIT(G_ ## x, #x, scm_from_int(x))
+SCMVAR(CONSOLE_BLINK_NONE);
+SCMVAR(CONSOLE_BLINK_SLOW);
+SCMVAR(CONSOLE_BLINK_FAST);
+SCMVAR(CONSOLE_COLOR_DEFAULT);
+SCMVAR(CONSOLE_COLOR_BLACK);
+SCMVAR(CONSOLE_COLOR_RED);
+SCMVAR(CONSOLE_COLOR_GREEN);
+SCMVAR(CONSOLE_COLOR_YELLOW);
+SCMVAR(CONSOLE_COLOR_BLUE);
+SCMVAR(CONSOLE_COLOR_MAGENTA);
+SCMVAR(CONSOLE_COLOR_CYAN);
+SCMVAR(CONSOLE_COLOR_WHITE);
+SCMVAR(CONSOLE_COLOR_TRANSPARENT);
+SCMVAR(CONSOLE_INTENSITY_NORMAL);
+SCMVAR(CONSOLE_INTENSITY_FAINT);
+SCMVAR(CONSOLE_INTENSITY_BOLD);
+SCMVAR(CONSOLE_POLARITY_POSITIVE);
+SCMVAR(CONSOLE_POLARITY_NEGATIVE);
+SCMVAR(CONSOLE_UNDERLINE_NONE);
+SCMVAR(CONSOLE_UNDERLINE_SINGLY);
+SCMVAR(CONSOLE_UNDERLINE_DOUBLY);
+
 SCM_DEFINE (G_console_hide, "console-hide", 0, 0, 0, (void), "")
 {
     console_hide ();
@@ -1312,24 +1335,56 @@ SCM_DEFINE (G_console_write_string, "console-write-string", 1, 0, 0, (SCM str), 
     return SCM_UNSPECIFIED;
 }
 
+SCM_DEFINE (G_console_move_to, "console-move-to", 2, 0, 0, (SCM r, SCM c), "\
+Move the console cursor to (row, column).")
+{
+    console_move_to (scm_to_int (r),
+                     scm_to_int (c));
+    return SCM_UNSPECIFIED;
+}
+
 void
 console_init_guile_procedures (void)
 {
 #include "console.x"
-    scm_c_export ("console-hide",
-                  "console-reset",
-                  "console-set-bgcolor",
-                  "console-set-blink",
-                  "console-set-cursor-visibility",
-                  "console-set-default",
-                  "console-set-fgcolor",
-                  "console-set-intensity",
-                  "console-set-polarity",
-                  "console-set-underline",
-                  "console-show",
-                  "console-visible?",
-                  "console-write-string",
-                  NULL);
+    scm_c_export (
+        "CONSOLE_BLINK_NONE",
+        "CONSOLE_BLINK_SLOW",
+        "CONSOLE_BLINK_FAST",
+        "CONSOLE_COLOR_DEFAULT",
+        "CONSOLE_COLOR_BLACK",
+        "CONSOLE_COLOR_RED",
+        "CONSOLE_COLOR_GREEN",
+        "CONSOLE_COLOR_YELLOW",
+        "CONSOLE_COLOR_BLUE",
+        "CONSOLE_COLOR_MAGENTA",
+        "CONSOLE_COLOR_CYAN",
+        "CONSOLE_COLOR_WHITE",
+        "CONSOLE_COLOR_TRANSPARENT",
+        "CONSOLE_INTENSITY_NORMAL",
+        "CONSOLE_INTENSITY_FAINT",
+        "CONSOLE_INTENSITY_BOLD",
+        "CONSOLE_POLARITY_POSITIVE",
+        "CONSOLE_POLARITY_NEGATIVE",
+        "CONSOLE_UNDERLINE_NONE",
+        "CONSOLE_UNDERLINE_SINGLY",
+        "CONSOLE_UNDERLINE_DOUBLY",
+        
+        "console-hide",
+        "console-reset",
+        "console-set-bgcolor",
+        "console-set-blink",
+        "console-set-cursor-visibility",
+        "console-set-default",
+        "console-set-fgcolor",
+        "console-set-intensity",
+        "console-set-polarity",
+        "console-set-underline",
+        "console-show",
+        "console-visible?",
+        "console-write-string",
+        "console-move-to",
+        NULL);
 }
 
 /*

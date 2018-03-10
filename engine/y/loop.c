@@ -63,15 +63,16 @@ loop_set_game_update_func (SCM idle)
       g_critical ("invalid game update func");
       return;
   }
-  
+#if 0  
   SCM ref = guile_variable_ref_safe (var);
   if (!scm_is_true (ref) || !scm_is_true (scm_procedure_p (ref)))
   {
       g_critical ("invalid game update func");
       return;
   }
-    
-    do_idle = ref;
+#endif
+  scm_remember_upto_here_1(var);
+  do_idle = scm_variable_ref(scm_lookup(idle));
 }
 
 static void

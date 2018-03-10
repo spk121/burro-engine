@@ -18,7 +18,6 @@
 GtkWidget *window;
 GtkWidget *fixed;
 GtkWidget *main_screen;
-GtkWidget *sub_screen;
 gulong destroy_signal_id;
 gulong key_press_event_signal_id;
 gulong key_release_event_signal_id;
@@ -39,7 +38,10 @@ static int key_up, key_down, key_left, key_right;
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy);
 static bool key_event_console (unsigned keysym, unsigned state);
-
+static gboolean
+main_draw_cb (GtkWidget *widget,
+         cairo_t *cr,
+         gpointer data);
 
 gboolean
 eng_is_blank ()
@@ -97,6 +99,7 @@ repl_input_cb (GIOChannel *source, GIOChannel condition, void *unused)
     g_io_channel_read_chars (source, buf, 255, &bytes_read, NULL);
     if (bytes_read > 0)
         ecma48_execute (buf, bytes_read);
+    return 0;
 }
 
 GtkWidget *eng_initialize ()
@@ -116,13 +119,6 @@ GtkWidget *eng_initialize ()
     fixed = xgtk_fixed_new ();
     xgtk_container_add (GTK_CONTAINER (window), fixed);
   
-    sub_screen = xgtk_drawing_area_new();
-    xgtk_widget_set_size_request (sub_screen,
-                                  SUB_SCREEN_WIDTH * SUB_SCREEN_MAGNIFICATION,
-                                  SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION);
-  
-    xgtk_fixed_put(GTK_FIXED(fixed), sub_screen, 0, 0);
-  
     main_screen = xgtk_drawing_area_new();
     xgtk_widget_set_size_request(main_screen,
                                  MAIN_SCREEN_WIDTH * MAIN_SCREEN_MAGNIFICATION,
@@ -130,8 +126,7 @@ GtkWidget *eng_initialize ()
   
     xgtk_fixed_put(GTK_FIXED(fixed),
                    main_screen,
-                   0,
-                   SUB_SCREEN_HEIGHT * SUB_SCREEN_MAGNIFICATION + 10);
+                   0, 0);
   
     g_mutex_init(&keymutex);
   
@@ -141,6 +136,8 @@ GtkWidget *eng_initialize ()
         xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
     key_release_event_signal_id =
         xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    xg_signal_connect (G_OBJECT (main_screen), "draw", G_CALLBACK (main_draw_cb), NULL);
+    
     /* window_state_event_signal_id =  */
     /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
 
@@ -166,29 +163,52 @@ static void destroy_cb (GtkWidget* widget, gpointer dummy)
     loop_quit ();
 }
 
+static gboolean
+main_draw_cb (GtkWidget *widget,
+         cairo_t *cr,
+         gpointer data)
+{
+    xcairo_set_source_surface (cr, draw_get_main_screen_surface (), 0, 0);
+    xcairo_paint (cr);
+    return FALSE;
+}
+
 void eng_present()
 {
     cairo_t *cr;
 
     /* Have the video view draw the video model onto the screen */
-
+#if 0
     cr = xgdk_cairo_create (xgtk_widget_get_window (main_screen));
-
-    xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
+    // xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
+    // xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
     xcairo_set_source_surface (cr, draw_get_main_screen_surface (), 0, 0);
-    // cairo_surface_write_to_png(e.priv.main_screen_surface, "burro_main_screen_present.png");
+    cairo_surface_write_to_png(draw_get_main_screen_surface(), "burro_main_screen_present.png");
     xcairo_paint (cr);
     xcairo_destroy(cr);
-
-    cr = xgdk_cairo_create (xgtk_widget_get_window (sub_screen));
-
-    xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    xcairo_scale(cr, SUB_SCREEN_MAGNIFICATION, SUB_SCREEN_MAGNIFICATION);
-    xcairo_set_source_surface (cr, draw_get_sub_screen_surface (), 0, 0);
-    // cairo_surface_write_to_png(e.priv.sub_screen_surface, "burro_sub_screen_present.png");
+#else
+    #if 0
+    cairo_rectangle_int_t rect = {0, 0, MAIN_SCREEN_WIDTH, MAIN_SCREEN_HEIGHT};
+    cairo_region_t *region = cairo_region_create_rectangle (&rect);
+    GdkWindow *window = xgtk_widget_get_window (main_screen);
+    GdkDrawingContext *gdc = gdk_window_begin_draw_frame(window, region);
+    g_object_ref (G_OBJECT(gdc));
+    cr = gdk_drawing_context_get_cairo_context (gdc);
+    // xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
+    // xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
+    xcairo_set_source_surface (cr, draw_get_main_screen_surface (), 0, 0);
+    cairo_surface_write_to_png(draw_get_main_screen_surface(), "burro_main_screen_present.png");
     xcairo_paint (cr);
     xcairo_destroy(cr);
+    gdk_window_end_draw_frame (window, gdc);
+    gdk_window_invalidate_region (window, region, TRUE);
+    cairo_region_destroy (region);
+    gtk_widget_show (main_screen);
+#endif
+#endif
+    #if 0
+#endif
+    gdk_window_invalidate_rect (xgtk_widget_get_window (main_screen), NULL, FALSE);
 }
 
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy)
@@ -430,7 +450,6 @@ eng_init_guile_procedures ()
     scm_c_export ("screen-blank?", "screen-blank", "screen-unblank",
                   /*"eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
                     "eng-get-brightness", "eng-set-brightness", */
-                  "sub-screen-shown?", "sub-screen-show", "sub-screen-hide"
                   "eng-get-keyinput",
                   NULL);
 }

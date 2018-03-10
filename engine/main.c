@@ -16,9 +16,9 @@ static GOptionEntry entries[] =
 
 void
 stdout_log_handler (const char *log_domain,
-             GLogLevelFlags log_level,
-             const char *message,
-             void *user_data)
+                    GLogLevelFlags log_level,
+                    const char *message,
+                    void *user_data)
 {
     fprintf (stdout, "%s\n", message);
     fflush (stdout);
@@ -26,9 +26,9 @@ stdout_log_handler (const char *log_domain,
 
 static void
 console_log_handler (const char *log_domain,
-             GLogLevelFlags log_level,
-             const char *message,
-             void *user_data)
+                     GLogLevelFlags log_level,
+                     const char *message,
+                     void *user_data)
 {
     if (console_is_visible()
         && (log_level == G_LOG_LEVEL_ERROR
@@ -50,10 +50,10 @@ stdio_log_handler (const gchar   *log_domain,
              const gchar   *message,
              gpointer       user_data)
 {
-  g_log_default_handler (log_domain, log_level, message, user_data);
+    g_log_default_handler (log_domain, log_level, message, user_data);
 
-  if (log_level != G_LOG_LEVEL_DEBUG && log_level != G_LOG_LEVEL_INFO)
-      g_on_error_query ("BURRO");
+    if (log_level != G_LOG_LEVEL_DEBUG && log_level != G_LOG_LEVEL_INFO)
+        g_on_error_query ("BURRO");
 }
 
 static void
@@ -76,25 +76,17 @@ initialize (GtkApplication *app)
 
     /* Initialize memory cache */
     vram_init ();
-    backdrop_set_color (BACKDROP_MAIN, 0x00000000);
-    backdrop_set_color (BACKDROP_SUB, 0x00000000);
-    sheet_init ();
-    sheet_assign_memory (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
-    sheet_assign_memory (SHEET_SUB_BG, MATRIX_512x512, VRAM_1);
-    sheet_assign_memory (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
-    sheet_assign_memory (SHEET_SUB_OBJ, MATRIX_256x256, VRAM_B);
+    backdrop_set_color (0x00000000);
+    // sheet_init ();
+    // sheet_assign_memory (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
+    // sheet_assign_memory (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
     bg_init ();
     bg_assign_memory (BG_MAIN_0, MATRIX_256x256, VRAM_C);
     bg_assign_memory (BG_MAIN_1, MATRIX_256x256, VRAM_D);
     bg_assign_memory (BG_MAIN_2, MATRIX_128x128, VRAM_E);
     bg_assign_memory (BG_MAIN_3, MATRIX_32x32, VRAM_F);
-    bg_assign_memory (BG_SUB_0, MATRIX_32x32, VRAM_G);
-    bg_assign_memory (BG_SUB_1, MATRIX_32x32, VRAM_H);
-    bg_assign_memory (BG_SUB_2, MATRIX_32x32, VRAM_I);
-    bg_assign_memory (BG_SUB_3, MATRIX_32x32, VRAM_J);
 
     /* Create the window */
-    init_lisp(scheme_file);
     ecma48_init ();
     mainwin = eng_initialize();
     xgtk_window_set_application (GTK_WINDOW (mainwin), app);
@@ -126,6 +118,7 @@ initialize (GtkApplication *app)
     /* Initialize the audio system */
     audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
+    init_lisp(scheme_file);
     loop ();
 
 }

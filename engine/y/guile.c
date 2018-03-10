@@ -349,15 +349,15 @@ _guile_variable_ref_safe_body (void *data)
   return scm_variable_ref (SCM_PACK ((scm_t_bits) data));
 }
 
+static char *__name = "guile_variable_ref_safe";
+
 SCM
 guile_variable_ref_safe (SCM var)
 {
-  char *name = g_strdup ("guile_variable_ref_safe");
   SCM ret = scm_c_catch (SCM_BOOL_T,
 			 _guile_variable_ref_safe_body, (void *) SCM_UNPACK (var),
-			 _guile_false_error_handler, name,
+			 _guile_false_error_handler, __name,
 			 NULL, NULL);
-  g_free (name);
   return ret;
 }
 
