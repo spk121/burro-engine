@@ -141,11 +141,11 @@ SRCS_Y_H = \
  y/loop.h \
  y/matrix.h \
  y/obj.h \
+ y/pixbuf.h \
  y/proc.h \
  y/pulseaudio.h \
  y/rand.h \
  y/repl.h \
- y/sheet.h \
  y/vram.h \
  y/wave.h
 
@@ -171,10 +171,10 @@ SRCS_C   = \
  y/loop.c \
  y/matrix.c \
  y/obj.c \
+ y/pixbuf.c \
  y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
- y/sheet.c \
  y/vram.c \
  y/wave.c \
  main.c

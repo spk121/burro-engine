@@ -10,11 +10,9 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 
 const char
-sheet_index_name[SHEET_SUB_OBJ + 1][16] = {
+sheet_index_name[SHEET_MAIN_OBJ + 1][16] = {
     [SHEET_MAIN_BG] = "SHEET_MAIN_BG",
     [SHEET_MAIN_OBJ] = "SHEET_MAIN_OBJ",
-    [SHEET_SUB_BG] = "SHEET_SUB_BG",
-    [SHEET_SUB_OBJ] = "SHEET_SUB_OBJ",
 };
 
 sheet_t sheets[SHEET_COUNT];
@@ -134,12 +132,12 @@ void sheet_set_data_from_file (sheet_index_t id, const char *filename)
 ////////////////////////////////////////////////////////////////
 bool sheet_validate_int_as_sheet_index_t (int x)
 {
-    return (x >= (int) SHEET_MAIN_BG && x <= (int) SHEET_SUB_OBJ);
+    return (x >= (int) SHEET_MAIN_BG && x <= (int) SHEET_MAIN_OBJ);
 }
 
 bool sheet_validate_sheet_index_t (sheet_index_t x)
 {
-    return (x >= SHEET_MAIN_BG && x <= SHEET_SUB_OBJ);
+    return (x >= SHEET_MAIN_BG && x <= SHEET_MAIN_OBJ);
 }
 
 SCM _scm_from_sheet_index_t (sheet_index_t x)
@@ -181,7 +179,7 @@ Set the size and VRAM storage of a given sheet")
 SCM_DEFINE (G_sheet_dump_memory_assignment, "sheet-dump-memory-assignment", 0, 0, 0, (void), "\
 Returns the matrix size and VRAM bank of the BG layer.")
 {
-    for (sheet_index_t i = SHEET_MAIN_BG; i <= SHEET_SUB_OBJ; i++)
+    for (sheet_index_t i = SHEET_MAIN_BG; i <= SHEET_MAIN_OBJ; i++)
     {
         char *c_str = g_strdup_printf("%s %dx%d %s",
                                       sheet_get_index_name(i),
@@ -228,8 +226,7 @@ sheet's size and VRAM must first be set using 'sheet-init'")
 
 SCM_VARIABLE_INIT (G_SHEET_MAIN_BG, "SHEET_MAIN_BG", scm_from_int (SHEET_MAIN_BG));
 SCM_VARIABLE_INIT (G_SHEET_MAIN_OBJ, "SHEET_MAIN_OBJ", scm_from_int (SHEET_MAIN_OBJ));
-SCM_VARIABLE_INIT (G_SHEET_SUB_BG, "SHEET_SUB_BG", scm_from_int (SHEET_SUB_BG));
-SCM_VARIABLE_INIT (G_SHEET_SUB_OBJ, "SHEET_SUB_OBJ", scm_from_int (SHEET_SUB_OBJ));
+
 SCM_VARIABLE_INIT (G_TILE_WIDTH, "TILE_WIDTH", scm_from_int (TILE_WIDTH));
 SCM_VARIABLE_INIT (G_TILE_WIDTH, "TILE_HEIGHT", scm_from_int (TILE_HEIGHT));
 
@@ -238,9 +235,7 @@ sheet_init_guile_procedures (void)
 {
 #include "sheet.x"
     scm_c_export ("SHEET_MAIN_BG",
-                  "SHEET_SUB_BG",
                   "SHEET_MAIN_OBJ",
-                  "SHEET_SUB_OBJ",
                   "TILE_WIDTH",
                   "TILE_HEIGHT",
                   "sheetAssignMemory",

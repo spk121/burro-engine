@@ -26,10 +26,8 @@
 /** Indices for the two sheets. */
 typedef enum sheet_index_tag {
     SHEET_MAIN_BG = 0,
-    SHEET_SUB_BG = 1,
-    SHEET_MAIN_OBJ = 2,
-    SHEET_SUB_OBJ = 3,
-    SHEET_COUNT = 4
+    SHEET_MAIN_OBJ = 1,
+    SHEET_COUNT = 2
 } sheet_index_t;
 
 typedef struct sheet
@@ -46,7 +44,7 @@ void sheet_init (void);
 
 /** Initializes a sheet's size and virtual memory.
     @param id
-        SHEET_MAIN_BG, SHEET_SUB_BG, etc
+        SHEET_MAIN_BG, SHEET_MAIN_OBJ
     @param size
         size of the sheet, MATRIX_SIZE_512x512, etc
     @param bank
@@ -88,7 +86,7 @@ size_t sheet_get_size (sheet_index_t id);
  *  in 'sheet_init'.  If the file is larger than the sheet,
  *  extra data is dropped.  If it is smaller, some part of the
  *  sheet will remain unfilled.
- *  @param id - either MAIN or SUB sheet index
+ *  @param id - MAIN sheet index
  *  @param filename - the name of a PNG file in the data directory
  */
 void sheet_set_data_from_image_file (sheet_index_t, const char *filename);
