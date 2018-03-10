@@ -44,7 +44,7 @@ PKG_CFLAGS := -pthread -D_REENTRANT \
 	-I/usr/include/gio-unix-2.0/ \
 	-I/usr/include/glib-2.0 \
 	-I/usr/include/gtk-3.0 \
-	-I/usr/include/guile/2.0 \
+	-I/usr/include/guile/2.2 \
 	-I/usr/include/harfbuzz \
 	-I/usr/include/libdrm \
 	-I/usr/include/libpng16 \
@@ -103,7 +103,7 @@ LIBS = \
  -lglib-2.0 \
  -lgobject-2.0 \
  -lgtk-3 \
- -lguile-2.0 \
+ -lguile-2.2 \
  -lm \
  -lpango-1.0 \
  -lpangocairo-1.0 \
@@ -222,7 +222,7 @@ burro: $(OBJS) x.pch y.pch
 	$(CC) -o $@ $(OBJS) $(LDFLAGS) $(LIBS)
 
 x.pch: x.h $(SRCS_X_H)
-	(CC) -o $@ $(CFLAGS) $<
+	$(CC) -o $@ $(CFLAGS) $<
 
 y.pch: y.h $(SRCS_Y_H)
 	$(CC) -o $@ $(CFLAGS) $<
