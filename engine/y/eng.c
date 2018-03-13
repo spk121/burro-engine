@@ -34,7 +34,7 @@ static GMutex keymutex;
 static int key_a, key_b, key_x, key_y;
 static int key_start, key_select;
 static int key_up, key_down, key_left, key_right;
-    
+
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy);
 static bool key_event_console (unsigned keysym, unsigned state);
@@ -61,7 +61,7 @@ eng_unblank ()
     blank_flag = FALSE;
 }
 
-gboolean 
+gboolean
 eng_is_colorswap ()
 {
     return colorswap_flag;
@@ -108,36 +108,36 @@ GtkWidget *eng_initialize ()
     xgtk_container_set_border_width (GTK_CONTAINER (window), 8);
     xgtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
     xgtk_window_set_title(GTK_WINDOW(window), "Project Burro Engine");
-  
+
     /* Set GNOME properties that PulseAudio likes to have */
-    xg_set_application_name("APPLICATION NAME");
-    // gtk_window_set_default_icon_name(title);
+    xg_set_application_name("Burro Engine");
+    xgtk_window_set_default_icon_name("applications-games");
     xg_setenv("PULSE_PROP_media.role", "game", TRUE);
-  
+
     xgtk_widget_realize (window);
-  
+
     fixed = xgtk_fixed_new ();
     xgtk_container_add (GTK_CONTAINER (window), fixed);
-  
+
     main_screen = xgtk_drawing_area_new();
     xgtk_widget_set_size_request(main_screen,
                                  MAIN_SCREEN_WIDTH * MAIN_SCREEN_MAGNIFICATION,
                                  MAIN_SCREEN_HEIGHT * MAIN_SCREEN_MAGNIFICATION);
-  
+
     xgtk_fixed_put(GTK_FIXED(fixed),
                    main_screen,
                    0, 0);
-  
+
     g_mutex_init(&keymutex);
-  
-    destroy_signal_id =  
-        xg_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL); 
+
+    destroy_signal_id =
+        xg_signal_connect (G_OBJECT(window), "destroy", G_CALLBACK (destroy_cb), NULL);
     key_press_event_signal_id =
         xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
     key_release_event_signal_id =
         xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
     xg_signal_connect (G_OBJECT (main_screen), "draw", G_CALLBACK (main_draw_cb), NULL);
-    
+
     /* window_state_event_signal_id =  */
     /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
 
@@ -153,7 +153,7 @@ GtkWidget *eng_initialize ()
     g_io_add_watch (repl_io_channel, G_IO_IN | G_IO_PRI, repl_input_cb, NULL);
     g_io_channel_set_encoding (repl_io_channel, NULL, NULL);
 #endif
-    
+
     return window;
 }
 
@@ -343,7 +343,7 @@ key_event_console (unsigned keysym, unsigned state)
         char *script = lineedit_get_text();
         if (strlen(script) > 0) {
             // Call script callback with the current string
-#if 1            
+#if 1
             SCM ret = guile_c_eval_string_safe (script);
             g_free (script);
             char *text = guile_any_to_c_string (ret);
@@ -354,10 +354,10 @@ key_event_console (unsigned keysym, unsigned state)
                 g_free(text);
             }
 #endif
-#if 0            
+#if 0
             g_io_channel_write_chars (repl_io_channel, script, -1, NULL, NULL);
             g_io_channel_write_chars (repl_io_channel, "\n", 1, NULL, NULL);
-#endif            
+#endif
             lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
     }
@@ -463,4 +463,3 @@ eng_init_guile_procedures ()
   indent-tabs-mode:nil
   End:
 */
-

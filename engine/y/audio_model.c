@@ -1,6 +1,6 @@
 /*-----------------------------------------------------------------------------
   audio_model.c
-  Copyright (C) 2014, 2015
+  Copyright (C) 2014, 2015, 2018
   Michael L. Gran (spk121)
 
   GPL3+
@@ -18,165 +18,81 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 #pragma GCC diagnostic ignored "-Wconversion"
 
+/** A Guile SCM that holds the definition of the Guile instrument
+    foreign object type. */
+SCM G_instrument_tag;
+
+/** Holds a list of sounds to be played.  Sounds are pairs where CAR
+    is the start time and CDR is a native-endian, signed, 16-bit bytevector
+    that holds a waveform. */
+SCM_GLOBAL_VARIABLE_INIT (G_sound_playlist_var, "%sound-playlist", SCM_EOL);
 
 /** Holds the information of the audio model */
-static alignas(16) int16_t am_channels[AUDIO_CHANNEL_COUNT][AUDIO_BUFFER_SIZE];
 static alignas(16) float am_working[AUDIO_BUFFER_SIZE];
 static alignas(16) int16_t am_sum[AUDIO_BUFFER_SIZE];
-static double am_last_update_time = 0.0;
+static double am_timer_delta = 0.0;
+static double am_timer = 0.0;
 
-static void
-generate_tone_data(double D_attack, double D_decay, double D_sustain,
-                   double D_release, double F_initial, double F_attack,
-                   double F_sustain, double F_release, double A_attack,
-                   double A_sustain, double duty, _Bool noise, int waveform,
-                   int channel, int start, int length);
-
-
-static void
-update_sum();
-
-// Initialize the audio model
-// N.B. since the audio model requires a loop time,
-// the loop has to be initialized first.
-void audio_model_initialize ()
+SCM_DEFINE (G_list_to_instrument, "list->instrument", 1, 0, 0,
+            (SCM lst), "\
+Given a 17-element list, this returns an instrument model.\n\
+The contents of the list are\n\
+attack duration, decay duration, release duration,\n\
+initial freq adj, attack freq adj, sustain freq adj, release freq adj,\n\
+attack amplitude adj, sustain ampl adj,\n\
+noise flag, duty ratio,\n\
+0th harmonic ampl adj through 6th harmonic ampl adj.")
 {
-    for (int i = 0; i < AUDIO_CHANNEL_COUNT; i ++)
-        memset (am_channels[i], 0, sizeof (int16_t) * AUDIO_BUFFER_SIZE);
-    am_last_update_time = loop_time ();
+    SCM_ASSERT_TYPE(scm_is_true (scm_list_p (lst)), lst, SCM_ARG1, "list->instrument",
+                    "17 element list");
+    instrument_t *inst = scm_gc_malloc (sizeof (instrument_t), "instrument");
+#define DBL(n) scm_to_double(scm_list_ref(lst, scm_from_int(n)))
+    inst->D_attack = CLAMP(DBL(0), 0.0, 5.0);
+    inst->D_decay = CLAMP(DBL(1), 0.0, 5.0);
+    inst->D_release = CLAMP(DBL(2), 0.0, 5.0);
+    inst->F_initial = CLAMP(DBL(3), 0.0, 10.0);
+    inst->F_attack = CLAMP(DBL(4), 0.0, 10.0);
+    inst->F_sustain = CLAMP(DBL(5), 0.0, 10.0);
+    inst->F_release = CLAMP(DBL(6), 0.0, 10.0);
+    inst->A_attack = CLAMP(DBL(7), 0.0, 1.0);
+    inst->A_sustain = CLAMP(DBL(8), 0.0, 1.0);
+    inst->noise = scm_to_bool (scm_list_ref (lst, scm_from_int(9)));
+    inst->duty = CLAMP(DBL(10), 0.01, 0.99);
+    for (int i = 0; i < HARMONICS_NUM; i ++)
+        inst->A_harmonics[i] = CLAMP(DBL(i+11), 0.0, 2.0);
+
+    scm_remember_upto_here_1 (lst);
+    return scm_make_foreign_object_1 (G_instrument_tag, inst);
 }
 
-double audio_model_get_last_update_time()
+SCM_DEFINE (G_instrument_generate_wave, "instrument-generate-wave",
+            4, 0, 0, (SCM s_instrument, SCM s_frequency, SCM s_duration, SCM s_amplitude), "\
+Renders a note into a Guile bytevector containing a native-endian,\n\
+signed, 16-bit waveform sampled at AUDIO_SAMPLE_RATE_IN_HZ.  The\n\
+rendering is according to an instrument model.")
 {
-    return am_last_update_time;
-}
+    instrument_t *I = scm_foreign_object_ref (s_instrument, 0);
+    double A = scm_to_double (s_amplitude);
+    double D = scm_to_double (s_duration);
+    double F = scm_to_double (s_frequency);
 
-void audio_model_add_tone(int channel, double start_time,
-                          double D_attack, double D_decay, double D_sustain,
-                          double D_release, double F_initial, double F_attack,
-                          double F_sustain, double F_release, double A_attack,
-                          double A_sustain, double duty, int noise,
-                          int waveform)
-{
-    size_t max_sample_count;
-    double now = loop_time();
-    double time_since_last_update = now - am_last_update_time;
-    double delta_t;
+    double duration_in_seconds = MAX (D, I->D_attack + I->D_decay + I->D_release);
+    double D_sustain = duration_in_seconds - (I->D_attack + I->D_decay + I->D_release);
 
-    if (start_time == 0.0)
-        delta_t = 0.0;
-    else
-        delta_t = start_time - am_last_update_time;
+    size_t duration_in_samples = ceil(duration_in_seconds * (double) AUDIO_SAMPLE_RATE_IN_HZ);
+    SCM vec = scm_c_make_bytevector (duration_in_samples * sizeof (int16_t));
 
-    g_debug("Generate %f Hz tone on channel %d to start in %f s (%f sec since last update)",
-            F_initial, channel, delta_t, time_since_last_update);
-
-    int delta_t_in_samples = delta_t * AUDIO_SAMPLE_RATE_IN_HZ;
-    if (delta_t_in_samples < AUDIO_BUFFER_SIZE)
-    {
-        max_sample_count = AUDIO_BUFFER_SIZE - delta_t_in_samples;
-        generate_tone_data(D_attack, D_decay, D_sustain, D_release,
-                           F_initial, F_attack, F_sustain, F_release,
-                           A_attack, A_sustain,
-                           duty, noise, waveform,
-                           channel, delta_t_in_samples, max_sample_count);
-    }
-
-    update_sum();
-}
-
-
-#if 0
-void audio_model_add_wave_from_resource (int channel, double start_time,
-                                         const char *resource)
-{
-    GBytes *data = g_resources_lookup_data(path, 0, NULL);
-    size_t length;
-    int16_t *buffer;
-
-    double now = loop_time();
-    double time_since_last_update = now - am_last_update_time;
-    double delta_t;
-    int delta_i, i2, i;
-
-    if (start_time == 0.0)
-        delta_t = 0.0;
-    else
-        delta_t = start_time - am_last_update_time;
-    g_debug("Play %s on channel %d to start in %f s (%f sec since las update)",
-            path, channel, delta_t, time_since_last_update);
-
-    length = g_bytes_get_size(data) / sizeof(int16_t);
-    buffer = (int16_t *) g_bytes_get_data(data);
-
-    delta_i = round(delta_t * (double) AUDIO_SAMPLE_RATE_IN_HZ);
-    for(i = 0; i < length; i++)
-    {
-        i2 = i + delta_i;
-        if (i2 >= 0 && i2 < AUDIO_BUFFER_SIZE)
-            audio_buf[channel][i2] = buffer[i];
-    }
-    g_bytes_unref(data);
-    update_sum();
-}
-#endif
-
-int16_t *audio_model_get_wave()
-{
-    return am_sum;
-}
-
-// Remove N samples from the model
-void audio_model_dequeue(unsigned n)
-{
-    g_return_if_fail (AUDIO_BUFFER_SIZE >= n);
-    
-    int c;
-    size_t samples_moved = AUDIO_BUFFER_SIZE - n;
-    size_t bytes_moved = sizeof(int16_t) * samples_moved;
-    size_t bytes_remaining = sizeof(int16_t) * n;
-
-    for (c = 0; c < AUDIO_CHANNEL_COUNT; c ++)
-    {
-        memmove (&(am_channels[c][0]), &(am_channels[c][n]), bytes_moved);
-        memset (&(am_channels[c][samples_moved]), 0, bytes_remaining); 
-    }
-    memmove (&(am_sum[0]), &(am_sum[n]), bytes_moved);
-    memset (&(am_sum[samples_moved]), 0, bytes_remaining);
-    am_last_update_time += (double) n / (double) AUDIO_SAMPLE_RATE_IN_HZ;
-    // or should it be
-    //   am_last_update_time = loop_time();
-}
-
-static void
-generate_tone_data(double D_attack, double D_decay, double D_sustain,
-                   double D_release, double F_initial, double F_attack,
-                   double F_sustain, double F_release, double A_attack,
-                   double A_sustain, double duty, _Bool noise, int waveform,
-                   int channel, int start, int max_sample_count)
-{
-    /* D = duration in sec
-       F = frequency in Hz
-       A = amplitude, from 0.0 to 1.0 */
-    double t, start_of_period_in_seconds, amplitude, frequency, period;
+    double t = 0.0;
+    double  start_of_period_in_seconds = 0.0;
+    double amplitude, frequency;
+    double period = 0.0;
     double end_of_period_in_seconds;
-    double duration_in_seconds;
-    size_t sample_cur;
-    int first;
+    size_t sample_cur = 0;
+    int first = TRUE;
     int level_a, level_b;
     static int count = 0;
     count ++;
-  
-    duration_in_seconds = D_attack + D_decay + D_sustain + D_release;
-    int duration_in_samples = (int) ceil(duration_in_seconds * (double) AUDIO_SAMPLE_RATE_IN_HZ);
-    if (duration_in_samples < max_sample_count)
-        duration_in_samples = max_sample_count;
 
-    t = 0.0;
-    start_of_period_in_seconds = 0.0;
-    sample_cur = 0;
-    period = 0.0;
-    first = TRUE;
     while (sample_cur < duration_in_samples)
     {
         // We're staring a new period in the waveform, so we compute
@@ -186,42 +102,37 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
             if (first)
                 first = FALSE;
             else
-                start_of_period_in_seconds = end_of_period_in_seconds;
-            //while (t - start_of_period_in_seconds >= period)
-            //        start_of_period_in_seconds += period;
-#if 1	  
-            if (t < D_attack)
+                while (t - start_of_period_in_seconds >= period)
+                    start_of_period_in_seconds += period;
+            if (t < I->D_attack)
             {
-                amplitude = (A_attack / D_attack) * t;
-                frequency = ((F_attack - F_initial) / D_attack) *  t + F_initial;
+                amplitude = A * ((I->A_attack / I->D_attack) * t);
+                frequency = F * ((I->F_attack - I->F_initial) * t / I->D_attack + I->F_initial);
             }
-            else if (t < D_attack + D_decay)
+            else if (t < I->D_attack + I->D_decay)
             {
-                amplitude = ((A_sustain - A_attack) / D_decay) * (t - D_attack) + A_attack;
-                frequency = ((F_sustain - F_attack) / D_decay) * (t - D_attack) + F_attack;
+                amplitude = A * (((I->A_sustain - I->A_attack) / I->D_decay) * (t - I->D_attack) + I->A_attack);
+                frequency = F * (((I->F_sustain - I->F_attack) / I->D_decay) * (t - I->D_attack) + I->F_attack);
             }
-            else if (t < D_attack + D_decay + D_sustain)
+            else if (t < I->D_attack + I->D_decay + D_sustain)
             {
-                amplitude = A_sustain;
-                frequency = F_sustain;
+                amplitude = A * I->A_sustain;
+                frequency = F * I->F_sustain;
             }
-            else if (t < D_attack + D_decay + D_sustain + D_release)
+            else if (t < I->D_attack + I->D_decay + D_sustain + I->D_release)
             {
-                amplitude = (-A_sustain / D_release) * (t - D_attack - D_decay - D_sustain) + A_sustain;
-                frequency = ((F_release - F_sustain) / D_release) * (t - D_attack - D_decay - D_sustain) + F_sustain;
+                amplitude = A * ((-I->A_sustain / I->D_release) * (t - I->D_attack - I->D_decay - D_sustain) + I->A_sustain);
+                frequency = F * (((I->F_release - I->F_sustain) / I->D_release) * (t - I->D_attack - I->D_decay - D_sustain) + I->F_sustain);
             }
             else
             {
-                amplitude = 0;
-                frequency = F_release;
+                amplitude = 0.0;
+                frequency = F * I->F_release;
             }
-#else
-            amplitude = A_sustain;
-            frequency = F_sustain;
-#endif
+
             period = 1.0 / frequency;
             end_of_period_in_seconds = start_of_period_in_seconds + period;
-            if (noise)
+            if (I->noise)
             {
                 // Level A is the amplitude of the 1st half-period.
                 // Level B is the second half-period.  For "tone",
@@ -244,271 +155,202 @@ generate_tone_data(double D_attack, double D_decay, double D_sustain,
 
         }
 
-        if (t - start_of_period_in_seconds < period * duty)
+        double x = 0.0;
+        if (t - start_of_period_in_seconds < period * I->duty)
         {
-            // The first half-period of the waveform.
-            if (waveform == 0)
-                // square wave
-                am_channels[channel][start + sample_cur] = level_a;
-            else if (waveform == 1)
-                // sine wave
-                am_channels[channel][start + sample_cur] = level_a * sin(M_PI * (t - start_of_period_in_seconds) / (period * duty));
+            // The first half-period of the waveform
+            double theta = M_PI * (t - start_of_period_in_seconds) / (period * I->duty);
+            for (int i = 0; i < HARMONICS_NUM; i ++)
+                x += level_a * sin((1.0 + i) * theta) * I->A_harmonics[i];
         }
-        else if (t - start_of_period_in_seconds < period)
+        else if (t < end_of_period_in_seconds)
         {
             // The second half-period of the waveform.
-            if(waveform == 0)
-                // square wave
-                am_channels[channel][start + sample_cur]  = level_b;
-            else if (waveform == 1)
-                // sine wave
-                am_channels[channel][start + sample_cur]  = level_b * sin(M_PI * ((t - start_of_period_in_seconds) - period * duty) / (period * (1.0 - duty)));
+            double theta = M_PI * ((t - start_of_period_in_seconds) - period * I->duty) / (period * (1.0 - I->duty));
+            for (int i = 0; i < HARMONICS_NUM; i ++)
+                x += level_b * sin((1.0 + i) * theta) * I->A_harmonics[i];
         }
+        else
+            g_assert_not_reached();
+
+        scm_bytevector_s16_set_x (vec,
+                                  scm_from_size_t (sample_cur * sizeof(int16_t)),
+                                  scm_from_int16 (CLAMP ((int16_t)round(x), -AUDIO_CHANNEL_AMPLITUDE_MAX_F, AUDIO_CHANNEL_AMPLITUDE_MAX_F)),
+                                  scm_native_endianness());
+
         sample_cur ++;
         t += 1.0 / (double) AUDIO_SAMPLE_RATE_IN_HZ;
     }
 #if 1
     {
-        if (count % 100 == 0) {
+        if (count % 1 == 0) {
             FILE *fp;
-            if(noise)
+            if(I->noise)
                 fp = fopen("noise.txt", "wt");
             else
                 fp = fopen("wave.txt", "wt");
-            for(unsigned i2 = 0; i2 < duration_in_samples; i2++)
-                fprintf(fp, "%u %d\n", i2, (int)am_channels[channel][start + i2]);
+            for(size_t i2 = 0; i2 < duration_in_samples; i2++)
+                fprintf(fp, "%zu %d\n", i2,
+                        (int) scm_bytevector_s16_ref (vec,
+                                                      scm_from_size_t (i2 * sizeof(int16_t)),
+                                                      scm_native_endianness()));
+
             fclose(fp);
         }
     }
-#endif    
-}
-
-// FIXME: this is pretty lazy.
-static void
-update_sum()
-{
-    int i, j;
-    float min, max;
-    memset (am_working, 0, AUDIO_BUFFER_SIZE * sizeof(int));
-    for (j = 0; j < AUDIO_CHANNEL_COUNT; j ++)
-    {
-        for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
-            am_working[i] += (float) am_channels[j][i];
-        }
-    }
-
-#if 0
-    for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
-        if (am_working[i] > max)
-            max = am_working[i];
-        if (am_working[i] < min)
-            min = am_working[i];
-    }
-    if (max < -min)
-        max = -min;
-
-    /* I used 0x7ff0 instead of INT_MAX to avoid overflow issues */
-    float scale = (float) 0x7ff0 / max;
-    for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
-        am_sum[i] = (int16_t)(am_working[i] * scale);
-    }
-#else
-    float scale = 0.1;
-    for (i = 0; i < AUDIO_BUFFER_SIZE; i ++) {
-        am_sum[i] = (int16_t)(am_working[i] * scale);
-    }
 #endif
-}
-
-SCM_DEFINE (G_am_add_tone, "tone", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "")
-{
-    audio_model_add_tone (scm_to_int (channel),
-                          scm_to_double (start_time),
-                          // D_attack, D_decay, D_sustain, D_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (0))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (1))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (3))),
-                          //F_initial, F_attack, F_sustain, F_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (4))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (5))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (6))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (7))),
-                          // A_attack, A_sustain
-                          scm_to_double (scm_list_ref (tone, scm_from_int (8))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (9))),
-                          // Duty
-                          scm_to_double (scm_list_ref (tone, scm_from_int (10))),
-                          // noise, waveform
-                          false,
-                          scm_to_int (scm_list_ref (tone, scm_from_int (11))));
-    return SCM_UNSPECIFIED;
+    scm_remember_upto_here_1 (s_instrument);
+    return vec;
 }
 
 
-SCM_DEFINE (G_am_add_simple_tone, "simple-tone", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "\
-Generate a tone on a channel at a given start time.  The simple tone is defined\n\
-by a list of 5 values D_DECAY, D_SUSTAIN, FREQ, A_ATTACK, and A_SUSTAIN")
+SCM_DEFINE(G_play_wave, "play-wave", 1, 1, 0, (SCM wave, SCM start_time), "\
+Play WAVE, a signed 16-bit bytevector of audio sampled at 44100 Hz.\n\
+An optional start time may be provided, which is a Pulseaudio time in seconds\n\
+If no start time is provided, the audio will play as soon as possible.")
 {
-    audio_model_add_tone (scm_to_int (channel),
-                          scm_to_double (start_time),
-                          // D_attack, D_decay, D_sustain, D_release
-                          0.01,
-                          scm_to_double (scm_list_ref (tone, scm_from_int (0))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (1))),
-                          0.01,
-                          //F_initial, F_attack, F_sustain, F_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          // A_attack, A_sustain
-                          scm_to_double (scm_list_ref (tone, scm_from_int (3))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (4))),
-                          // Duty
-                          0.5,
-                          // noise, waveform
-                          false, 0);
+    if (SCM_UNBNDP(start_time))
+        start_time = scm_from_double (-1.0);
+    SCM sound_playlist = scm_variable_ref (G_sound_playlist_var);
+    sound_playlist = scm_append_x (scm_list_2 (sound_playlist,
+                                               scm_list_1 (scm_list_3 (start_time, wave, scm_from_int(0)))));
+    scm_variable_set_x (G_sound_playlist_var, sound_playlist);
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_am_add_noise, "noise", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "")
+SCM_DEFINE (G_audio_time, "audio-time", 0, 0, 0, (void), "\
+Return the estimated Pulseaudio timer, in seconds.")
 {
-    audio_model_add_tone (scm_to_int (channel),
-                          scm_to_double (start_time),
-                          // D_attack, D_decay, D_sustain, D_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (0))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (1))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (3))),
-                          //F_initial, F_attack, F_sustain, F_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (4))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (5))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (6))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (7))),
-                          // A_attack, A_sustain
-                          scm_to_double (scm_list_ref (tone, scm_from_int (8))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (9))),
-                          // Duty
-                          scm_to_double (scm_list_ref (tone, scm_from_int (10))),
-                          // noise, waveform
-                          true,
-                          scm_to_int (scm_list_ref (tone, scm_from_int (11))));
-    return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_am_add_simple_noise, "simple-noise", 3, 0, 0, (SCM channel, SCM start_time, SCM tone), "")
-{
-    audio_model_add_tone (scm_to_int (channel),
-                          scm_to_double (start_time),
-                          // D_attack, D_decay, D_sustain, D_release
-                          0.01,
-                          scm_to_double (scm_list_ref (tone, scm_from_int (0))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (1))),
-                          0.01,
-                          //F_initial, F_attack, F_sustain, F_release
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (2))),
-                          // A_attack, A_sustain
-                          scm_to_double (scm_list_ref (tone, scm_from_int (3))),
-                          scm_to_double (scm_list_ref (tone, scm_from_int (4))),
-                          // Duty
-                          0.5,
-                          // noise, waveform
-                          true, 0);
-    return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_beep, "beep", 0, 0, 0, (void), "")
-{
-    audio_model_add_tone (0,
-                          0.0,
-                          // D_attack, D_decay, D_sustain, D_release
-                          0.00, 0.1, 0.1, 0.1,
-                          //F_initial, F_attack, F_sustain, F_release
-                          440.0, 430.0, 420.0, 410.0,
-                          // A_attack, A_sustain
-                          1.0, 0.8,
-                          // Duty
-                          0.5,
-                          // noise, waveform
-                          false, 0);
-    return SCM_UNSPECIFIED;
-}
-
-SCM_DEFINE (G_wave, "wave", 3, 0, 0, (SCM channel, SCM now, SCM index),"\
-Copy wave resource INDEX into CHANNEL at a specific clock time")
-{
-    return SCM_UNSPECIFIED;
+    return scm_from_double (am_timer_delta + loop_time());
 }
 
 SCM_DEFINE (G_audio_last_update_time, "audio-last-update-time", 0, 0, 0, (void), "\
-Return the loop timestamp of the last time that the mixed audio was sent\n\
-to the sound server.")
+Return the Pulseaudio timer val of the last time Pulseaudio\n\
+requested an update.")
 {
-    return scm_from_double(am_last_update_time);
+    return scm_from_double (am_timer);
 }
 
-SCM_DEFINE (G_audio_sample_index, "audio-time->index", 1, 0, 0, (SCM now), "\
-For music applications, this returns the index into a channel buffer that represents\n\
-a specific clock time.")
+double
+wave_time_start (SCM sound)
 {
-    return scm_from_int((int)((scm_to_double(now) - am_last_update_time) * AUDIO_SAMPLE_RATE_IN_HZ));
+    return scm_to_double (scm_car (sound));
 }
 
-#define SCM_BV(_bank) \
-    scm_pointer_to_bytevector(scm_from_pointer(am_channels[_bank], NULL), scm_from_int (AUDIO_BUFFER_SIZE), scm_from_int (0), scm_from_int(SCM_ARRAY_ELEMENT_TYPE_S16))
+double
+wave_time_end (SCM sound)
+{
+    return wave_time_start (sound)
+        + ((double) scm_c_bytevector_length (scm_cadr (sound)) / sizeof(int16_t)) / AUDIO_SAMPLE_RATE_IN_HZ;
+}
 
-/* SCM_VARIABLE_INIT (G_channel_1_bv, "channel-1-bv", SCM_BV(0)); */
-/* SCM_VARIABLE_INIT (G_channel_2_bv, "channel-2-bv", SCM_BV(1)); */
-/* SCM_VARIABLE_INIT (G_channel_3_bv, "channel-3-bv", SCM_BV(2)); */
-/* SCM_VARIABLE_INIT (G_channel_4_bv, "channel-4-bv", SCM_BV(3)); */
-/* SCM_VARIABLE_INIT (G_channel_5_bv, "channel-5-bv", SCM_BV(4)); */
-/* SCM_VARIABLE_INIT (G_channel_6_bv, "channel-6-bv", SCM_BV(5)); */
-/* SCM_VARIABLE_INIT (G_channel_7_bv, "channel-7-bv", SCM_BV(6)); */
-/* SCM_VARIABLE_INIT (G_channel_8_bv, "channel-8-bv", SCM_BV(7)); */
-/* SCM_VARIABLE_INIT (G_channel_9_bv, "channel-9-bv", SCM_BV(8)); */
-/* SCM_VARIABLE_INIT (G_channel_10_bv, "channel-10-bv", SCM_BV(9)); */
-/* SCM_VARIABLE_INIT (G_channel_11_bv, "channel-11-bv", SCM_BV(10)); */
-/* SCM_VARIABLE_INIT (G_channel_12_bv, "channel-12-bv", SCM_BV(11)); */
-/* SCM_VARIABLE_INIT (G_channel_13_bv, "channel-13-bv", SCM_BV(12)); */
-/* SCM_VARIABLE_INIT (G_channel_14_bv, "channel-14-bv", SCM_BV(13)); */
-/* SCM_VARIABLE_INIT (G_channel_15_bv, "channel-15-bv", SCM_BV(14)); */
-/* SCM_VARIABLE_INIT (G_channel_16_bv, "channel-16-bv", SCM_BV(15)); */
-#undef SCM_BV
+int16_t *wave_data (SCM sound)
+{
+    return (int16_t *) SCM_BYTEVECTOR_CONTENTS (scm_cadr (sound));
+}
+
+const int16_t *audio_model_get_wave(double time_start, size_t n)
+{
+    double time_end = time_start + (double) n / AUDIO_SAMPLE_RATE_IN_HZ;
+    SCM am_wave_list = scm_variable_ref(G_sound_playlist_var);
+
+    am_timer = time_start;
+    am_timer_delta = time_start - loop_time();
+
+    /* Drop waves that have already finished. */
+    /* FIXME: could be more efficient by using more schemey CDR operations. */
+    for (int id = scm_to_int (scm_length (am_wave_list)) - 1; id >= 0; id --)
+    {
+        SCM s_wave = scm_list_ref (am_wave_list, scm_from_int (id));
+        if (wave_time_start(s_wave) < 0.0)
+        {
+            // This wave had a start time of zero, meaning it is to
+            // start as soon as possible.  We set its start time to
+            // now.
+            scm_list_set_x (am_wave_list,
+                            scm_from_int(id),
+                            scm_list_3(scm_from_double (time_start), scm_cadr(s_wave), scm_from_int(0)));
+        }
+        else if (wave_time_end(s_wave) < time_start)
+        {
+            // Wave has expired.  Dequeue it.
+            if (id > 0)
+                scm_delq_x (s_wave, am_wave_list);
+            else
+                am_wave_list = scm_cdr (am_wave_list);
+        }
+    }
+
+    scm_variable_set_x (G_sound_playlist_var, am_wave_list);
+
+    memset (am_working, 0, AUDIO_BUFFER_SIZE * sizeof(float));
+
+    for (int id = scm_to_int (scm_length (am_wave_list)) - 1; id >= 0; id --)
+    {
+        SCM s_wave = scm_list_ref (am_wave_list, scm_from_int (id));
+        double wave_start = wave_time_start(s_wave);
+        double wave_end = wave_time_end(s_wave);
+
+        if (time_end < wave_start)
+        {
+            // hasn't started yet
+        }
+        else if (time_start <= wave_start)
+        {
+            // wave starts during this sample
+            size_t delta = (wave_start - time_start) * AUDIO_SAMPLE_RATE_IN_HZ;
+            size_t len   = (wave_end - wave_start) * AUDIO_SAMPLE_RATE_IN_HZ;
+            if (len > n - delta)
+                len = n - delta;
+            int16_t *wav = wave_data(s_wave);
+            for (size_t i = 0; i < len; i ++)
+                am_working[i + delta] += (float) wav[i];
+            // Store the number of samples processed
+            //am_wave_list = scm_list_set_x (am_wave_list, scm_from_int (id),
+            //                               scm_list_3 (scm_car (s_wave), scm_cadr(s_wave), scm_from_size_t (len)));
+            scm_list_set_x (s_wave, scm_from_int(2), scm_from_size_t (len));
+        }
+        else
+        {
+            // wave has already started
+            // size_t delta = (time_start - wave_start) * AUDIO_SAMPLE_RATE_IN_HZ;
+            size_t delta = scm_to_size_t (scm_list_ref (s_wave, scm_from_int(2)));
+            size_t len   = scm_c_bytevector_length (scm_cadr(s_wave)) / 2 - delta;
+            if (len > n)
+                len = n;
+            int16_t *wav = wave_data(s_wave);
+            for (size_t i = 0; i < len; i ++)
+                am_working[i] += (float) wav[i + delta];
+            // Store the number of samples processed
+            scm_list_set_x (s_wave, scm_from_int(2), scm_from_size_t (len + delta));
+        }
+    }
+
+    for (int i = 0; i < n; i ++)
+        am_sum[i] = (int16_t) round(CLAMP(am_working[i],
+                                          AUDIO_CHANNEL_AMPLITUDE_MIN,
+                                          AUDIO_CHANNEL_AMPLITUDE_MAX));
+
+    return am_sum;
+}
+
 
 void
 am_init_guile_procedures (void)
 {
+    G_instrument_tag = scm_make_foreign_object_type (scm_from_utf8_symbol ("instrument"),
+                                                   scm_list_1 (scm_from_utf8_symbol ("data")),
+                                                   NULL);
+
 #include "audio_model.x"
-  scm_c_export ("tone",
-                "simple-tone",
-                "noise",
-                "simple-noise",
-                "beep",
-                "wave",
-                "channel-bytevector",
-                "audio-last-update-time",
-                "audio-time->index",
-                "channel-1-bv",
-                "channel-2-bv",
-                "channel-3-bv",
-                "channel-4-bv",
-                "channel-5-bv",
-                "channel-6-bv",
-                "channel-7-bv",
-                "channel-8-bv",
-                "channel-9-bv",
-                "channel-10-bv",
-                "channel-11-bv",
-                "channel-12-bv",
-                "channel-13-bv",
-                "channel-14-bv",
-                "channel-15-bv",
-                "channel-16-bv",
-                NULL);
+    scm_c_export ("%sound-playlist",
+                  "list->instrument",
+                  "instrument-generate-wave",
+                  "play-wave",
+                  "audio-time",
+                  "audio-last-update-time",
+                  NULL
+        );
 }
 
 

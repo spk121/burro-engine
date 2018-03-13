@@ -52,8 +52,8 @@ stdio_log_handler (const gchar   *log_domain,
 {
     g_log_default_handler (log_domain, log_level, message, user_data);
 
-    if (log_level != G_LOG_LEVEL_DEBUG && log_level != G_LOG_LEVEL_INFO)
-        g_on_error_query ("BURRO");
+//    if (log_level != G_LOG_LEVEL_DEBUG && log_level != G_LOG_LEVEL_INFO)
+//        g_on_error_query ("BURRO");
 }
 
 static void
@@ -116,7 +116,7 @@ initialize (GtkApplication *app)
     loop_initialize();
 
     /* Initialize the audio system */
-    audio_model_initialize ();
+    // audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
     init_lisp(scheme_file);
     loop ();

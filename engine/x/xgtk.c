@@ -88,6 +88,15 @@ xgtk_widget_show_all (GtkWidget *widget)
   gtk_widget_show_all (widget);
 }
 
+void
+xgtk_widget_set_size_request (GtkWidget *widget, gint width, gint height)
+{
+  g_return_if_fail (widget != NULL);
+  g_return_if_fail (width >= -1);
+  g_return_if_fail (height >= -1);
+  gtk_widget_set_size_request (widget, width, height);
+}
+
 GtkWidget *
 xgtk_window_new (GtkWindowType type)
 {
@@ -115,12 +124,10 @@ xgtk_window_set_position (GtkWindow *window, GtkWindowPosition position)
 }
 
 void
-xgtk_widget_set_size_request (GtkWidget *widget, gint width, gint height)
+xgtk_window_set_default_icon_name (const gchar *name)
 {
-  g_return_if_fail (widget != NULL);
-  g_return_if_fail (width >= -1);
-  g_return_if_fail (height >= -1);
-  gtk_widget_set_size_request (widget, width, height);
+    g_return_if_fail (name != NULL);
+    gtk_window_set_default_icon_name (name);
 }
 
 void

@@ -39,7 +39,7 @@ void draw ()
     draw_backdrop_color ();
     if (eng_is_blank())
         goto end_draw;
-    
+
     for (int priority = PRIORITY_COUNT - 1; priority >= 0; priority --)
     {
         for (int layer = BG_MAIN_3; layer >= BG_MAIN_0; layer --)
@@ -51,11 +51,11 @@ void draw ()
         for (int id = scm_to_int (scm_length (obj_display_list)) - 1; id >= 0; id --)
         {
             SCM obj = scm_list_ref (obj_display_list, scm_from_int (id));
-            if (obj_is_shown (obj) && obj_get_priority (obj) == priority)
+            if (obj_get_priority (obj) == priority)
                 draw_obj (obj);
         }
     }
-    
+
  end_draw:
 
     if (console_is_visible ())
@@ -98,8 +98,8 @@ static void compute_transform (cairo_matrix_t *matrix,
 static void draw_backdrop_color ()
 {
   double r = 0.0, g = 0.0, b = 0.0;
-  
-  backdrop_get_color_rgb (&r, &g, &b);  
+
+  backdrop_get_color_rgb (&r, &g, &b);
   xcairo_set_source_rgb (main_screen_context, r, g, b);
   xcairo_paint (main_screen_context);
 }
@@ -125,7 +125,7 @@ static void draw_background_layer (bg_index_t layer)
     cairo_matrix_t matrix;
     double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
     double rotation, expansion;
-    
+
     surf = bg_get_cairo_surface (layer);
     xcairo_surface_mark_dirty (surf);
     bg_get_transform (layer, &scroll_x, &scroll_y,
@@ -144,7 +144,7 @@ static void draw_obj (SCM obj)
     cairo_matrix_t matrix;
     double x, y, rotation_center_x, rotation_center_y;
     double rotation, expansion;
-    
+
     surf = obj_render_to_cairo_surface (obj);
     xcairo_surface_mark_dirty (surf);
     obj_get_location (obj, &x, &y, &rotation_center_x, &rotation_center_y,
@@ -158,7 +158,7 @@ static void draw_obj (SCM obj)
 static void draw_console_layer ()
 {
     cairo_surface_t *surf;
-    
+
     surf = console_render_to_cairo_surface ();
     xcairo_surface_mark_dirty (surf);
 
@@ -168,4 +168,3 @@ static void draw_console_layer ()
 
     xcairo_surface_destroy (surf);
 }
-

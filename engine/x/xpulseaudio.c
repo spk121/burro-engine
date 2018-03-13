@@ -17,7 +17,7 @@ void
 xpa_context_connect_to_default_server (pa_context *c)
 {
     g_return_if_fail (c != NULL);
-    
+
     int ret;
     ret = pa_context_connect (c,
                               (const char *) NULL,
@@ -45,7 +45,7 @@ xpa_context_new_with_proplist (pa_mainloop_api *mainloop,
     g_return_val_if_fail (mainloop != NULL, NULL);
     g_return_val_if_fail (name != NULL, NULL);
     g_return_val_if_fail (proplist != NULL, NULL);
-    
+
     pa_context *c;
     c = pa_context_new_with_proplist (mainloop, name, proplist);
     if (c == NULL)
@@ -59,6 +59,17 @@ xpa_context_set_state_callback (pa_context *c, pa_context_notify_cb_t cb, void *
   g_return_if_fail (c != NULL);
   g_return_if_fail (cb != NULL);
   pa_context_set_state_callback (c, cb, userdata);
+}
+
+pa_glib_mainloop *
+xpa_glib_mainloop_new (GMainContext *c)
+{
+    pa_glib_mainloop *loop;
+    g_return_val_if_fail (c != NULL, NULL);
+    loop = pa_glib_mainloop_new (c);
+    if (loop == NULL)
+        g_critical ("pa_glib_mainloop_new returned NULL");
+    return loop;
 }
 
 pa_mainloop_api *
@@ -137,7 +148,7 @@ xpa_proplist_sets (pa_proplist *p, const char *key, const char *value)
 }
 
 void xpa_stream_connect_playback_to_default_device (pa_stream *s, pa_context *c,
-                                                    const pa_buffer_attr *attr, 
+                                                    const pa_buffer_attr *attr,
                                                     pa_stream_flags_t flags)
 {
   int ret;
@@ -148,8 +159,24 @@ void xpa_stream_connect_playback_to_default_device (pa_stream *s, pa_context *c,
                   pa_strerror (pa_context_errno(c)));
 }
 
+pa_usec_t
+xpa_stream_get_time (pa_stream *s)
+{
+    int ret;
+    pa_usec_t r_usec;
+
+    g_return_val_if_fail (s != NULL, 0);
+    ret = pa_stream_get_time (s, &r_usec);
+    if (ret != 0)
+    {
+        g_critical ("pa_stream_get_time failed to return a valid time");
+        return 0;
+    }
+    return r_usec;
+}
+
 pa_stream *
-xpa_stream_new_with_proplist (pa_context *c, const char *name, const pa_sample_spec *ss, 
+xpa_stream_new_with_proplist (pa_context *c, const char *name, const pa_sample_spec *ss,
 			      const pa_channel_map *map, pa_proplist *p)
 {
   pa_stream *s;
@@ -187,10 +214,9 @@ xpa_stream_write (pa_stream *p, const void *data, size_t nbytes)
     g_return_if_fail (p != NULL);
     g_return_if_fail (data != NULL);
     g_return_if_fail (nbytes > 0);
-    
+
   int ret;
   ret = pa_stream_write (p, data, nbytes, NULL, 0, PA_SEEK_RELATIVE);
   if (ret != 0)
     g_critical ("pa_stream_write failed");
 }
-

@@ -51,7 +51,7 @@ static void cb_audio_context_state(pa_context *c, void *userdata)
     case PA_CONTEXT_CONNECTING:
         g_debug("PulseAudio set context state to CONNECTING");
         break;
-    case PA_CONTEXT_AUTHORIZING: 
+    case PA_CONTEXT_AUTHORIZING:
         g_debug("PulseAudio set context state to AUTHORIZING");
         break;
     case PA_CONTEXT_SETTING_NAME:
@@ -79,30 +79,28 @@ static void cb_audio_stream_started(pa_stream *p, void *userdata)
 {
     g_debug("PulseAudio started playback");
 }
-    
+
 /* This is called when new data may be written to the stream.  If we
   have data, we can ship it, otherwise we just note that the stream is
   waiting.  */
 static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
 {
+    size_t n = nbytes / sizeof(int16_t);
+
     g_return_if_fail (p != NULL);
 
-    const pa_timing_info *timing = pa_stream_get_timing_info (p);
-    unsigned n = nbytes / sizeof (uint16_t);
-
-    /* if (timing != NULL) */
-    /*     g_debug("Pulseaudio requests %d samples, %u microseconds to live", */
-    /*             n, timing->transport_usec + timing->sink_usec); */
-    pa_stream_update_timing_info (p, NULL, NULL);
+    pa_usec_t usec = xpa_stream_get_time (p);
+    if (usec != 0)
+        g_debug("Pulseaudio time is %"PRIu64", requests %zu samples", usec, n);
     if (n > AUDIO_BUFFER_SIZE)
     {
-        g_warning ("Pulseaudio buffer read overflow %u > %u",
+        g_warning ("Pulseaudio buffer read overflow %zu > %u",
                    n, AUDIO_BUFFER_SIZE);
         n = AUDIO_BUFFER_SIZE;
         nbytes = n * sizeof (uint16_t);
     }
-    xpa_stream_write(p, audio_model_get_wave(), nbytes);
-    audio_model_dequeue(n);
+    const int16_t *wav = audio_model_get_wave(1.0e-6 * usec, n);
+    xpa_stream_write(p, wav, nbytes);
     pulse.samples_written += n;
 }
 
@@ -110,9 +108,8 @@ void pulse_initialize_audio_step_1()
 {
     pa_mainloop_api *vtable = NULL;
     pa_proplist *main_proplist = NULL;
-    pa_channel_map channel_map;
 
-    pulse.loop = pa_glib_mainloop_new (g_main_context_default());
+    pulse.loop = xpa_glib_mainloop_new (g_main_context_default());
 #ifdef USE_GLIB_MAINLOOP
     vtable = pa_glib_mainloop_get_api (pulse.loop);
 #else
@@ -162,7 +159,7 @@ void pulse_initialize_audio_step_2(pa_context *context)
     /* BUFFER_ATTRIBUTES: Here we set the buffering behavior of the
      * audio.  We want low latency.
 
-       One wiki suggests that to set a specific latency, 
+       One wiki suggests that to set a specific latency,
        1. use pa_usec_to_bytes(&ss, ...) to convert the latency from a time unit to bytes
        2. use the PA_STREAM_ADJUST_LATENCY flag
        3. set pa_buffer_attr::tlength to latency in samples
@@ -170,7 +167,7 @@ void pulse_initialize_audio_step_2(pa_context *context)
 
        http://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/Developer/Clients/LatencyControl
     */
-    
+
     buffer_attributes.tlength = pa_usec_to_bytes (AUDIO_LATENCY_REQUESTED_IN_MILLISECONDS * MICROSECONDS_PER_MILLISECOND,
                                                   &sample_specification);
     buffer_attributes.maxlength = -1; /* -1 == default */
@@ -183,7 +180,7 @@ void pulse_initialize_audio_step_2(pa_context *context)
     stream_proplist = xpa_proplist_new();
     xpa_proplist_sets(stream_proplist, PA_PROP_MEDIA_NAME, "mono channel");
     xpa_proplist_sets(stream_proplist, PA_PROP_MEDIA_ROLE, "game");
-    
+
     /* CHANNEL_MAP: Then we say which speakers we're using.  The game
        is mono, so - that makes it simple. */
 
@@ -198,25 +195,26 @@ void pulse_initialize_audio_step_2(pa_context *context)
                 pa_sample_spec_snprint(tss, sizeof(tss), &sample_specification),
                 pa_channel_map_snprint(tcm, sizeof(tcm), &channel_map));
     }
-    
+
     /* STREAM: Group everything together as a stream */
     g_assert (pulse.context == context);
     stream = xpa_stream_new_with_proplist(pulse.context,
                                           "mono channel", /* Stream name */
                                           &sample_specification,
                                           &channel_map,
-                                          stream_proplist); 
+                                          stream_proplist);
     xpa_proplist_free (stream_proplist);
 
     xpa_stream_set_started_callback(stream, cb_audio_stream_started, NULL);
     xpa_stream_set_write_callback(stream, cb_audio_stream_write, NULL);
 
     pulse.samples_written = 0U;
-    
+
     /* Connect the stream to the audio loop */
     xpa_stream_connect_playback_to_default_device (stream, context,
                                                    &buffer_attributes,
-                                                   PA_STREAM_ADJUST_LATENCY);
+                                                   /* PA_STREAM_ADJUST_LATENCY | */
+                                                   PA_STREAM_INTERPOLATE_TIMING | PA_STREAM_AUTO_TIMING_UPDATE);
     /* Finally done! */
     g_debug("PulseAudio initialization complete");
 }

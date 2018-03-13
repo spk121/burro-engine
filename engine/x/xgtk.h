@@ -25,6 +25,7 @@ void                xgtk_widget_show_all                (GtkWidget *widget);
 GtkWidget *         xgtk_window_new                     (GtkWindowType type);
 void                xgtk_window_set_application         (GtkWindow *window,
 							 GtkApplication *application);
+void                xgtk_window_set_default_icon_name (const gchar *name);
 void                xgtk_window_set_position            (GtkWindow *window,
                                                          GtkWindowPosition position);
 void                xgtk_window_set_title               (GtkWindow *window,
