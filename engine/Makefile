@@ -146,6 +146,7 @@ SRCS_Y_H = \
  y/pulseaudio.h \
  y/rand.h \
  y/repl.h \
+ y/textbox.h \
  y/vram.h \
  y/wave.h
 
@@ -175,6 +176,7 @@ SRCS_C   = \
  y/pulseaudio.c \
  y/rand.c \
  y/repl.c \
+ y/textbox.c \
  y/vram.c \
  y/wave.c \
  main.c

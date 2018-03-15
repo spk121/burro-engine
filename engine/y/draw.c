@@ -5,15 +5,17 @@
 #include "draw.h"
 #include "eng.h"
 #include "obj.h"
+#include "textbox.h"
 #include <math.h>
 
-static cairo_t *main_screen_context;
+cairo_t *main_screen_context;
 static cairo_surface_t *main_screen_surface;
 
 static void draw_backdrop_color (void);
 static void draw_background_layer (bg_index_t layer);
 static void draw_console_layer (void);
 static void draw_obj (SCM id);
+static void draw_textbox(SCM textbox);
 
 cairo_surface_t *draw_get_main_screen_surface (void)
 {
@@ -54,6 +56,9 @@ void draw ()
             if (obj_get_priority (obj) == priority)
                 draw_obj (obj);
         }
+	SCM textbox = scm_variable_ref (G_textbox_var);
+	if (scm_is_true(textbox) && textbox_get_priority (textbox) == priority)
+	  draw_textbox (textbox);
     }
 
  end_draw:
@@ -93,7 +98,6 @@ static void compute_transform (cairo_matrix_t *matrix,
     matrix->x0 = x0;
     matrix->y0 = y0;
 }
-
 
 static void draw_backdrop_color ()
 {
@@ -167,4 +171,13 @@ static void draw_console_layer ()
     xcairo_paint (main_screen_context);
 
     xcairo_surface_destroy (surf);
+}
+
+static void draw_textbox(SCM textbox)
+{
+  cairo_save (main_screen_context);
+  cairo_set_source_rgb (main_screen_context, 0.7, 0.7, 0.7);
+  cairo_move_to(main_screen_context, 0, 0);
+  pango_cairo_show_layout (main_screen_context, textbox_get_layout (textbox));
+  cairo_restore(main_screen_context);
 }

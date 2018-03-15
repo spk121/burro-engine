@@ -8,7 +8,10 @@
 #include "guile.h"
 #include "lisp.h"
 #include "loop.h"
+#include "obj.h"
+#include "pixbuf.h"
 #include "repl.h"
+#include "textbox.h"
 #include <libguile.h>
 
 static char *lisp_main_script = NULL;
@@ -36,6 +39,7 @@ _burroscript_init (void *unused)
     vram_init_guile_procedures();
     pixbuf_init_guile_procedures();
     obj_init_guile_procedures();
+    textbox_init_guile_procedures();
 }
 
 void

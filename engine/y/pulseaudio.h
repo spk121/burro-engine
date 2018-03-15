@@ -28,3 +28,13 @@ void pulse_mainloop(void);
 
 
 #endif
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

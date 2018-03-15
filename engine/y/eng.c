@@ -21,6 +21,7 @@ GtkWidget *main_screen;
 gulong destroy_signal_id;
 gulong key_press_event_signal_id;
 gulong key_release_event_signal_id;
+gulong button_press_event_signal_id;
 gulong window_state_event_signal_id;
 gboolean blank_flag = FALSE;
 gboolean colorswap_flag = FALSE;
@@ -35,8 +36,21 @@ static int key_a, key_b, key_x, key_y;
 static int key_start, key_select;
 static int key_up, key_down, key_left, key_right;
 
+static guint32 mouse_move_time = 0;
+static gdouble mouse_move_x = -1;
+static gdouble mouse_move_y = -1;
+static guint mouse_move_state = 0;
+
+static guint32 button_press_time = 0;
+static gdouble button_press_x = -1;
+static gdouble button_press_y = -1;
+
+
+
 static void destroy_cb(GtkWidget* widget, gpointer dummy);
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy);
+static gboolean button_press_event_cb (GtkWidget *widget, GdkEventButton *event, gpointer user_data);
+static gboolean motion_notify_event_cb (GtkWidget *widget, GdkEventMotion *event, gpointer user_data);
 static bool key_event_console (unsigned keysym, unsigned state);
 static gboolean
 main_draw_cb (GtkWidget *widget,
@@ -120,10 +134,14 @@ GtkWidget *eng_initialize ()
     xgtk_container_add (GTK_CONTAINER (window), fixed);
 
     main_screen = xgtk_drawing_area_new();
+    gtk_widget_set_events (main_screen, GDK_EXPOSURE_MASK
+                           | GDK_LEAVE_NOTIFY_MASK
+                           | GDK_BUTTON_PRESS_MASK
+                           | GDK_POINTER_MOTION_MASK
+                           | GDK_POINTER_MOTION_HINT_MASK);
     xgtk_widget_set_size_request(main_screen,
                                  MAIN_SCREEN_WIDTH * MAIN_SCREEN_MAGNIFICATION,
                                  MAIN_SCREEN_HEIGHT * MAIN_SCREEN_MAGNIFICATION);
-
     xgtk_fixed_put(GTK_FIXED(fixed),
                    main_screen,
                    0, 0);
@@ -136,6 +154,9 @@ GtkWidget *eng_initialize ()
         xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
     key_release_event_signal_id =
         xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
+    button_press_event_signal_id = 
+        xg_signal_connect (G_OBJECT (main_screen), "button-press-event", G_CALLBACK (button_press_event_cb), NULL);
+    xg_signal_connect (G_OBJECT (main_screen), "motion-notify-event", G_CALLBACK (motion_notify_event_cb), NULL);
     xg_signal_connect (G_OBJECT (main_screen), "draw", G_CALLBACK (main_draw_cb), NULL);
 
     /* window_state_event_signal_id =  */
@@ -391,6 +412,28 @@ eng_get_keyinput()
 
 }
 
+static gboolean
+button_press_event_cb (GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+    if (event->button == 1)
+    {
+        button_press_time = event->time;
+        button_press_x = event->x;
+        button_press_y = event->y;
+    }
+    return true;
+}
+
+static gboolean
+motion_notify_event_cb (GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
+{
+    mouse_move_time = event->time;
+    mouse_move_x = event->x;
+    mouse_move_y = event->y;
+    mouse_move_state = event->state;
+    return true;
+}
+
 ////////////////////////////////////////////////////////////////
 
 SCM_DEFINE (G_eng_is_blank, "eng-blank?", 0, 0, 0, (void), "")
@@ -443,6 +486,30 @@ SCM_DEFINE (G_eng_get_keyinput, "eng-get-keyinput", 0, 0, 0, (void), "")
     return scm_from_int (eng_get_keyinput ());
 }
 
+SCM_DEFINE (G_eng_get_mouse_move, "eng-get-mouse-move", 0, 0, 0, (void), "\
+Return the time, x, and y of the last mouse movement.")
+{
+    return scm_list_3 (scm_from_double (0.001 * mouse_move_time),
+                       scm_from_double (mouse_move_x),
+                       scm_from_double (mouse_move_y));
+}
+
+SCM_DEFINE (G_eng_get_button_press, "eng-get-button-press", 0, 0, 0, (void), "\
+Return the time, x, and y of the last mouse click of button 1.")
+{
+    if (!button_press_time)
+        return SCM_BOOL_F;
+    
+    SCM ret =  scm_list_3 (scm_from_double (0.001 * button_press_time),
+                       scm_from_double (button_press_x),
+                       scm_from_double (button_press_y));
+    
+    button_press_time = 0;
+    button_press_x = -1;
+    button_press_y = -1;
+    return ret;
+}
+
 void
 eng_init_guile_procedures ()
 {
@@ -450,7 +517,7 @@ eng_init_guile_procedures ()
     scm_c_export ("screen-blank?", "screen-blank", "screen-unblank",
                   /*"eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
                     "eng-get-brightness", "eng-set-brightness", */
-                  "eng-get-keyinput",
+                  "eng-get-keyinput", "eng-get-mouse-move", "eng-get-button-press",
                   NULL);
 }
 

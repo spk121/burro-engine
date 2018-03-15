@@ -72,9 +72,9 @@ signed, 16-bit waveform sampled at AUDIO_SAMPLE_RATE_IN_HZ.  The\n\
 rendering is according to an instrument model.")
 {
     instrument_t *I = scm_foreign_object_ref (s_instrument, 0);
-    double A = scm_to_double (s_amplitude);
-    double D = scm_to_double (s_duration);
-    double F = scm_to_double (s_frequency);
+    double A = CLAMP(scm_to_double (s_amplitude), 0.0, 2.0);
+    double D = CLAMP(scm_to_double (s_duration), 0.000001, 500.0);
+    double F = CLAMP(scm_to_double (s_frequency), 5.0, 22050.0);
 
     double duration_in_seconds = MAX (D, I->D_attack + I->D_decay + I->D_release);
     double D_sustain = duration_in_seconds - (I->D_attack + I->D_decay + I->D_release);

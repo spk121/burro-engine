@@ -1007,7 +1007,7 @@ console_render_to_cairo_surface ()
                         else if (glyph_bitmap
                                  && (i > 0)
                                  && ((rendering & INTENSITY_MASK) == INTENSITY_BOLD)
-                                 && (glyph_bitmap[j] & (1 << (8 - i - 2))))
+                                 && (glyph_bitmap[j] & (1 << (8 - i))))
                             // FIXME: that '8' should be the number of bits in row type
                             pixel_argb = fg_argb;
                         else
