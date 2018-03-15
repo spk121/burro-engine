@@ -1,0 +1,19 @@
+#+TITLE: TODO for Burro Engine
+
+* Engine
+** Autoconf / Automake
+** Audio file unpacking
+   Probably go with libvorbisfile for this, because it is very simple.
+** Better directory and game loading handling
+   Assume all the game data is in a game directory, and there is a
+   top-level 'main.scm'
+** API vs internal linking
+** Guile port handling
+* Scheme library
+** SXML to Pango GMarkup conversion
+   Also, add custom hotspot tag to GMarkup
+** Textbox hotspot mouse click and mouse over
+** Twine library
+* Game
+** Prototype game in Twine
+** Convert to Burro
