@@ -1,4 +1,5 @@
 #include "../x.h"
+#include "../paths.h"
 #include <glib.h>
 #include "audio_model.h"
 #include "backdrop.h"
@@ -42,6 +43,35 @@ _burroscript_init (void *unused)
     textbox_init_guile_procedures();
 }
 
+/* Add the Burro PKGDATADIR directories as scheme directories. */
+static void
+init_lisp_scheme_directories()
+{
+    const char *assets_dir = g_getenv("BURRO_DATA_DIR");
+#ifdef BURRO_DATA_DIR
+    if (assets_dir == NULL)
+        assets_dir = BURRO_DATA_DIR;
+#endif
+    if (assets_dir == NULL)
+    {
+        g_critical("No BURRO_DATA_DIR has been specified");
+        return;
+    }
+    
+    /* If BURRO_DATA_DIR is set, we use that as a scheme path. */
+    if (g_file_test (assets_dir, G_FILE_TEST_IS_DIR) == TRUE)
+    {
+        SCM old_path = scm_list_copy (scm_c_eval_string ("%load-path"));
+        scm_set_car_x (scm_c_eval_string ("%load-path"),
+                       scm_from_locale_string (assets_dir));
+        scm_set_cdr_x (scm_c_eval_string ("%load-path"),
+                       old_path);
+        return;
+    }
+    else
+        g_critical ("BURRO_DATA_DIR is set to an invalid directory: %s", assets_dir);
+}
+
 void
 init_lisp (const char *main_script)
 {
@@ -56,72 +86,59 @@ init_lisp (const char *main_script)
     scm_set_current_module (burro_user_module);
 
     // Load scheme libraries
-    const char *path = g_getenv("BURRO_SCHEME_PATH");
-    if (path == NULL)
-        path = ".";
-    if (g_file_test (path, G_FILE_TEST_IS_DIR) == TRUE)
-    {
-        SCM old_path = scm_list_copy (scm_c_eval_string ("%load-path"));
-        scm_set_car_x (scm_c_eval_string ("%load-path"),
-                       scm_from_locale_string (path));
-        scm_set_cdr_x (scm_c_eval_string ("%load-path"),
-                       old_path);
-    }
+    init_lisp_scheme_directories();
     
     scm_c_use_module ("burro");
     scm_c_use_module ("ice-9 readline");
+    scm_c_use_module ("ice-9 eval-string");
     scm_c_use_module ("srfi srfi-1");
     scm_c_use_module ("rnrs bytevectors");
     scm_c_use_module ("system repl repl");
     scm_c_use_module ("system repl server");
     scm_c_use_module ("system repl coop-server");
     scm_c_use_module ("system vm trap-state");
-    // scm_c_use_module ("json");
+
+    /* char *libstr = xg_resources_get_string("/com/lonelycactus/burro/library.scm"); */
+    /* scm_c_eval_string(libstr); */
+    /* free(libstr); */
     
-    char *cmd;
+    xscm_c_eval_string_or_warn ("(activate-readline)");
+
     if (main_script)
-    {
         lisp_main_script = g_strdup(main_script);
-        cmd = g_strdup_printf("(load-from-path \"%s\")", main_script);
-    }
     else
-    {
-        cmd = g_strdup_printf("(load-from-path \"engine.scm\")");
-        lisp_main_script = g_strdup("engine.scm");
-    }
-    scm_c_eval_string(cmd);
-    g_free (cmd);
-    scm_c_eval_string ("(activate-readline)");
+        lisp_main_script = g_strdup("burro-main.scm");
+    G_restart();
+    
     repl_init ();
 }
 
 ////////////////////////////////////////////////////////////////
 // Here are some random functions for use with the console
 
-SCM_DEFINE (G_restart, "burro_Restart", 0, 0, 0, (void), "\
+SCM_DEFINE (G_restart, "burro-restart", 0, 0, 0, (void), "\
 Reload and re-eval the main script.\n")
 {
+    // FIXME: this is probably where we decide between scheme and wisp
     char *cmd = g_strdup_printf("(load-from-path \"%s\")", lisp_main_script);
-    SCM ret = scm_c_eval_string(cmd);
+    SCM ret = xscm_c_eval_string_or_warn(cmd);
     g_free (cmd);
     return ret;
 }
 
-SCM_DEFINE (G_list_data_directory_contents, "burro_Dir", 0, 1, 0, (SCM regex), "\
+SCM_DEFINE (G_list_data_directory_contents, "burro-dir", 0, 1, 0, (SCM regex), "\
 List the contents of the data directory.  If a parameter is provided, \n\
 it is used as a regular expression for matching.\n")
 {
     GError *error = NULL;
     
     const char *assets_dir = g_getenv("BURRO_DATA_DIR");
-    const char *user_dir = g_get_user_data_dir ();
-    char *path;
-    if (assets_dir != NULL)
-        path = g_strdup (assets_dir);
-    else if (user_dir != NULL)
-        path = g_build_path (G_DIR_SEPARATOR_S, user_dir, "burro", NULL);
-
-    GDir *dir = g_dir_open (path, 0, &error);
+#ifdef BURRO_DATA_DIR
+    if (assets_dir == NULL)
+        assets_dir = BURRO_DATA_DIR;
+#endif
+    
+    GDir *dir = g_dir_open (assets_dir, 0, &error);
     if (dir == NULL)
     {
         g_critical ("can't read BURRO data dir: %s", error->message);
@@ -148,7 +165,7 @@ it is used as a regular expression for matching.\n")
     
 #else
     scm_display(scm_from_utf8_string("in "), scm_current_output_port());
-    scm_display(scm_from_utf8_string(path), scm_current_output_port());
+    scm_display(scm_from_utf8_string(assets_dir), scm_current_output_port());
     scm_newline(scm_current_output_port());
     scm_display(scm_from_utf8_string("-----------------------------"), scm_current_output_port());
     scm_newline(scm_current_output_port());
@@ -161,7 +178,6 @@ it is used as a regular expression for matching.\n")
     }
 #endif
     g_dir_close (dir);
-    g_free(path);
     return SCM_UNSPECIFIED;
 }
 
@@ -206,7 +222,9 @@ void
 lisp_init_guile_procedures (void)
 {
 #include "lisp.x"
-    scm_c_export("burro_Dir", "burro_Restart", NULL);
+    scm_c_export("burro-dir",
+                 "burro-restart",
+                 NULL);
 }
 
 /*

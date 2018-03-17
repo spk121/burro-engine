@@ -13,6 +13,5 @@
 #include "y/obj.h"
 #include "y/pulseaudio.h"
 #include "y/rand.h"
-#include "y/sheet.h"
 #include "y/wave.h"
 #endif

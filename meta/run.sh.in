@@ -1,0 +1,3 @@
+#!/bin/sh
+BURRO_DATA_DIR=@abs_top_srcdir@/game \
+@abs_top_builddir@/engine/burro

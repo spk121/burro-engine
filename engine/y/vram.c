@@ -2,13 +2,10 @@
 #include "../x.h"
 #include "vram.h"
 
-alignas(16) uint32_t vram_01[VRAM_01_U32_SIZE];
 alignas(16) uint32_t vram_ABCD_store[VRAM_ABCD_U32_SIZE];
 alignas(16) uint32_t vram_EFGHIJ_store[VRAM_EFGHIJ_U32_SIZE];
 
 static int vram_size[VRAM_COUNT] = {
-    [VRAM_0] = VRAM_0_U32_SIZE,
-    [VRAM_1] = VRAM_1_U32_SIZE,
     [VRAM_A] = VRAM_A_U32_SIZE,
     [VRAM_B] = VRAM_B_U32_SIZE,
     [VRAM_C] = VRAM_C_U32_SIZE,
@@ -25,8 +22,6 @@ static int vram_size[VRAM_COUNT] = {
 };
 
 static uint32_t *vram_ptr[VRAM_COUNT] = {
-    [VRAM_0] = VRAM_0_U32_PTR,
-    [VRAM_1] = VRAM_1_U32_PTR,
     [VRAM_A] = VRAM_A_U32_PTR,
     [VRAM_B] = VRAM_B_U32_PTR,
     [VRAM_C] = VRAM_C_U32_PTR,
@@ -44,8 +39,6 @@ static uint32_t *vram_ptr[VRAM_COUNT] = {
 
 static const char 
 vram_bank_name[VRAM_COUNT][10] = {
-    [VRAM_0] = "VRAM_0",
-    [VRAM_1] = "VRAM_1",
     [VRAM_A] = "VRAM_A",
     [VRAM_B] = "VRAM_B",
     [VRAM_C] = "VRAM_C",
@@ -64,14 +57,14 @@ vram_bank_name[VRAM_COUNT][10] = {
 static bool
 vram_validate_vram_bank_t (vram_bank_t x)
 {
-    return (x >= VRAM_0 && x <= VRAM_ABCD);
+    return (x >= VRAM_A && x <= VRAM_ABCD);
 }
 
 
 bool
 vram_validate_int_as_vram_bank_t (int x)
 {
-    return (x >= (int) VRAM_0 && x <= (int) VRAM_ABCD);
+    return (x >= (int) VRAM_A && x <= (int) VRAM_ABCD);
 }
 
 void
@@ -130,8 +123,6 @@ bool _scm_is_vram_bank_t (SCM x)
     return scm_is_integer(x) && vram_validate_int_as_vram_bank_t (scm_to_int (x));
 }
 
-SCM_VARIABLE_INIT (G_VRAM_0, "VRAM_0", _scm_from_vram_bank_t (VRAM_0));
-SCM_VARIABLE_INIT (G_VRAM_1, "VRAM_1", _scm_from_vram_bank_t (VRAM_1));
 SCM_VARIABLE_INIT (G_VRAM_A, "VRAM_A", _scm_from_vram_bank_t (VRAM_A));
 SCM_VARIABLE_INIT (G_VRAM_B, "VRAM_B", _scm_from_vram_bank_t (VRAM_B));
 SCM_VARIABLE_INIT (G_VRAM_C, "VRAM_C", _scm_from_vram_bank_t (VRAM_C));
@@ -146,9 +137,7 @@ SCM_VARIABLE_INIT (G_VRAM_AB, "VRAM_AB", _scm_from_vram_bank_t (VRAM_AB));
 SCM_VARIABLE_INIT (G_VRAM_CD, "VRAM_CD", _scm_from_vram_bank_t (VRAM_CD));
 SCM_VARIABLE_INIT (G_VRAM_ABCD, "VRAM_ABCD", _scm_from_vram_bank_t (VRAM_ABCD));
 SCM_VARIABLE_INIT (G_VRAM_INDEX_LIST, "VRAM_INDEX_LIST",
-                   scm_list_n(G_VRAM_0,
-                              G_VRAM_1,
-                              G_VRAM_A,
+                   scm_list_n(G_VRAM_A,
                               G_VRAM_B,
                               G_VRAM_C,
                               G_VRAM_D,
@@ -166,8 +155,6 @@ SCM_VARIABLE_INIT (G_VRAM_INDEX_LIST, "VRAM_INDEX_LIST",
 #define SCM_BV(_bank) \
     scm_pointer_to_bytevector(scm_from_pointer(VRAM_ ## _bank ## _U32_PTR, NULL), scm_from_int(VRAM_ ## _bank ## _U32_SIZE), scm_from_int (0), scm_from_locale_symbol("u32"))
 
-SCM_VARIABLE_INIT (G_vram_0_bv, "vram-0-bv", SCM_BV(0));
-SCM_VARIABLE_INIT (G_vram_1_bv, "vram-1-bv", SCM_BV(1));
 SCM_VARIABLE_INIT (G_vram_A_bv, "vram-A-bv", SCM_BV(A));
 SCM_VARIABLE_INIT (G_vram_B_bv, "vram-B-bv", SCM_BV(B));
 SCM_VARIABLE_INIT (G_vram_C_bv, "vram-C-bv", SCM_BV(C));
@@ -182,9 +169,7 @@ SCM_VARIABLE_INIT (G_vram_AB_bv, "vram-AB-bv", SCM_BV(AB));
 SCM_VARIABLE_INIT (G_vram_CD_bv, "vram-CD-bv", SCM_BV(CD));
 SCM_VARIABLE_INIT (G_vram_ABCD_bv, "vram-ABCD-bv", SCM_BV(ABCD));
 SCM_VARIABLE_INIT (G_vram_bv_list, "vram-bv-list",
-                   scm_list_n(G_vram_0_bv,
-                              G_vram_1_bv,
-                              G_vram_A_bv,
+                   scm_list_n(G_vram_A_bv,
                               G_vram_B_bv,
                               G_vram_C_bv,
                               G_vram_D_bv,
@@ -213,8 +198,6 @@ vram_init_guile_procedures (void)
 {
 #include "vram.x"
     scm_c_export (
-                  "VRAM_0",
-                  "VRAM_1",
                   "VRAM_A",
                   "VRAM_B",
                   "VRAM_C",
@@ -229,8 +212,6 @@ vram_init_guile_procedures (void)
                   "VRAM_CD",
                   "VRAM_ABCD",
                   "VRAM_INDEX_LIST",
-                  "vram-0-bv",
-                  "vram-1-bv",
                   "vram-A-bv",
                   "vram-B-bv",
                   "vram-C-bv",

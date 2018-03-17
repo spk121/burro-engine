@@ -8,6 +8,7 @@
 #pragma GCC diagnostic pop
 
 SCM                 xscm_c_eval_string                  (const char *string);
+SCM                 xscm_c_eval_string_or_warn          (const char *string);
 SCM                 xscm_c_primitive_load               (const char *filename);
 SCM                 xscm_from_latin1_symbol             (const char *name);
 void                xscm_init_guile                     (void);

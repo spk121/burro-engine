@@ -30,8 +30,8 @@
  */
 void init_lisp (const char *main_script);
 
-
 void lisp_init_guile_procedures (void);
 
+SCM G_restart();
 
 #endif

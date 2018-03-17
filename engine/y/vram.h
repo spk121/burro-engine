@@ -11,8 +11,6 @@
 
 /** Index of a VRAM bank. */
 typedef enum {
-    VRAM_0,                     /**< space for main tilesheet  */
-    VRAM_1,                     /**< space for sub tilesheet  */
     VRAM_A,                     /**< 64k uint32, usually for main spritesheet  */
     VRAM_B,                     /**< 64k uint32, usually for sub spritesheet  */
     VRAM_C,                     /**< 64k uint32  */
@@ -34,21 +32,6 @@ typedef enum {
 
 ////////////////////////////////////////////////////////////////
 //
-
-// VRAM 0 and 1: 2MB of storage.
-// Best used as 512x512px BG Tilesheets
-
-#define VRAM_0_U32_SIZE (512*512)
-#define VRAM_1_U32_SIZE (512*512)
-#define VRAM_01_U32_SIZE (VRAM_0_U32_SIZE + VRAM_1_U32_SIZE)
-
-#define VRAM_0_U32_OFFSET 0
-#define VRAM_1_U32_OFFSET (VRAM_0_U32_OFFSET + VRAM_0_U32_SIZE)
-
-extern uint32_t vram_01[VRAM_0_U32_SIZE + VRAM_1_U32_SIZE] __attribute__((aligned (16)));
-
-#define VRAM_0_U32_PTR (vram_01 + VRAM_0_U32_OFFSET)
-#define VRAM_1_U32_PTR (vram_01 + VRAM_1_U32_OFFSET)
 
 ////////////////////////////////////////////////////////////////
 //

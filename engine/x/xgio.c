@@ -118,6 +118,7 @@ xg_resources_get_string (const char *path)
     char *str = (char *) g_malloc(siz + 1);
 
     xg_input_stream_read_all (stream, path, str, siz, &bytes_read);
+    str[siz] = '\0';
     return str;
 }
 

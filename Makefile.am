@@ -1,1 +1,3 @@
-SUBDIRS = engine
+SUBDIRS = engine test meta
+
+

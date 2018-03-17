@@ -1,8 +1,10 @@
 #include "x.h"
 #include "y.h"
+#include "r/burro.resource.h"
 
 static bool fullspeed = false;
 static uint32_t seed = (uint32_t) -1;
+int port;
 static GtkWidget *mainwin = NULL;
 static char *scheme_file = NULL;
 
@@ -57,7 +59,7 @@ stdio_log_handler (const gchar   *log_domain,
 }
 
 static void
-initialize (GtkApplication *app)
+main_initialize (GtkApplication *app)
 {
     /* Check system resources */
     /* Check CPU speed */
@@ -77,9 +79,6 @@ initialize (GtkApplication *app)
     /* Initialize memory cache */
     vram_init ();
     backdrop_set_color (0x00000000);
-    // sheet_init ();
-    // sheet_assign_memory (SHEET_MAIN_BG, MATRIX_512x512, VRAM_0);
-    // sheet_assign_memory (SHEET_MAIN_OBJ, MATRIX_256x256, VRAM_A);
     bg_init ();
     bg_assign_memory (BG_MAIN_0, MATRIX_256x256, VRAM_C);
     bg_assign_memory (BG_MAIN_1, MATRIX_256x256, VRAM_D);
@@ -92,23 +91,13 @@ initialize (GtkApplication *app)
     xgtk_window_set_application (GTK_WINDOW (mainwin), app);
     gtk_widget_show_all (mainwin);
 
-
     /* Load player's game options and saved game files */
 
     /* Create drawing surface */
-#if 0
-    for (int i = 0; i < 8; i ++) {
-        bg_init(i, BG_TYPE_NONE, MATRIX_16x16, VRAM_I);
-        bg_hide(i);
-    }
-    for (int i = 0; i < 256; i ++) {
-        obj_init(i, 0, 0, OBJ_SIZE_16x16, 0.0, 0.0, false, false);
-        obj_hide(i);
-    }
-#endif
     draw_initialize();
 
     /* All other stuff */
+    xg_find_data_file("tmp");
     console_reset ();
     lineedit_initialize ();
     // init_guile_guile_procedures();
@@ -118,9 +107,12 @@ initialize (GtkApplication *app)
     /* Initialize the audio system */
     // audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
+
+    /* Register the compiled-in resources. */
+    burro_get_resource();
+
     init_lisp(scheme_file);
     loop ();
-
 }
 
 static void
@@ -133,7 +125,7 @@ activate (GtkApplication *app)
     if (list)
         gtk_window_present (GTK_WINDOW (list->data));
     else
-        initialize (app);
+        main_initialize (app);
 }
 
 int main (int argc, char **argv)

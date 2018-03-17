@@ -510,6 +510,18 @@ Return the time, x, and y of the last mouse click of button 1.")
     return ret;
 }
 
+SCM_DEFINE (G_window_height, "window-height", 0, 0, 0, (void), "\
+Return the height of the main window.")
+{
+    return scm_from_int (MAIN_SCREEN_HEIGHT);
+}
+
+SCM_DEFINE (G_window_width, "window-width", 0, 0, 0, (void), "\
+Return the width of the main window.")
+{
+    return scm_from_int (MAIN_SCREEN_WIDTH);
+}
+
 void
 eng_init_guile_procedures ()
 {
@@ -518,6 +530,7 @@ eng_init_guile_procedures ()
                   /*"eng-colorswap?", "eng-colorswap", "eng-uncolorswap",
                     "eng-get-brightness", "eng-set-brightness", */
                   "eng-get-keyinput", "eng-get-mouse-move", "eng-get-button-press",
+                  "window-height", "window-width",
                   NULL);
 }
 
