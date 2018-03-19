@@ -1,5 +1,6 @@
 # Backup files
 *~
+*\#
 *.bak
 
 # Compiled Object files
@@ -14,6 +15,9 @@ a.out
 *.map
 nxfonts_myfont.h
 TAGS
+meta/run.sh
+meta/run_emacs.sh
+
 
 # Compiled Dynamic libraries
 *.so
@@ -34,31 +38,32 @@ tmp
 
 
 # Automake products
-# .deps/
-# .libs/
-# Makefile
-# Makefile.in
-# aclocal.m4
-# autom4te.cache
-# build-aux
-# compile
-# config.*
-# configure
-# depcomp
-# install-sh
-# libtool
-# ltmain.sh
-# mingw32-config.cache
-# missing
-# mkinstalldirs
-# stamp-h
-# stamp-h.in
-# stamp-h1
-# m4/libtool.m4
-# m4/ltoptions.m4
-# m4/ltsugar.m4
-# m4/ltversion.m4
-# m4/lt~obsolete.m4
+.deps/
+.libs/
+Makefile
+Makefile.in
+aclocal.m4
+autom4te.cache
+build-aux
+build_aux
+compile
+config.*
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+mingw32-config.cache
+missing
+mkinstalldirs
+stamp-h
+stamp-h.in
+stamp-h1
+m4/libtool.m4
+m4/ltoptions.m4
+m4/ltsugar.m4
+m4/ltversion.m4
+m4/lt~obsolete.m4
 
 # Archives
 *.tar
