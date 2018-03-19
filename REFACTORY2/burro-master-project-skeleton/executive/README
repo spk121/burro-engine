@@ -1,6 +1,0 @@
-Burro-executive is the top-level program for the Project Burro game engine.
-
-It launches the programs 'burro-gui' and 'burro-game', giving each
-sub-program the information necessary to initialize their
-inter-process communication.
-
