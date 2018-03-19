@@ -8,6 +8,8 @@
 *.lo
 *.o
 a.out
+engine/burro
+engine/burro.exe
 
 # Intermediate source files
 *.x
@@ -17,6 +19,9 @@ nxfonts_myfont.h
 TAGS
 meta/run.sh
 meta/run_emacs.sh
+engine/paths.h
+engine/r/burro.resource.c
+engine/r/burro.resource.h
 
 
 # Compiled Dynamic libraries
