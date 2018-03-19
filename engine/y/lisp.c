@@ -109,7 +109,8 @@ init_lisp (const char *main_script)
     else
         lisp_main_script = g_strdup("burro-main.scm");
     G_restart();
-    
+
+    // 
     repl_init ();
 }
 

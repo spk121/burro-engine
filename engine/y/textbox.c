@@ -4,6 +4,25 @@
 /* from draw.c */
 extern cairo_t *main_screen_context;
 
+static int textbox_pango_attr_action;
+
+#if 0
+PangoAttribute *
+pango_attr_action_new (const gchar *action)
+{
+    static const PangoAttrClass klass = {
+        0,
+        pango_attr_string_copy,
+        pango_attr_string_destroy,
+        pango_attr_string_equal
+    };
+
+    g_return_val_if_fail (action != NULL, NULL);
+
+    return pango_attr_string_new (&klass, action);
+}
+#endif
+
 SCM textbox_tag;
 SCM_GLOBAL_VARIABLE_INIT (G_textbox_var, "%textbox-var", SCM_BOOL_F);
 
@@ -51,8 +70,36 @@ contain Pango markup tags.")
     pango_layout_set_wrap (tb->layout, PANGO_WRAP_WORD_CHAR);
 
     /* Assign the text. */
+#if 0    
     pango_layout_set_markup (tb->layout, markup, markup_len);
+#else
+    {
+        PangoAttrList *list = NULL;
+        char *text = NULL;
+        GError *error;
+        PangoAttrType link_attr_type;
 
+        g_return_val_if_fail (PANGO_IS_LAYOUT (tb->layout), SCM_BOOL_F);
+        g_return_val_if_fail (markup != NULL, SCM_BOOL_F);
+
+        error = NULL;
+        if (!pango_parse_markup (markup, markup_len,
+                                 0,
+                                 &list, &text,
+                                 NULL,
+                                 &error))
+        {
+            g_warning ("G_make_textbox: %s", error->message);
+            g_error_free (error);
+            return SCM_BOOL_F;
+        }
+
+        pango_layout_set_text (tb->layout, text, -1);
+        pango_layout_set_attributes (tb->layout, list);
+        pango_attr_list_unref (list);
+        g_free (text);    
+    }
+#endif
     free (markup);
     return scm_make_foreign_object_1 (textbox_tag, tb);
 }
@@ -78,6 +125,13 @@ Hide the text.")
 {
     scm_variable_set_x (G_textbox_var, SCM_BOOL_F);
     return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE(G_get_current_textbox, "get-current-textbox", 0, 0, 0, (void), "\
+Returns the currently visible textbox, or #f is no textbox is currently\n\
+being shown.")
+{
+    return scm_variable_ref (G_textbox_var);
 }
 
 SCM_DEFINE(G_textbox_xy_to_index, "textbox-xy-to-index", 3, 0, 0, (SCM s_tb, SCM s_x, SCM s_y), "\
@@ -122,11 +176,14 @@ PangoLayout *textbox_get_layout (SCM s_textbox)
 void
 textbox_init_guile_procedures (void)
 {
+    textbox_pango_attr_action = pango_attr_type_register ("link");
+
     textbox_tag = scm_make_foreign_object_type (scm_from_utf8_symbol ("textbox"),
                                                 scm_list_1 (scm_from_utf8_symbol ("data")),
                                                 finalize_textbox);
     #include "textbox.x"
     scm_c_export ("%textbox-var",
+                  "get-current-textbox",
                   "make-textbox",
                   "textbox-get-text",
                   "textbox-show",

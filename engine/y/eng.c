@@ -162,19 +162,6 @@ GtkWidget *eng_initialize ()
     /* window_state_event_signal_id =  */
     /*     xg_signal_connect (GTK_WIDGET(window), "window-state-event", G_CALLBACK (window_state_event_cb), NULL); */
 
-#if 0
-    repl_init ();
-    repl_socket = socket (AF_INET, SOCK_DGRAM, 0);
-    memset (&repl_sock_addr, 0, sizeof (repl_sock_addr));
-    repl_sock_addr.sin_family = AF_INET;
-    repl_sock_addr.sin_port = htons(37147);
-    inet_pton(AF_INET, "127.0.0.1", &repl_sock_addr.sin_addr);
-    connect (repl_socket, (struct sockaddr *) &repl_sock_addr, sizeof(repl_sock_addr));
-    repl_io_channel = g_io_channel_unix_new (repl_socket);
-    g_io_add_watch (repl_io_channel, G_IO_IN | G_IO_PRI, repl_input_cb, NULL);
-    g_io_channel_set_encoding (repl_io_channel, NULL, NULL);
-#endif
-
     return window;
 }
 
@@ -196,39 +183,6 @@ main_draw_cb (GtkWidget *widget,
 
 void eng_present()
 {
-    cairo_t *cr;
-
-    /* Have the video view draw the video model onto the screen */
-#if 0
-    cr = xgdk_cairo_create (xgtk_widget_get_window (main_screen));
-    // xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    // xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
-    xcairo_set_source_surface (cr, draw_get_main_screen_surface (), 0, 0);
-    cairo_surface_write_to_png(draw_get_main_screen_surface(), "burro_main_screen_present.png");
-    xcairo_paint (cr);
-    xcairo_destroy(cr);
-#else
-    #if 0
-    cairo_rectangle_int_t rect = {0, 0, MAIN_SCREEN_WIDTH, MAIN_SCREEN_HEIGHT};
-    cairo_region_t *region = cairo_region_create_rectangle (&rect);
-    GdkWindow *window = xgtk_widget_get_window (main_screen);
-    GdkDrawingContext *gdc = gdk_window_begin_draw_frame(window, region);
-    g_object_ref (G_OBJECT(gdc));
-    cr = gdk_drawing_context_get_cairo_context (gdc);
-    // xcairo_set_antialias (cr, CAIRO_ANTIALIAS_NONE);
-    // xcairo_scale(cr, MAIN_SCREEN_MAGNIFICATION, MAIN_SCREEN_MAGNIFICATION);
-    xcairo_set_source_surface (cr, draw_get_main_screen_surface (), 0, 0);
-    cairo_surface_write_to_png(draw_get_main_screen_surface(), "burro_main_screen_present.png");
-    xcairo_paint (cr);
-    xcairo_destroy(cr);
-    gdk_window_end_draw_frame (window, gdc);
-    gdk_window_invalidate_region (window, region, TRUE);
-    cairo_region_destroy (region);
-    gtk_widget_show (main_screen);
-#endif
-#endif
-    #if 0
-#endif
     gdk_window_invalidate_rect (xgtk_widget_get_window (main_screen), NULL, FALSE);
 }
 
