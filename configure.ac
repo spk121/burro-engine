@@ -31,6 +31,26 @@ PKG_CHECK_MODULES([LIBPULSE_MAINLOOP_GLIB],[libpulse-mainloop-glib])
 # Checks for library functions
 # Checks for system services
 
+AC_MSG_RESULT([
+        $PACKAGE $VERSION
+        =====
+
+        prefix:                 ${prefix}
+        sysconfdir:             ${sysconfdir}
+        libdir:                 ${libdir}
+        includedir:             ${includedir}
+
+        compiler:               ${CC}
+        cflags:                 ${CFLAGS}
+        ldflags:                ${LDFLAGS}
+        deps_cflags:            ${DEPS_CFLAGS}
+        deps_libs:              ${DEPS_LIBS}
+
+        logging:                ${enable_logging}
+        debug:                  ${enable_debug}
+        strict:                 ${enable_strict}
+])
+
 AC_CONFIG_FILES([Makefile
 		 engine/Makefile
 		 test/Makefile
