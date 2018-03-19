@@ -10,6 +10,8 @@
 a.out
 engine/burro
 engine/burro.exe
+meta/filo
+meta/filo.exe
 
 # Intermediate source files
 *.x
@@ -19,6 +21,7 @@ nxfonts_myfont.h
 TAGS
 meta/run.sh
 meta/run_emacs.sh
+meta/emacs.el
 engine/paths.h
 engine/r/burro.resource.c
 engine/r/burro.resource.h

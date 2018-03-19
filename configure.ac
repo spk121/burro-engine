@@ -43,18 +43,11 @@ AC_MSG_RESULT([
         compiler:               ${CC}
         cflags:                 ${CFLAGS}
         ldflags:                ${LDFLAGS}
-        deps_cflags:            ${DEPS_CFLAGS}
-        deps_libs:              ${DEPS_LIBS}
-
-        logging:                ${enable_logging}
-        debug:                  ${enable_debug}
-        strict:                 ${enable_strict}
 ])
 
 AC_CONFIG_FILES([Makefile
 		 engine/Makefile
 		 test/Makefile
-		 meta/emacs.el])
+		 meta/Makefile])
 AC_CONFIG_FILES([meta/run.sh], [chmod +x meta/run.sh])
-AC_CONFIG_FILES([meta/run_emacs.sh], [chmod +x meta/run_emacs.sh])
 AC_OUTPUT
