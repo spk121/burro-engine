@@ -1,4 +1,3 @@
-;; -*- Mode: scheme -*-
 ;; Copyright 2018 Michael L. Gran
 
 ;; This file is part of burro-engine
@@ -17,10 +16,10 @@
 ;; License along with Burro-Engine.  If not, see
 ;; <http://www.gnu.org/licenses/>.
 
-(use-modules (z automake-test-lib))
+(use-modules (automake-test-lib))
 
 (automake-test
- (let ((estimated 481)
+ (let ((estimated 480)
        (measured (window-height)))
    (format #t "Window height: goal ~a, measured ~a~%" estimated measured)
    (equal? estimated measured)))
