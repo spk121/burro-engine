@@ -464,7 +464,9 @@ void lineedit_initialize()
     /* Load history from file. The history file is just a plain text file
      * where entries are separated by newlines. */
     const char *cache_dir = g_get_user_cache_dir();
-    char *history = g_build_filename(cache_dir, "burro.history");
+    char *history = g_build_filename(cache_dir,
+                                     "burro.history",
+                                     NULL);
     linenoiseHistoryLoad(history);
     g_free (history);
 }
@@ -506,7 +508,9 @@ void lineedit_stop()
 
         /* Save the history on disk. */
         const char *cache_dir = g_get_user_cache_dir();
-        char *history = g_build_filename(cache_dir, "burro.history");
+        char *history = g_build_filename(cache_dir,
+                                         "burro.history",
+                                         NULL);
         linenoiseHistorySave(history);
         g_free (history);
         
