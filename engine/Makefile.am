@@ -104,10 +104,10 @@ BUILT_SOURCES = $(DOT_X_FILES) \
 EXTRA_DIST = r/burro.resource.xml
 
 r/burro.resource.c: r/burro.resource.xml
-	glib-compile-resources --sourcedir=r --generate-source $<
+	$(GLIB_COMPILE_RESOURCES) --sourcedir=r --generate-source $<
 
 r/burro.resource.h: r/burro.resource.xml
-	glib-compile-resources --sourcedir=r --generate-header $<
+	$(GLIB_COMPILE_RESOURCES) --sourcedir=r --generate-header $<
 
 
 CLEANFILES = $(DOT_X_FILES)

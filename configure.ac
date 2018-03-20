@@ -18,6 +18,10 @@ AS_IF([test "x$GUILE_SNARF" = "xno"],
       [AC_MSG_ERROR([Could not find guile-snarf tool needed for compilation])])
 ## FIXME: check for glib-compile-resources
 
+GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
+AC_SUBST(GLIB_COMPILE_RESOURCES)
+
+
 # Checks for libraries
 PKG_CHECK_MODULES([GTK3],[gtk+-3.0])
 PKG_CHECK_MODULES([GUILE],[guile-2.2])
