@@ -18,6 +18,7 @@ AM_SILENT_RULES([yes])
 #AC_CONFIG_HEADERS([config.h])
 
 # Checks for libraries
+PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([DEPS],[gtk+-3.0
                           gio-2.0
                           glib-2.0
@@ -36,7 +37,17 @@ AS_IF([test "x$GUILE_SNARF" = "xno"],
 GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
 AC_SUBST(GLIB_COMPILE_RESOURCES)
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile
-                 test/Makefile])
+AC_CONFIG_FILES([
+ Makefile
+ src/Makefile
+ test/Makefile
+ data/Makefile
+ data/icons/Makefile
+ data/icons/hicolor/Makefile
+ data/icons/hicolor/48x48/Makefile
+ data/icons/hicolor/48x48/apps/Makefile
+ data/icons/hicolor/scalable/Makefile
+ data/icons/hicolor/scalable/apps/Makefile
+ data/icons/src/Makefile
+ ])
 AC_OUTPUT

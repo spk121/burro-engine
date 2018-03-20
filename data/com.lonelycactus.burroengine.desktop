@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Burro Engine
+Exec=burro
+Icon=burro-engine
+Comment=An interactive fiction game engine based on GNU Guile
+Categories=GTK;Gnome;Guile;Game
+StartupNotify=true
