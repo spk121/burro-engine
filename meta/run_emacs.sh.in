@@ -1,7 +1,0 @@
-#!/bin/sh
-BURRO_DATA_DIR=@abs_top_srcdir@/game \
-emacs \
-    --no-splash \
-    --no-init-file \
-    --title "Emacs - Burro" \
-    --load=@abs_top_builddir@/meta/emacs.el
