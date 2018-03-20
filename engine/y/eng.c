@@ -1,3 +1,21 @@
+/*  eng.c
+
+    Copyright (C) 2013, 2014, 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "../x/xgdk.h"
 #include "../x/xglib.h"
 #include "../x/xgtk.h"
@@ -154,7 +172,7 @@ GtkWidget *eng_initialize ()
         xg_signal_connect (G_OBJECT (window), "key-press-event", G_CALLBACK (key_event_cb), NULL);
     key_release_event_signal_id =
         xg_signal_connect (G_OBJECT (window), "key-release-event", G_CALLBACK (key_event_cb), NULL);
-    button_press_event_signal_id = 
+    button_press_event_signal_id =
         xg_signal_connect (G_OBJECT (main_screen), "button-press-event", G_CALLBACK (button_press_event_cb), NULL);
     xg_signal_connect (G_OBJECT (main_screen), "motion-notify-event", G_CALLBACK (motion_notify_event_cb), NULL);
     xg_signal_connect (G_OBJECT (main_screen), "draw", G_CALLBACK (main_draw_cb), NULL);
@@ -342,10 +360,11 @@ key_event_console (unsigned keysym, unsigned state)
             }
 #endif
 
-            lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
+            //lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
+            lineedit_start();
         }
     }
-#if 0    
+#if 0
     else if (keysym == GDK_KEY_grave) {
         console_hide();
         return TRUE;
@@ -464,11 +483,11 @@ Return the time, x, and y of the last mouse click of button 1.")
 {
     if (!button_press_time)
         return SCM_BOOL_F;
-    
+
     SCM ret =  scm_list_3 (scm_from_double (0.001 * button_press_time),
                        scm_from_double (button_press_x),
                        scm_from_double (button_press_y));
-    
+
     button_press_time = 0;
     button_press_x = -1;
     button_press_y = -1;

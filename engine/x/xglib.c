@@ -1,3 +1,22 @@
+/*  xglib.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <string.h>
 #include <glib.h>
 #include "xglib.h"
@@ -5,26 +24,26 @@
 GMainLoop *
 xg_default_main_loop_new (void)
 {
-  GMainLoop *ml;
-  ml = g_main_loop_new (NULL, FALSE);
-  if (ml == NULL)
-    g_critical ("g_main_loop_new returned FALSE");
-  return ml;
+    GMainLoop *ml;
+    ml = g_main_loop_new (NULL, FALSE);
+    if (ml == NULL)
+        g_critical ("g_main_loop_new returned FALSE");
+    return ml;
 }
 
 void
 xg_file_get_contents (const gchar *filename, gchar **contents, gsize *length)
 {
-  gboolean ret;
-  GError *err;
-  g_return_if_fail (filename != NULL && (strlen (filename) > 0));
-  g_return_if_fail (contents != NULL);
-  g_return_if_fail (length != NULL);
-  ret = g_file_get_contents (filename, contents, length, &err);
-  if (ret != TRUE)
+    gboolean ret;
+    GError *err;
+    g_return_if_fail (filename != NULL && (strlen (filename) > 0));
+    g_return_if_fail (contents != NULL);
+    g_return_if_fail (length != NULL);
+    ret = g_file_get_contents (filename, contents, length, &err);
+    if (ret != TRUE)
     {
-      g_critical ("g_file_get_contents(%s) failed: %s", filename, err->message);
-      g_error_free (err);
+        g_critical ("g_file_get_contents(%s) failed: %s", filename, err->message);
+        g_error_free (err);
     }
 }
 
@@ -72,52 +91,52 @@ xg_find_data_file (const char *filename)
 GHook *
 xg_hook_alloc (GHookList *hl)
 {
-  GHook *h;
+    GHook *h;
 
-  g_return_val_if_fail (hl != NULL, 0);
-  h = g_hook_alloc (hl);
-  if (h == NULL)
-    g_critical ("g_hook_alloc returned NULL");
-  return h;
+    g_return_val_if_fail (hl != NULL, 0);
+    h = g_hook_alloc (hl);
+    if (h == NULL)
+        g_critical ("g_hook_alloc returned NULL");
+    return h;
 }
 
 
 void
 xg_hook_list_init (GHookList *hl)
 {
-  g_hook_list_init (hl, sizeof (GHook));
+    g_hook_list_init (hl, sizeof (GHook));
 }
 
 guint
 xg_idle_add (GSourceFunc function, gpointer data)
 {
-  guint id;
-  g_return_val_if_fail (function != NULL, 0);
-  id = g_idle_add (function, data);
-  if (id == 0)
-    g_critical ("g_idle_add returned zero");
-  return id;
+    guint id;
+    g_return_val_if_fail (function != NULL, 0);
+    id = g_idle_add (function, data);
+    if (id == 0)
+        g_critical ("g_idle_add returned zero");
+    return id;
 }
 
-void               
+void
 xg_main_loop_quit (GMainLoop *loop)
 {
-  g_return_if_fail (loop != NULL);
-  g_main_loop_quit (loop);
+    g_return_if_fail (loop != NULL);
+    g_main_loop_quit (loop);
 }
 
-void                
+void
 xg_main_loop_run (GMainLoop *loop)
 {
-  g_return_if_fail (loop != NULL);
-  g_main_loop_run (loop);
+    g_return_if_fail (loop != NULL);
+    g_main_loop_run (loop);
 }
 
-void                
+void
 xg_main_loop_unref (GMainLoop *loop)
 {
-  g_return_if_fail (loop != NULL);
-  g_main_loop_unref(loop);
+    g_return_if_fail (loop != NULL);
+    g_main_loop_unref(loop);
 }
 
 void
@@ -130,58 +149,58 @@ xg_object_unref (void *obj)
 GRand *
 xg_rand_new (void)
 {
-  GRand *r = g_rand_new ();
-  if (r == NULL)
-    g_critical ("g_rand_new returned NULL");
-  return r;
+    GRand *r = g_rand_new ();
+    if (r == NULL)
+        g_critical ("g_rand_new returned NULL");
+    return r;
 }
 
 GRand *
 xg_rand_new_with_seed (guint32 seed)
 {
-  GRand *r = g_rand_new_with_seed (seed);
-  if (r == NULL)
-    g_critical ("g_rand_new_with_seed returned NULL");
-  return r;
+    GRand *r = g_rand_new_with_seed (seed);
+    if (r == NULL)
+        g_critical ("g_rand_new_with_seed returned NULL");
+    return r;
 }
 
 gint32
 xg_rand_int_range (GRand *rand, gint32 begin, gint32 end)
 {
-  g_return_val_if_fail (rand != NULL, 0);
-  return g_rand_int_range (rand, begin, end);
+    g_return_val_if_fail (rand != NULL, 0);
+    return g_rand_int_range (rand, begin, end);
 }
 
 void
 xg_set_application_name (const gchar *application_name)
 {
-  g_set_application_name (application_name);
+    g_set_application_name (application_name);
 }
 
 void
 xg_setenv (const gchar *variable, const gchar *value, gboolean overwrite)
 {
-  gboolean r;
+    gboolean r;
 
-  g_return_if_fail (variable != NULL && (strlen (variable) > 0));
-  g_return_if_fail (value != NULL && (strlen (value) > 0));
+    g_return_if_fail (variable != NULL && (strlen (variable) > 0));
+    g_return_if_fail (value != NULL && (strlen (value) > 0));
 
-  r = g_setenv (variable, value, overwrite);
-  if (r == FALSE)
-    g_critical ("g_setenv returned FALSE");
+    r = g_setenv (variable, value, overwrite);
+    if (r == FALSE)
+        g_critical ("g_setenv returned FALSE");
 }
 
-gulong              
+gulong
 xg_signal_connect (gpointer instance, const gchar *detailed_signal, GCallback c_handler, gpointer data)
 {
-  gulong id;
+    gulong id;
 
-  g_return_val_if_fail (instance != NULL, 0);
-  g_return_val_if_fail (detailed_signal != NULL && (strlen (detailed_signal) > 0), 0);
-  g_return_val_if_fail (c_handler != NULL, 0);
+    g_return_val_if_fail (instance != NULL, 0);
+    g_return_val_if_fail (detailed_signal != NULL && (strlen (detailed_signal) > 0), 0);
+    g_return_val_if_fail (c_handler != NULL, 0);
 
-  id = g_signal_connect_data (instance, detailed_signal, c_handler, data, NULL, (GConnectFlags) 0);
-  return id;
+    id = g_signal_connect_data (instance, detailed_signal, c_handler, data, NULL, (GConnectFlags) 0);
+    return id;
 }
 
 char *
@@ -196,27 +215,27 @@ xg_strndup (const char *str, size_t n)
 gdouble
 xg_timer_elapsed (GTimer *timer)
 {
-  gdouble t;
-  g_return_val_if_fail (timer != NULL,  0.0);
-  
-  t = g_timer_elapsed (timer, NULL);
-  return t;
+    gdouble t;
+    g_return_val_if_fail (timer != NULL,  0.0);
+
+    t = g_timer_elapsed (timer, NULL);
+    return t;
 }
 
-GTimer *            
+GTimer *
 xg_timer_new (void)
 {
-  GTimer *t;
-  t = g_timer_new ();
-  if (t == NULL)
-    g_critical ("g_timer_new returned NULL");
-  return t;
+    GTimer *t;
+    t = g_timer_new ();
+    if (t == NULL)
+        g_critical ("g_timer_new returned NULL");
+    return t;
 }
 
-void               
+void
 xg_usleep (gulong microseconds)
 {
-  g_usleep (microseconds);
+    g_usleep (microseconds);
 }
 
 uint32_t *

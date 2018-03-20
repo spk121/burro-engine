@@ -1,11 +1,22 @@
-/*-----------------------------------------------------------------------------
+/*  bg.h
 
-	background.h -- definitions for DS backgrounds
-	Copyright (C) 2013,2014
-		Michael L. Gran (spk121)
+    Copyright (C) 2013, 2014, 2018   Michael L. Gran
+    This file is part of Burro Engine
 
-	GPL3+
------------------------------------------------------------------------------*/
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 /** @file bg.h
     @brief background defines and functionality
 
@@ -186,11 +197,6 @@ bool bg_is_shown (bg_index_t id);
 
 void bg_reset (bg_index_t id);
 
-
-
-
-
-
 /**  Sets the map part of a BG_TYPE_MAP map-and-tile background from a resource.
         Each pixel in the map image will be interpreted as the index to an 8x8 pixel
         block in the tile image, where each block in the tile image is numbered
@@ -220,3 +226,13 @@ cairo_surface_t *bg_get_cairo_surface (bg_index_t id);
 void bg_init_guile_procedures (void);
 
 #endif
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

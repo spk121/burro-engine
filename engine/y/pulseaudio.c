@@ -1,5 +1,22 @@
-/* This is audio engine's backend for using PulseAudio.
-   Any pulseaudio specific calls go here. */
+/*  pulseaudio.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <string.h>
 #include <math.h>
 #include "../x.h"
@@ -16,8 +33,8 @@
 #endif
 
 #define BURRO_PROP_MEDIA_ROLE "game"
-#define BURRO_PROP_APPLICATION_ID "com.lonelycactus.projectburro"
-#define BURRO_PROP_APPLICATION_NAME "ProjectBurro"
+#define BURRO_PROP_APPLICATION_ID "com.lonelycactus.burroengine"
+#define BURRO_PROP_APPLICATION_NAME "BurroEngine"
 
 typedef struct pulse_priv_tag {
     pa_context_state_t state;
@@ -81,8 +98,8 @@ static void cb_audio_stream_started(pa_stream *p, void *userdata)
 }
 
 /* This is called when new data may be written to the stream.  If we
-  have data, we can ship it, otherwise we just note that the stream is
-  waiting.  */
+   have data, we can ship it, otherwise we just note that the stream is
+   waiting.  */
 static void cb_audio_stream_write(pa_stream *p, size_t nbytes, void *userdata)
 {
     size_t n = nbytes / sizeof(int16_t);
@@ -159,13 +176,13 @@ void pulse_initialize_audio_step_2(pa_context *context)
     /* BUFFER_ATTRIBUTES: Here we set the buffering behavior of the
      * audio.  We want low latency.
 
-       One wiki suggests that to set a specific latency,
-       1. use pa_usec_to_bytes(&ss, ...) to convert the latency from a time unit to bytes
-       2. use the PA_STREAM_ADJUST_LATENCY flag
-       3. set pa_buffer_attr::tlength to latency in samples
-       4. set rest of pa_buffer_attr to -1
+     One wiki suggests that to set a specific latency,
+     1. use pa_usec_to_bytes(&ss, ...) to convert the latency from a time unit to bytes
+     2. use the PA_STREAM_ADJUST_LATENCY flag
+     3. set pa_buffer_attr::tlength to latency in samples
+     4. set rest of pa_buffer_attr to -1
 
-       http://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/Developer/Clients/LatencyControl
+     http://www.freedesktop.org/wiki/Software/PulseAudio/Documentation/Developer/Clients/LatencyControl
     */
 
     buffer_attributes.tlength = pa_usec_to_bytes (AUDIO_LATENCY_REQUESTED_IN_MILLISECONDS * MICROSECONDS_PER_MILLISECOND,
@@ -222,7 +239,6 @@ void pulse_initialize_audio_step_2(pa_context *context)
 /* This finalizer is called if we are shutting down cleanly */
 void pulse_finalize_audio()
 {
-    // xpa_mainloop_free(pulse.loop);
 #ifdef USE_GLIB_MAINLOOP
     pa_glib_mainloop_free (pulse.loop);
 #else

@@ -76,12 +76,13 @@
  *  to 10-bit 32kHz Stereo before it was sent to the hardware
  *  for playback.
  *
- *  On the other hand, the lowest commmon denominator audio for Linux
- *  is probably S16LE 44100 Hz Stereo.
+ *  On the other hand, S15LE 48000 Hz is friendly to Opus.
+ *
+ * B
  */
 
 /** Samples per seconds of the audio engine */
-#define AUDIO_SAMPLE_RATE_IN_HZ (44100u)
+#define AUDIO_SAMPLE_RATE_IN_HZ (48000u)
 
 /** The size of the audio buffer.  Consequently the maximum duration
     of a single read by Pulseaudio. */

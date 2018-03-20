@@ -1,3 +1,22 @@
+/*  draw.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "../x.h"
 #include "backdrop.h"
 #include "bg.h"
@@ -56,15 +75,15 @@ void draw ()
             if (obj_get_priority (obj) == priority)
                 draw_obj (obj);
         }
-	SCM textbox = scm_variable_ref (G_textbox_var);
-	if (scm_is_true(textbox) && textbox_get_priority (textbox) == priority)
-	  draw_textbox (textbox);
+        SCM textbox = scm_variable_ref (G_textbox_var);
+        if (scm_is_true(textbox) && textbox_get_priority (textbox) == priority)
+            draw_textbox (textbox);
     }
 
- end_draw:
+end_draw:
 
     if (console_is_visible ())
-      draw_console_layer ();
+        draw_console_layer ();
     xcairo_surface_mark_dirty (main_screen_surface);
 }
 
@@ -101,11 +120,11 @@ static void compute_transform (cairo_matrix_t *matrix,
 
 static void draw_backdrop_color ()
 {
-  double r = 0.0, g = 0.0, b = 0.0;
+    double r = 0.0, g = 0.0, b = 0.0;
 
-  backdrop_get_color_rgb (&r, &g, &b);
-  xcairo_set_source_rgb (main_screen_context, r, g, b);
-  xcairo_paint (main_screen_context);
+    backdrop_get_color_rgb (&r, &g, &b);
+    xcairo_set_source_rgb (main_screen_context, r, g, b);
+    xcairo_paint (main_screen_context);
 }
 
 static void paint_transformed_image (cairo_t *context,
@@ -175,9 +194,19 @@ static void draw_console_layer ()
 
 static void draw_textbox(SCM textbox)
 {
-  cairo_save (main_screen_context);
-  cairo_set_source_rgb (main_screen_context, 0.7, 0.7, 0.7);
-  cairo_move_to(main_screen_context, 0, 0);
-  pango_cairo_show_layout (main_screen_context, textbox_get_layout (textbox));
-  cairo_restore(main_screen_context);
+    cairo_save (main_screen_context);
+    cairo_set_source_rgb (main_screen_context, 0.7, 0.7, 0.7);
+    cairo_move_to(main_screen_context, 0, 0);
+    pango_cairo_show_layout (main_screen_context, textbox_get_layout (textbox));
+    cairo_restore(main_screen_context);
 }
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

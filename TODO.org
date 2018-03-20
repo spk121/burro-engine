@@ -13,10 +13,10 @@
    set the game data directory in the script.
    Assume all the game data is in a game directory, and there is a
    top-level 'main.scm'
-
-   
 ** API vs internal linking
 ** Guile port handling
+** The big BG rewrite
+   BG still uses the VRAM
 * Scheme library
 ** SXML to Pango GMarkup conversion
    Also, add custom hotspot tag to GMarkup

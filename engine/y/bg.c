@@ -1,6 +1,21 @@
-/** @file bg.c
- *  @brief Background layers
- */
+/*  bg.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -11,10 +26,6 @@
 #include "guile.h"
 #include "pixbuf.h"
 #include "console.h"
-
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-conversion"
 
 /** Information about a single layer of a multi-layer background. */
 typedef struct
@@ -894,8 +905,6 @@ bg_init_guile_procedures (void)
                   "BG_MAIN_3",
                   NULL);
 }
-
-#pragma GCC diagnostic pop
 
 /*
   Local Variables:

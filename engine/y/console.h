@@ -1,22 +1,23 @@
 /* console.h -- a text rendering widget
 
-   Copyright 2014, 2015 Michael L. Gran
+   Copyright 2014, 2015, 2018  Michael L. Gran
 
-   This file is part of the Project Burro game engine.
+   This file is part of the Burro Engine game engine.
 
-   Project Burro is free software: you can redistribute it and/or
+   Burro Engine is free software: you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
    published by the Free Software Foundation, either version 3 of the
    License, or (at your option) any later version.
 
-   Project Burro is distributed in the hope that it will be useful,
+   Burro Engine is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with Project Burro.  If not, see
-   <http://www.gnu.org/licenses/>. */
+   along with Burro Engine.  If not, see
+   <http://www.gnu.org/licenses/>.
+*/
 
 #ifndef BURRO_CONSOLE_H
 #define BURRO_CONSOLE_H

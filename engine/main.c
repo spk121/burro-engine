@@ -1,3 +1,22 @@
+/*  main.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "x.h"
 #include "y.h"
 #include "r/burro.resource.h"
@@ -82,7 +101,6 @@ main_initialize (GtkApplication *app, GFile *file)
     draw_initialize();
 
     /* All other stuff */
-    xg_find_data_file("tmp");
     console_reset ();
     lineedit_initialize ();
     // init_guile_guile_procedures();
@@ -93,17 +111,23 @@ main_initialize (GtkApplication *app, GFile *file)
     // audio_model_initialize ();
     pulse_initialize_audio_step_1 ();
 
-    /* Register the compiled-in resources. */
+    /* Register compiled-in resources (). */
     burro_get_resource();
-
-    char *scheme_file = g_file_get_path (file);
-    init_lisp(scheme_file);
-    g_free (scheme_file);
+    
+    if (file)
+    {
+        char *scheme_file = g_file_get_path (file);
+        init_lisp(scheme_file);
+        g_free (scheme_file);
+    }
+    else
+        init_lisp (NULL);
+    
     loop ();
 }
 
 static void
-activate (GtkApplication *app)
+app_activate_cb (GtkApplication *app)
 {
     GList *list;
 
@@ -116,10 +140,10 @@ activate (GtkApplication *app)
 }
 
 static void
-open (GtkApplication *app,
-      GFile **files,
-      gint n_files,
-      const char *hint)
+app_open_cb (GtkApplication *app,
+             GFile **files,
+             gint n_files,
+             const char *hint)
 {
     main_initialize (app, files[0]);
 }
@@ -138,12 +162,12 @@ int main (int argc, char **argv)
     scm_c_set_default_vm_engine_x (1);
     xscm_init_guile ();
 
-    app = gtk_application_new ("com.lonelycactus.projectburro",
+    app = gtk_application_new ("com.lonelycactus.burroengine",
                                G_APPLICATION_NON_UNIQUE
                                | G_APPLICATION_HANDLES_OPEN);
 
-    g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-    g_signal_connect (app, "open", G_CALLBACK (open), NULL);
+    g_signal_connect (app, "activate", G_CALLBACK (app_activate_cb), NULL);
+    g_signal_connect (app, "open", G_CALLBACK (app_open_cb), NULL);
     g_application_set_inactivity_timeout (G_APPLICATION(app), 1000*60*60);
     status = xg_application_run (G_APPLICATION (app), argc, argv);
 

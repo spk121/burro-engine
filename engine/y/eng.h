@@ -1,3 +1,21 @@
+/*  eng.c
+
+    Copyright (C) 2013, 2014, 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef BURRO_ENG_H
 #define BURRO_ENG_H
 
@@ -20,6 +38,9 @@
 #define GAME_BOY_WIDTH 160
 #define GAME_BOY_HEIGHT 144
 
+#define VGA_WIDTH 640
+#define VGA_HEIGHT 480
+
 //#define SMALL_FONT
 #undef SMALL_FONT
 #ifdef SMALL_FONT
@@ -30,16 +51,16 @@
 #define FONT_HEIGHT 13
 #endif
 
-#define CONSOLE_ROWS (481/FONT_HEIGHT)
-#define CONSOLE_COLS (640/FONT_WIDTH)
+#define CONSOLE_ROWS (VGA_HEIGHT/FONT_HEIGHT)
+#define CONSOLE_COLS (VGA_WIDTH/FONT_WIDTH)
 
 #define TERMINAL_WIDTH (FONT_WIDTH * CONSOLE_COLS)
 #define TERMINAL_HEIGHT (FONT_HEIGHT * CONSOLE_ROWS)
 
 enum eng_const_tag
 {
-  MAIN_SCREEN_WIDTH = 640,
-  MAIN_SCREEN_HEIGHT = 481,
+  MAIN_SCREEN_WIDTH = VGA_WIDTH,
+  MAIN_SCREEN_HEIGHT = VGA_HEIGHT,
   MAIN_SCREEN_MAGNIFICATION = 1,
   PRIORITY_COUNT = 4,
 };
@@ -59,3 +80,13 @@ unsigned int eng_get_keyinput(void);
 void eng_init_guile_procedures(void);
 
 #endif
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

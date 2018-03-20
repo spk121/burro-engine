@@ -1,3 +1,21 @@
+/*  loop.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "../x.h"
 #include "draw.h"
 #include "eng.h"
@@ -57,41 +75,41 @@ loop_unset_full_speed_flag (void)
 static void
 loop_set_game_update_func (SCM idle)
 {
-  SCM var = scm_lookup (idle);
-  if (!scm_is_true (var) || !scm_is_true (scm_variable_p (var)))
-  {
-      g_critical ("invalid game update func");
-      return;
-  }
-#if 0  
-  SCM ref = guile_variable_ref_safe (var);
-  if (!scm_is_true (ref) || !scm_is_true (scm_procedure_p (ref)))
-  {
-      g_critical ("invalid game update func");
-      return;
-  }
+    SCM var = scm_lookup (idle);
+    if (!scm_is_true (var) || !scm_is_true (scm_variable_p (var)))
+    {
+        g_critical ("invalid game update func");
+        return;
+    }
+#if 0
+    SCM ref = guile_variable_ref_safe (var);
+    if (!scm_is_true (ref) || !scm_is_true (scm_procedure_p (ref)))
+    {
+        g_critical ("invalid game update func");
+        return;
+    }
 #endif
-  scm_remember_upto_here_1(var);
-  do_idle = scm_variable_ref(scm_lookup(idle));
+    scm_remember_upto_here_1(var);
+    do_idle = scm_variable_ref(scm_lookup(idle));
 }
 
 static void
 loop_set_after_draw_frame_func (SCM after_frame)
 {
-  SCM var = scm_lookup (after_frame);
-  if (!scm_is_true (var) || !scm_is_true (scm_variable_p (var)))
-  {
-      g_critical ("invalid after frame func");
-      return;
-  }
-  
-  SCM ref = guile_variable_ref_safe (var);
-  if (!scm_is_true (ref) || !scm_is_true (scm_procedure_p (ref)))
-  {
-      g_critical ("invalid after frame func");
-      return;
-  }
-    
+    SCM var = scm_lookup (after_frame);
+    if (!scm_is_true (var) || !scm_is_true (scm_variable_p (var)))
+    {
+        g_critical ("invalid after frame func");
+        return;
+    }
+
+    SCM ref = guile_variable_ref_safe (var);
+    if (!scm_is_true (ref) || !scm_is_true (scm_procedure_p (ref)))
+    {
+        g_critical ("invalid after frame func");
+        return;
+    }
+
     do_after_draw_frame = ref;
 }
 
@@ -150,14 +168,14 @@ static gboolean idle_state_event_cb (void *dummy)
                 repl_tick ();
                 if (do_idle != SCM_UNSPECIFIED)
                     scm_call_1 (do_idle, scm_from_double (cur_time));
-              
+
                 update_count ++;
                 before_update_time = cur_time;
                 after_update_time = xg_timer_elapsed (timer);
 
                 if (update_count % 1000 == 0)
                 {
-                    measured_updates_rate 
+                    measured_updates_rate
                         = 1000.0 / (after_update_time - thousand_updates_time);
                     thousand_updates_time = after_update_time;
                     g_debug ("Update Rate: %f", measured_updates_rate);
@@ -203,7 +221,7 @@ tick_cb (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
 
                 if (draw_count % 1000 == 0)
                 {
-                    measured_frame_rate 
+                    measured_frame_rate
                         = 1000.0 / (after_draw_time - thousand_frames_draw_time);
                     thousand_frames_draw_time = after_draw_time;
                     g_debug ("Frame Rate: %f", measured_frame_rate);
@@ -220,7 +238,7 @@ tick_cb (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
     }
 
     return TRUE;
-    
+
 }
 
 static void paint ()

@@ -1,6 +1,6 @@
-/* lineedit.c -- command line editor
+ /* lineedit.c -- command line editor
  *
- * Copyright (c) 2014, Michael L. Gran <spk121@yahoo.com>
+ * Copyright (c) 2014, 2018 Michael L. Gran <spk121@yahoo.com>
  *
  * derived from 
  * linenoise.c -- guerrilla line editing library against the idea that a
@@ -463,20 +463,26 @@ void lineedit_initialize()
 
     /* Load history from file. The history file is just a plain text file
      * where entries are separated by newlines. */
-    linenoiseHistoryLoad("history.txt");
-    lineedit_start (linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
+    const char *cache_dir = g_get_user_cache_dir();
+    char *history = g_build_filename(cache_dir, "burro.history");
+    linenoiseHistoryLoad(history);
+    g_free (history);
 }
 
-void lineedit_start(wchar_t *buf, size_t buflen, const wchar_t *prompt)
+//void lineedit_start(wchar_t *buf, size_t buflen, const wchar_t *prompt)
+//    lineedit_start (linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
+
+void lineedit_start()
 {
+        
     memset(&l, 0, sizeof(l));
 
     /* Populate the linenoise state that we pass to functions implementing
      * specific editing functionalities. */
-    l.buf = buf;
-    l.buflen = buflen;
-    l.prompt = prompt;
-    l.plen = wcslen(prompt);
+    l.buf = &(linenoiseLineBuf[0]);
+    l.buflen = LINENOISE_MAX_LINE;
+    l.prompt = L"->";
+    l.plen = wcslen(l.prompt);
     l.oldpos = l.pos = 0;
     l.len = 0;
     l.cols = CONSOLE_COLS;
@@ -497,7 +503,13 @@ void lineedit_stop()
 {
     if (l.buflen > 0) {
         linenoiseHistoryAdd(l.buf); /* Add to the history. */
-        linenoiseHistorySave("history.txt"); /* Save the history on disk. */
+
+        /* Save the history on disk. */
+        const char *cache_dir = g_get_user_cache_dir();
+        char *history = g_build_filename(cache_dir, "burro.history");
+        linenoiseHistorySave(history);
+        g_free (history);
+        
         history_new_check = 1;
     }
     if (mlmode)
@@ -847,3 +859,13 @@ char *lineedit_get_text(void)
     free(padded_multibyte_string);
     return multibyte_string;
 }
+
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

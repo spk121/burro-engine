@@ -26,7 +26,6 @@
 #include "guile.h"
 #include "vram.h"
 #include "bg.h"
-#include "../paths.h"
 
 scm_t_bits minibuf_port_type;
 SCM minibuf_port;
@@ -66,7 +65,7 @@ guile_filename_to_c_data_path_in_fn_encoding (SCM filename)
     // UTF-8.
     data_dir_fn_string = g_getenv("BURRO_DATA_DIR");
     if (data_dir_fn_string == NULL)
-        data_dir_fn_string = BURRO_DATA_DIR;
+        data_dir_fn_string = ".";
     
     // Next, convert the Guile filename string to a NULL-terminated C
     // UTF-8 string

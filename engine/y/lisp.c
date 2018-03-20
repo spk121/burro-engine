@@ -1,3 +1,21 @@
+/*  lisp.c
+
+    Copyright (C) 2018   Michael L. Gran
+    This file is part of Burro Engine
+
+    Burro Engine is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Burro Engine is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "../x.h"
 #include "../paths.h"
 #include <glib.h>
@@ -39,35 +57,10 @@ _burroscript_init (void *unused)
     pixbuf_init_guile_procedures();
     obj_init_guile_procedures();
     textbox_init_guile_procedures();
-}
 
-/* Add the Burro PKGDATADIR directories as scheme directories. */
-static void
-init_lisp_scheme_directories()
-{
-    const char *assets_dir = g_getenv("BURRO_DATA_DIR");
-#ifdef BURRO_DATA_DIR
-    if (assets_dir == NULL)
-        assets_dir = BURRO_DATA_DIR;
-#endif
-    if (assets_dir == NULL)
-    {
-        g_critical("No BURRO_DATA_DIR has been specified");
-        return;
-    }
-    
-    /* If BURRO_DATA_DIR is set, we use that as a scheme path. */
-    if (g_file_test (assets_dir, G_FILE_TEST_IS_DIR) == TRUE)
-    {
-        SCM old_path = scm_list_copy (scm_c_eval_string ("%load-path"));
-        scm_set_car_x (scm_c_eval_string ("%load-path"),
-                       scm_from_locale_string (assets_dir));
-        scm_set_cdr_x (scm_c_eval_string ("%load-path"),
-                       old_path);
-        return;
-    }
-    else
-        g_critical ("BURRO_DATA_DIR is set to an invalid directory: %s", assets_dir);
+    char *libstr = xg_resources_get_string("/com/lonelycactus/burroengine/library.scm");
+    xscm_c_eval_string_or_warn (libstr);
+    free(libstr);
 }
 
 void
@@ -76,17 +69,11 @@ init_lisp (const char *main_script)
     /* Redirect output/error to console */
     // FIXME: do this
 
-    // Define the Burro module
-    scm_c_define_module ("burro", _burroscript_init, NULL);
-    
-    // Switch to a more useful module and use the Burro module
+    // We start off with what is in the guile-user module and add
+    // to it from there.
     SCM burro_user_module = scm_c_define_module ("guile-user", NULL, NULL);
     scm_set_current_module (burro_user_module);
 
-    // Load scheme libraries
-    init_lisp_scheme_directories();
-    
-    scm_c_use_module ("burro");
     scm_c_use_module ("ice-9 readline");
     scm_c_use_module ("ice-9 eval-string");
     scm_c_use_module ("srfi srfi-1");
@@ -95,11 +82,12 @@ init_lisp (const char *main_script)
     scm_c_use_module ("system repl server");
     scm_c_use_module ("system repl coop-server");
     scm_c_use_module ("system vm trap-state");
-
-    /* char *libstr = xg_resources_get_string("/com/lonelycactus/burro/library.scm"); */
-    /* scm_c_eval_string(libstr); */
-    /* free(libstr); */
     
+    // Define the Burro module that contains our internal functions,
+    // and then load it.
+    scm_c_define_module ("burro", _burroscript_init, NULL);
+    scm_c_use_module ("burro");
+
     if (main_script)
         xscm_c_primitive_load(main_script);
     else

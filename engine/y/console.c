@@ -1,22 +1,23 @@
 /* console.c -- a text rendering widget
 
-   Copyright 2014, 2015 Michael L. Gran
+   Copyright 2014, 2015, 2018 Michael L. Gran
 
-   This file is part of the Project Burro game engine.
+   This file is part of Burro Engine
 
-   Project Burro is free software: you can redistribute it and/or
+   Burro Engine is free software: you can redistribute it and/or
    modify it under the terms of the GNU General Public License as
    published by the Free Software Foundation, either version 3 of the
    License, or (at your option) any later version.
 
-   Project Burro is distributed in the hope that it will be useful,
+   Burro Engine is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with Project Burro.  If not, see
-   <http://www.gnu.org/licenses/>. */
+   along with Burro Engine.  If not, see
+   <http://www.gnu.org/licenses/>.
+*/
 
 #include <memory.h>
 #include <stdint.h>
@@ -28,6 +29,8 @@
 #include "../x.h"
 #include "eng.h"
 #include "console.h"
+
+extern void lineedit_start (void);
 
 #ifdef SMALL_FONT
 # include "6x9.h"
@@ -95,7 +98,7 @@ typedef glyph_fixed8x13_row_t glyph_row_t;
 #define UNDERLINE_SINGLY        0b010000000000000
 #define UNDERLINE_DOUBLY        0b100000000000000
 #define UNDERLINE_MASK          0b110000000000000
-#define UNDERLINE_OFFSET        13 
+#define UNDERLINE_OFFSET        13
 
 #define COMPOSE(render,codepoint) (((uint32_t)(render) << 16)|(codepoint))
 #define RENDERING(x) ((uint16_t)(((x) & 0xFFFF0000) >> 16))
@@ -103,10 +106,10 @@ typedef glyph_fixed8x13_row_t glyph_row_t;
 
 #define NUM_COLORS 10
 #define NUM_INTENSITIES 3
-#define FAST_BLINK_TIME 300	/* milliseconds */
-#define SLOW_BLINK_TIME 500	/* milliseconds */
-#define TAB 8		/* spaces per tab */
-#define VTAB 6		/* lines per vtab */
+#define FAST_BLINK_TIME 300 /* milliseconds */
+#define SLOW_BLINK_TIME 500 /* milliseconds */
+#define TAB 8       /* spaces per tab */
+#define VTAB 6      /* lines per vtab */
 
 static const uint32_t fg_palette[NUM_COLORS *
                                  NUM_INTENSITIES] = {
@@ -172,6 +175,7 @@ console_is_repl ()
 void
 console_enable_repl ()
 {
+    lineedit_start();
     console_repl = true;
     console_visible = true;
     cursor_visible = true;
@@ -306,7 +310,7 @@ console_set_fgcolor (console_color_index_t c)
         break;
     case CONSOLE_COLOR_WHITE:
         set_rendition (COLOR_FG_WHITE, COLOR_FG_MASK);
-        break;        
+        break;
     case CONSOLE_COLOR_TRANSPARENT:
         set_rendition (COLOR_FG_TRANSPARENT, COLOR_FG_MASK);
         break;
@@ -729,7 +733,7 @@ void console_move_vertical_tab_down(int n)
         r = CONSOLE_ROWS - 1;
     row = r;
 }
-  
+
 void console_move_to(int r, int c)
 {
     g_assert (row >= 0);
@@ -776,10 +780,10 @@ void console_scroll_left(int n)
             int fill_region_start          = r * CONSOLE_COLS + CONSOLE_COLS - n;
             int fill_region_end            = r * CONSOLE_COLS + CONSOLE_COLS;
             // Set the end of the line to the erased state.
-            memset(cells + fill_region_start, 0, 
+            memset(cells + fill_region_start, 0,
                    sizeof(uint32_t) * (fill_region_end - fill_region_start));
         }
-    }    
+    }
 }
 
 
@@ -802,10 +806,10 @@ void console_scroll_right(int n)
             int fill_region_end            = r * CONSOLE_COLS + n;
 
             // Set the beginning of each line to the erased state
-            memset(cells + fill_region_start, 0, 
+            memset(cells + fill_region_start, 0,
                    sizeof(uint32_t) * (fill_region_end - fill_region_start));
         }
-    }    
+    }
 }
 
 void console_scroll_up(int n)
@@ -820,9 +824,9 @@ void console_scroll_up(int n)
         console_erase_page ();
     }
     else {
-        memmove(cells, cells + n * CONSOLE_COLS, 
+        memmove(cells, cells + n * CONSOLE_COLS,
                 sizeof(uint32_t) * (CONSOLE_ROWS * CONSOLE_COLS - n * CONSOLE_COLS));
-        memset(cells + (CONSOLE_ROWS - n) * CONSOLE_COLS, 0, 
+        memset(cells + (CONSOLE_ROWS - n) * CONSOLE_COLS, 0,
                sizeof(uint32_t) * (n * CONSOLE_COLS));
     }
 }
@@ -841,9 +845,9 @@ void console_scroll_down(int n)
     else {
         memmove(cells + n * CONSOLE_COLS, cells,
                 sizeof(uint32_t) * (CONSOLE_ROWS * CONSOLE_COLS - n * CONSOLE_COLS));
-        memset(cells, 0, 
+        memset(cells, 0,
                sizeof(uint32_t) * (n * CONSOLE_COLS));
-    }    
+    }
 }
 
 
@@ -895,24 +899,24 @@ console_write_char (uint16_t codepoint, int irm, int hem, int simd, int home, in
 
 static glyph_row_t *
 get_narrow_glyph (int glyph_set, int codepoint,
-                  int *bpd,	/* bits per dot: 1, 2, 3, 4 */
-                  int *stride,		/* width of one font row in bytes */
-                  int *width,		/* width of the glyph in bits */
-                  int *height,		/* height of the glyph in bits */
-                  int *xoffset,	/* top, left-hand corner X-offset in pixels */
-                  int *yoffset		/* top left-hand corner Y-offset in pixels */
+                  int *bpd, /* bits per dot: 1, 2, 3, 4 */
+                  int *stride,      /* width of one font row in bytes */
+                  int *width,       /* width of the glyph in bits */
+                  int *height,      /* height of the glyph in bits */
+                  int *xoffset, /* top, left-hand corner X-offset in pixels */
+                  int *yoffset      /* top left-hand corner Y-offset in pixels */
     )
 {
     int i = 0;
     int count;
     int bits;
-    
+
     /* FIXME: do a more efficient search */
     if (glyph_set == 0)
     {
         count = FIXED_COUNT;
         bits = 1;
-        
+
         while (i < count)
         {
             if (fixed_glyphs[i].encoding == codepoint)
@@ -921,7 +925,7 @@ get_narrow_glyph (int glyph_set, int codepoint,
         }
         if (i == count)
             return NULL;
-        
+
         *bpd = bits;
         *stride = fixed_glyphs[i].data.stride;
         *width = fixed_glyphs[i].data.width;
@@ -930,7 +934,7 @@ get_narrow_glyph (int glyph_set, int codepoint,
         *yoffset = fixed_glyphs[i].data.yoffset;
         return &(fixed_glyphs[i].bitmap[0]);
     }
-    
+
     return NULL;
 }
 
@@ -942,7 +946,7 @@ console_render_to_cairo_surface ()
     cairo_surface_t *surf;
     uint32_t *data;
     int stride;
-    
+
     int glyph_bpd, glyph_stride, glyph_width, glyph_height, glyph_xoffset, glyph_yoffset;
     uint8_t *glyph_bitmap;
 
@@ -950,7 +954,7 @@ console_render_to_cairo_surface ()
     timer = xg_timer_elapsed (console_timer) * 1000.0;
     fast_blink_on = (timer / FAST_BLINK_TIME) % 2;
     slow_blink_on = (timer / SLOW_BLINK_TIME) % 2;
-    
+
     width = CONSOLE_COLS;
     height = CONSOLE_ROWS;
     surf = xcairo_image_surface_create (CAIRO_FORMAT_ARGB32,
@@ -959,7 +963,7 @@ console_render_to_cairo_surface ()
     data = xcairo_image_surface_get_argb32_data (surf);
     stride = xcairo_image_surface_get_argb32_stride (surf);
     xcairo_surface_flush (surf);
-    
+
     for (int r = 0; r < height; r++)
     {
         for (int c = 0; c < width; c++)
@@ -976,12 +980,12 @@ console_render_to_cairo_surface ()
             uint16_t polarity = rendering & POLARITY_MASK;
             uint16_t blink = rendering & BLINK_MASK;
             uint16_t underline = rendering & UNDERLINE_MASK;
-            
+
             uint32_t fg_argb =
                 fg_palette[fg_color_index * NUM_INTENSITIES +
                            intensity_index];
             uint32_t bg_argb = bg_palette[bg_color_index];
-            
+
             // Xor the inverse and blink states to see if we're inverse now.
             if ((polarity == POLARITY_NEGATIVE) !=
                 (((blink == BLINK_FAST) && (fast_blink_on))
@@ -991,7 +995,7 @@ console_render_to_cairo_surface ()
                 fg_argb = bg_argb;
                 bg_argb = temp_argb;
             }
-            
+
             /* Swap again if we're the cursor and the cursor is visible */
             if (r == row && c == col && cursor_visible && slow_blink_on)
             {
@@ -1013,7 +1017,7 @@ console_render_to_cairo_surface ()
                     for (int i = 0; i < glyph_width; i++)
                     {
                         uint32_t pixel_argb;
-						
+
                         if ((underline == UNDERLINE_SINGLY
                              || underline == UNDERLINE_DOUBLY)
                             && (j == glyph_height - 1))
@@ -1033,20 +1037,20 @@ console_render_to_cairo_surface ()
                             pixel_argb = fg_argb;
                         else
                             pixel_argb = bg_argb;
-						
+
                         data[(r * FIXED_MAXHEIGHT + j) * stride
                              + c * FIXED_MAXWIDTH + i] = pixel_argb;
                     }
                 }
             }
             else {
-				
+
                 for (int j = 0; j < FIXED_MAXHEIGHT; j++)
                 {
                     for (int i = 0; i < FIXED_MAXWIDTH; i++)
                     {
                         uint32_t pixel_argb;
-						
+
                         if ((underline == UNDERLINE_SINGLY
                              || underline == UNDERLINE_DOUBLY)
                             && (j == glyph_height - 1))
@@ -1056,7 +1060,7 @@ console_render_to_cairo_surface ()
                             pixel_argb = fg_argb;
                         else
                             pixel_argb = bg_argb;
-						
+
                         data[(r * FIXED_MAXHEIGHT + j) * stride
                              + c * FIXED_MAXWIDTH + i] = pixel_argb;
                     }
@@ -1142,7 +1146,7 @@ void
 console_write_utf8_string (const char *str)
 {
     g_return_if_fail (str != NULL);
-    
+
     uint32_t *ucs4 = xg_utf8_to_ucs4 (str);
 
     console_write_ucs4_string (ucs4);
@@ -1414,7 +1418,7 @@ console_init_guile_procedures (void)
         "CONSOLE_UNDERLINE_NONE",
         "CONSOLE_UNDERLINE_SINGLY",
         "CONSOLE_UNDERLINE_DOUBLY",
-        
+
         "console-disable-repl",
         "console-enable-repl",
         "console-hide",
