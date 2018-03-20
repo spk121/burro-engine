@@ -188,13 +188,25 @@ void eng_present()
 
 static gboolean key_event_cb (GtkWidget *widget, GdkEventKey *event, gpointer dummy)
 {
-    if (console_is_visible () && (event->type == GDK_KEY_PRESS))
+    if (console_is_visible () && console_is_repl ()
+        && (event->type == GDK_KEY_PRESS))
         return key_event_console (event->keyval, event->state);
 
     g_mutex_lock(&keymutex);
 
     switch (gdk_keyval_to_upper(event->keyval))
     {
+    case GDK_KEY_asciitilde:
+    case GDK_KEY_dead_tilde:
+    case GDK_KEY_dead_belowtilde:
+        if (event->type == GDK_KEY_PRESS)
+        {
+            if (console_is_visible ())
+                console_hide ();
+            else
+                console_show ();
+        }
+        break;
     case GDK_KEY_A:
         key_a = event->type == GDK_KEY_PRESS ? 1 : 0;
         break;
@@ -329,17 +341,16 @@ key_event_console (unsigned keysym, unsigned state)
                 g_free(text);
             }
 #endif
-#if 0
-            g_io_channel_write_chars (repl_io_channel, script, -1, NULL, NULL);
-            g_io_channel_write_chars (repl_io_channel, "\n", 1, NULL, NULL);
-#endif
+
             lineedit_start(linenoiseLineBuf, LINENOISE_MAX_LINE, L"->");
         }
     }
+#if 0    
     else if (keysym == GDK_KEY_grave) {
         console_hide();
         return TRUE;
     }
+#endif
     else if (keysym >= GDK_KEY_space && keysym <= GDK_KEY_ydiaeresis)
     {
         wchar_t input[2];

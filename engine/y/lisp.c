@@ -15,8 +15,6 @@
 #include "textbox.h"
 #include <libguile.h>
 
-static char *lisp_main_script = NULL;
-
 // One route to defining C functions into a module is
 // scm_c_resolve_module to open and create if necessary a module
 // SCM val = scm_c_make_gsubr(subr args and such)  to make it
@@ -102,21 +100,27 @@ init_lisp (const char *main_script)
     /* scm_c_eval_string(libstr); */
     /* free(libstr); */
     
-    xscm_c_eval_string_or_warn ("(activate-readline)");
-
     if (main_script)
-        lisp_main_script = g_strdup(main_script);
+        xscm_c_primitive_load(main_script);
     else
-        lisp_main_script = g_strdup("burro-main.scm");
-    G_restart();
-
-    // 
-    repl_init ();
+    {
+        console_write_ecma48_string ("Burro Engine\r\n\r\n");
+        console_write_ecma48_string ("No game file was provided.\r\n");
+        console_write_ecma48_string ("Starting in debug mode.\r\n");
+        console_write_ecma48_string ("You may enter commands here.\r\n");
+        console_write_ecma48_string ("Also, you may enter commands on TCP port 37147\r\n");
+        console_write_ecma48_string ("Enter \"(console-hide)\" here to hide this console,\r\n");
+        console_write_ecma48_string ("and press the tilde key to bring it back again later.\r\n");
+        repl_init ();
+        console_enable_repl ();
+    }
 }
 
 ////////////////////////////////////////////////////////////////
 // Here are some random functions for use with the console
 
+
+#if 0
 SCM_DEFINE (G_restart, "burro-restart", 0, 0, 0, (void), "\
 Reload and re-eval the main script.\n")
 {
@@ -126,6 +130,7 @@ Reload and re-eval the main script.\n")
     g_free (cmd);
     return ret;
 }
+#endif
 
 SCM_DEFINE (G_list_data_directory_contents, "burro-dir", 0, 1, 0, (SCM regex), "\
 List the contents of the data directory.  If a parameter is provided, \n\
@@ -224,7 +229,6 @@ lisp_init_guile_procedures (void)
 {
 #include "lisp.x"
     scm_c_export("burro-dir",
-                 "burro-restart",
                  NULL);
 }
 

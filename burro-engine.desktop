@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Burro Game Engine
+Exec=burro
+Type=Application
+Icon=burro
+Comment=An interactive fiction game engine
+Categories=GTK;Gnome;Game;
+StartupNotify=true

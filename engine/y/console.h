@@ -82,6 +82,10 @@ bool console_is_visible (void);
 void console_show (void);
 void console_hide (void);
 
+bool console_is_repl (void);
+void console_enable_repl (void);
+void console_disable_repl (void);
+
 cairo_surface_t *console_render_to_cairo_surface(void);
 void console_bell(void);
 void console_delete_left(int n);
@@ -129,6 +133,7 @@ void console_write_latin1_string(const char *str);
 void console_write_utf8_string(const char *str);
 void console_write_ucs4_string(const uint32_t *str);
 void console_write_wchar_string (const wchar_t *str, size_t len);
+void console_write_ecma48_string(const char *str);
 void console_test_pattern (void);
 
 void console_init_guile_procedures (void);

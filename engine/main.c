@@ -2,19 +2,7 @@
 #include "y.h"
 #include "r/burro.resource.h"
 
-static bool fullspeed = false;
-static uint32_t seed = (uint32_t) -1;
-int port;
 static GtkWidget *mainwin = NULL;
-static char *scheme_file = NULL;
-
-static GOptionEntry entries[] =
-{
-    { "full-speed", 0, 0, G_OPTION_ARG_NONE, &fullspeed, "Run at maximum frame rate", NULL },
-    { "seed", 0, 0, G_OPTION_ARG_INT, &seed, "Random number seed", "integer" },
-    { "load", 'L', 0, G_OPTION_ARG_FILENAME, &scheme_file, "the main scheme file to run", "filename"},
-    { NULL }
-};
 
 void
 stdout_log_handler (const char *log_domain,
@@ -59,16 +47,13 @@ stdio_log_handler (const gchar   *log_domain,
 }
 
 static void
-main_initialize (GtkApplication *app)
+main_initialize (GtkApplication *app, GFile *file)
 {
     /* Check system resources */
     /* Check CPU speed */
     /* Estimate VRAM */
     /* Initialize random number generator */
-    if (seed == -1)
-        rand_init ();
-    else
-        rand_init_with_seed (seed);
+    rand_init ();
 
     /* Load debugging options */
     const GLogLevelFlags debug_flags = (GLogLevelFlags) (G_LOG_LEVEL_MASK | G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION);
@@ -111,7 +96,9 @@ main_initialize (GtkApplication *app)
     /* Register the compiled-in resources. */
     burro_get_resource();
 
+    char *scheme_file = g_file_get_path (file);
     init_lisp(scheme_file);
+    g_free (scheme_file);
     loop ();
 }
 
@@ -125,9 +112,18 @@ activate (GtkApplication *app)
     if (list)
         gtk_window_present (GTK_WINDOW (list->data));
     else
-        main_initialize (app);
+        main_initialize (app, NULL);
 }
 
+static void
+open (GtkApplication *app,
+      GFile **files,
+      gint n_files,
+      const char *hint)
+{
+    main_initialize (app, files[0]);
+}
+                    
 int main (int argc, char **argv)
 {
     GOptionContext *context;
@@ -142,24 +138,13 @@ int main (int argc, char **argv)
     scm_c_set_default_vm_engine_x (1);
     xscm_init_guile ();
 
-    context = g_option_context_new ("- game options");
-    g_option_context_add_main_entries (context, entries, NULL);
-    g_option_context_add_group (context, gtk_get_option_group (true));
-
-    if (!g_option_context_parse (context, &argc, &argv, &error))
-    {
-        printf ("option parsing failed: %s\n", error->message);
-        exit (1);
-    }
-
-    xgtk_init_check (&argc, &argv);
-
     app = gtk_application_new ("com.lonelycactus.projectburro",
-                               G_APPLICATION_FLAGS_NONE);
+                               G_APPLICATION_NON_UNIQUE
+                               | G_APPLICATION_HANDLES_OPEN);
 
     g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
-    g_application_set_inactivity_timeout (G_APPLICATION(app), 100000000);
-    g_application_set_flags (G_APPLICATION(app), G_APPLICATION_NON_UNIQUE);
+    g_signal_connect (app, "open", G_CALLBACK (open), NULL);
+    g_application_set_inactivity_timeout (G_APPLICATION(app), 1000*60*60);
     status = xg_application_run (G_APPLICATION (app), argc, argv);
 
     g_object_unref (app);

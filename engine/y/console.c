@@ -142,6 +142,7 @@ static uint16_t rendition;
 static uint32_t cells[CONSOLE_ROWS * CONSOLE_COLS];
 static bool cursor_visible = TRUE;
 static bool console_visible = TRUE;
+static bool console_repl = FALSE;
 GTimer *console_timer = NULL;
 
 bool
@@ -149,7 +150,6 @@ console_is_visible ()
 {
     return console_visible;
 }
-
 
 void
 console_show ()
@@ -161,6 +161,27 @@ void
 console_hide ()
 {
     console_visible = false;
+}
+
+bool
+console_is_repl ()
+{
+    return console_repl;
+}
+
+void
+console_enable_repl ()
+{
+    console_repl = true;
+    console_visible = true;
+    cursor_visible = true;
+}
+
+void
+console_disable_repl ()
+{
+    console_repl = false;
+    cursor_visible = false;
 }
 
 void
@@ -1096,6 +1117,12 @@ console_write_latin1_string (const char * str)
 }
 
 void
+console_write_ecma48_string (const char *str)
+{
+    ecma48_execute (str, strlen (str));
+}
+
+void
 console_write_wchar_string (const wchar_t *str, size_t len)
 {
     for (size_t i = 0; i < len; i ++) {
@@ -1255,10 +1282,28 @@ SCMVAR(CONSOLE_UNDERLINE_NONE);
 SCMVAR(CONSOLE_UNDERLINE_SINGLY);
 SCMVAR(CONSOLE_UNDERLINE_DOUBLY);
 
+SCM_DEFINE (G_console_disable_repl, "console-disable-repl", 0, 0, 0, (void), "")
+{
+    console_disable_repl ();
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_enable_repl, "console-enable-repl", 0, 0, 0, (void), "")
+{
+    console_enable_repl ();
+    return SCM_UNSPECIFIED;
+}
+
 SCM_DEFINE (G_console_hide, "console-hide", 0, 0, 0, (void), "")
 {
     console_hide ();
     return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE (G_console_repl_p, "console-repl?", 0, 0, 0, (void), "\
+Returns #t if the console is a repl.")
+{
+    return scm_from_bool (console_is_repl());
 }
 
 SCM_DEFINE (G_console_reset, "console-reset", 0, 0, 0, (void), "")
@@ -1370,7 +1415,11 @@ console_init_guile_procedures (void)
         "CONSOLE_UNDERLINE_SINGLY",
         "CONSOLE_UNDERLINE_DOUBLY",
         
+        "console-disable-repl",
+        "console-enable-repl",
         "console-hide",
+        "console-move-to",
+        "console-repl?",
         "console-reset",
         "console-set-bgcolor",
         "console-set-blink",
@@ -1383,7 +1432,6 @@ console_init_guile_procedures (void)
         "console-show",
         "console-visible?",
         "console-write-string",
-        "console-move-to",
         NULL);
 }
 

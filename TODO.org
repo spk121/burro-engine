@@ -3,10 +3,18 @@
 * Engine
 ** Autoconf / Automake
 ** Audio file unpacking
-   Probably go with libvorbisfile for this, because it is very simple.
+   Probably go with libopusfile for this, because it is very simple.
 ** Better directory and game loading handling
+   If burro-engine is run w/o a script, it should launch, make
+   the console visible, and display that there is a Guile interpreter
+   listening on port #####.
+
+   If it is launched with a script, that script should be able
+   set the game data directory in the script.
    Assume all the game data is in a game directory, and there is a
    top-level 'main.scm'
+
+   
 ** API vs internal linking
 ** Guile port handling
 * Scheme library

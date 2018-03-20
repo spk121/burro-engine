@@ -22,6 +22,14 @@ eval_string_catch_handler_warn (const char *string, SCM key, SCM args)
 static SCM
 primitive_load_catch_handler (const gchar *filename, SCM key, SCM args)
 {
+    // Sometimes, for testing, I use scm_c_primitive_load to load
+    // a script that has an exit call in it.
+    if (scm_is_eq (key, scm_from_latin1_symbol("quit")))
+    {
+        g_debug ("scm_c_primitive_load of %s has caused a quit", filename);
+        
+        exit (scm_to_int (scm_car (args)));
+    }
     g_error ("scm_c_primitive_load of %s failed", filename);
     return SCM_BOOL_F;
 }
@@ -57,7 +65,6 @@ xscm_c_primitive_load (const gchar *filename)
 {
     g_return_val_if_fail (filename != NULL && strlen (filename) > 0, SCM_BOOL_F);
     
-    /* FIXME: catch Guile errors here */
     return scm_c_catch (SCM_BOOL_T,
                         (scm_t_catch_body) scm_c_primitive_load,
                         (void *) filename,

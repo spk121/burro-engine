@@ -50,4 +50,5 @@ AC_CONFIG_FILES([Makefile
 		 test/Makefile
 		 meta/Makefile])
 AC_CONFIG_FILES([meta/run.sh], [chmod +x meta/run.sh])
+AC_CONFIG_FILES([meta/gdb.sh], [chmod +x meta/gdb.sh])
 AC_OUTPUT
