@@ -1,4 +1,5 @@
-SUBDIRS = engine test
+SUBDIRS = src test
+
 
 desktopdir = $(datadir)/applications
 desktop_DATA = burro-engine.desktop
