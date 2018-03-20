@@ -13,7 +13,9 @@ AC_CONFIG_AUX_DIR([build_aux])
 AM_INIT_AUTOMAKE([foreign tar-ustar subdir-objects])
 
 AM_SILENT_RULES([yes])
-AC_CONFIG_HEADERS([config.h])
+
+## Let's try avoiding the config.h until absolutely necessary
+#AC_CONFIG_HEADERS([config.h])
 
 # Checks for libraries
 PKG_CHECK_MODULES([DEPS],[gtk+-3.0
