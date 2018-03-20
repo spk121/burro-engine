@@ -2,13 +2,27 @@
 
 # Autoconf requirements
 AC_PREQ([2.69])
-AC_INIT([Burro Game Engine],[0.0],[spk121@yahoo.com],[burro-engine],[https://github.com/spk121/burro-engine])
-AC_COPYRIGHT([GPL3+])
+AC_INIT([Burro Engine],[0.0],
+        [spk121@yahoo.com],
+        [burro-engine],
+        [https://github.com/spk121/burro-engine])
+
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([engine/main.c])
 AC_CONFIG_AUX_DIR([build_aux])
-AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([foreign subdir-objects])
+AM_INIT_AUTOMAKE([foreign tar-ustar subdir-objects])
+
+AM_SILENT_RULES([yes])
 AC_CONFIG_HEADERS([config.h])
+
+# Checks for libraries
+PKG_CHECK_MODULES([DEPS],[gtk+-3.0
+                          gio-2.0
+                          glib-2.0
+                          guile-2.2
+                          libpulse
+                          libpulse-mainloop-glib])
+
 
 # Checks for programs
 AC_PROG_CC
@@ -16,41 +30,12 @@ AC_ARG_VAR([GUILE_SNARF], [guile snarf compilation tool])
 AC_CHECK_PROGS([GUILE_SNARF],[guile-snarf],[no])
 AS_IF([test "x$GUILE_SNARF" = "xno"],
       [AC_MSG_ERROR([Could not find guile-snarf tool needed for compilation])])
-## FIXME: check for glib-compile-resources
 
 GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
 AC_SUBST(GLIB_COMPILE_RESOURCES)
 
-
-# Checks for libraries
-PKG_CHECK_MODULES([GTK3],[gtk+-3.0])
-PKG_CHECK_MODULES([GUILE],[guile-2.2])
-PKG_CHECK_MODULES([LIBPULSE],[libpulse])
-PKG_CHECK_MODULES([LIBPULSE_MAINLOOP_GLIB],[libpulse-mainloop-glib])
-
-# Checks for header files
-# Checks for types
-# Checks for structures
-# Checks for compiler characteristics
-# Checks for library functions
-# Checks for system services
-
-AC_MSG_RESULT([
-        $PACKAGE $VERSION
-        =====
-
-        prefix:                 ${prefix}
-        sysconfdir:             ${sysconfdir}
-        libdir:                 ${libdir}
-        includedir:             ${includedir}
-
-        compiler:               ${CC}
-        cflags:                 ${CFLAGS}
-        ldflags:                ${LDFLAGS}
-])
-
 AC_CONFIG_FILES([Makefile
-		 engine/Makefile
-		 test/Makefile
-		 meta/Makefile])
+                 engine/Makefile
+                 test/Makefile
+                 meta/Makefile])
 AC_OUTPUT

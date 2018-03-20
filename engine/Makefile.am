@@ -119,16 +119,9 @@ burro_SOURCES = $(SRCS_X_H) \
  r/burro.resource.c r/burro.resource.h \
  main.c
 
-AM_CFLAGS = $(GTK3_CFLAGS) \
- $(GUILE_CFLAGS) \
- $(LIBPULSE_CFLAGS) \
- $(LIBPULSE_MAINLOOP_GLIB_CFLAGS)
+AM_CFLAGS = $(DEPS_CFLAGS)
 
-LIBS = $(GTK3_LIBS) \
- $(GUILE_LIBS) \
- $(LIBPULSE_LIBS) \
- $(LIBPULSE_MAINLOOP_GLIB_LIBS) \
- -lm
+LIBS = $(DEPS_LIBS) -lm
 
 snarfcppopts = $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(AM_CFLAGS)
 
