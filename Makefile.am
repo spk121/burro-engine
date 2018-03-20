@@ -1,4 +1,4 @@
-SUBDIRS = src test
+SUBDIRS = src data test
 
 MAINTAINERCLEANFILES = \
  $(srcdir)/compile \
