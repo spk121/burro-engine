@@ -11,8 +11,10 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/main.c])
 AC_CONFIG_AUX_DIR([build_aux])
 AM_INIT_AUTOMAKE([foreign tar-ustar subdir-objects])
-
+LT_INIT
 AM_SILENT_RULES([yes])
+
+GLIB_GSETTINGS
 
 ## Let's try avoiding the config.h until absolutely necessary
 #AC_CONFIG_HEADERS([config.h])

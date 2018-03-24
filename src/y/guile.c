@@ -26,6 +26,7 @@
 #include "guile.h"
 #include "vram.h"
 #include "bg.h"
+#include "loop.h"
 
 scm_t_bits minibuf_port_type;
 SCM minibuf_port;
@@ -418,6 +419,13 @@ _guile_c_eval_string_handler (const char *string, SCM key, SCM exception)
 
   if (exception == SCM_EOL) {
       return scm_from_latin1_string ("(exception)");
+  }
+  else if (c_key && (strcmp (c_key, "quit") == 0))
+  {
+      // We may receive a quit here in response to an 'exit' call in
+      // the scheme script.  We kick this quit up to GTK.
+      eng_emit_shutdown();
+      return scm_from_latin1_string ("(quit)");
   }
   else {
       subr = scm_list_ref (exception, scm_from_int (0));

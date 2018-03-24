@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<interface>
+  <requires lib="gtk+" version="3.20"/>
+  <menu id="menu">
+    <section>
+      <item>
+	<attribute name="action">win.open</attribute>
+	<attribute name="label">Open</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+	<attribute name="action">win.view-tools</attribute>
+	<attribute name="label">Developer Tools</attribute>
+      </item>
+    </section>
+    <section>
+      <item>
+	<attribute name="action">app.quit</attribute>
+	<attribute name="label">Quit</attribute>
+      </item>
+    </section>
+  </menu>
+</interface>

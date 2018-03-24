@@ -52,7 +52,9 @@ void draw_initialize ()
 void draw_finalize ()
 {
     xcairo_destroy (main_screen_context);
+    main_screen_context = NULL;
     xcairo_surface_destroy (main_screen_surface);
+    main_screen_surface = NULL;
 }
 
 void draw ()

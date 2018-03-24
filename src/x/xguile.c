@@ -44,7 +44,7 @@ primitive_load_catch_handler (const gchar *filename, SCM key, SCM args)
     // a script that has an exit call in it.
     if (scm_is_eq (key, scm_from_latin1_symbol("quit")))
     {
-        g_debug ("scm_c_primitive_load of %s has caused a quit", filename);
+        g_debug ("scm_c_primitive_load of %s has caused an exit", filename);
         
         exit (scm_to_int (scm_car (args)));
     }

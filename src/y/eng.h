@@ -77,6 +77,7 @@ gdouble eng_get_brightness (void);
 void eng_set_brightness (gdouble brightness);
 
 unsigned int eng_get_keyinput(void);
+void eng_emit_shutdown(void);
 void eng_init_guile_procedures(void);
 
 #endif

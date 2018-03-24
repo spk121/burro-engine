@@ -7,8 +7,5 @@ MAINTAINERCLEANFILES = \
  $(srcdir)/missing \
  $(srcdir)/test-driver
 
-appicondir=$(datadir)/icons/hicolor/scalable/apps
-appicon_DATA = burro-engine.svg
-
 EXTRA_DIST = \
  bootstrap.sh

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema path="/com/lonelycactus/burroengine/" id="com.lonelycactus.burroengine">
+    <key name="repl" type="b">
+      <default>false</default>
+    </key>
+    <key name="debug" type="b">
+      <default>false</default>
+    </key>
+  </schema>
+</schemalist>

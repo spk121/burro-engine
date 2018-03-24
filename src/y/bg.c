@@ -169,6 +169,17 @@ void bg_init ()
     }
 }
 
+void
+bg_fini (void)
+{
+    for (int id = 0; id < BG_MAIN_BACKGROUNDS_COUNT; id ++)
+    {
+        if (bg.surf[id] != NULL)
+            xcairo_surface_destroy (bg.surf[id]);
+        bg.surf[id] = NULL;
+    }
+}
+
 void bg_assign_memory (bg_index_t id, matrix_size_t siz, vram_bank_t bank)
 {
     matrix_attach_to_vram (siz, bank, &(bg.bg[id].storage), &(bg.bg[id].data));

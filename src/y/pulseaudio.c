@@ -135,7 +135,8 @@ void pulse_initialize_audio_step_1()
 
     /* PROPLIST: Only the PA_PROP_MEDIA_ROLE is important.  */
     main_proplist = xpa_proplist_new();
-    xpa_proplist_sets(main_proplist, PA_PROP_MEDIA_ROLE, BURRO_PROP_MEDIA_ROLE);
+    xpa_proplist_sets(main_proplist, PA_PROP_MEDIA_ROLE,
+                      BURRO_PROP_MEDIA_ROLE);
     xpa_proplist_sets(main_proplist, PA_PROP_APPLICATION_ID,
                       BURRO_PROP_APPLICATION_ID);
     xpa_proplist_sets(main_proplist, PA_PROP_APPLICATION_NAME,
@@ -147,6 +148,7 @@ void pulse_initialize_audio_step_1()
     pulse.context = xpa_context_new_with_proplist(vtable,
                                                   BURRO_PROP_APPLICATION_NAME,
                                                   main_proplist);
+    xpa_proplist_free (main_proplist);
     xpa_context_set_state_callback(pulse.context,
                                    cb_audio_context_state, NULL);
 

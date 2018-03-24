@@ -418,6 +418,14 @@ motion_notify_event_cb (GtkWidget *widget, GdkEventMotion *event, gpointer user_
     return true;
 }
 
+void
+eng_emit_shutdown (void)
+{
+    // extern GtkApplication *app;
+    loop_quit ();
+    // g_application_quit (app);
+}
+
 ////////////////////////////////////////////////////////////////
 
 SCM_DEFINE (G_eng_is_blank, "eng-blank?", 0, 0, 0, (void), "")

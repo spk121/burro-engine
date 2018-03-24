@@ -60,7 +60,7 @@ _burroscript_init (void *unused)
 
     char *libstr = xg_resources_get_string("/com/lonelycactus/burroengine/library.scm");
     xscm_c_eval_string_or_warn (libstr);
-    free(libstr);
+    g_free(libstr);
 }
 
 void
@@ -89,7 +89,9 @@ init_lisp (const char *main_script)
     scm_c_use_module ("burro");
 
     if (main_script)
-        xscm_c_primitive_load(main_script);
+    {
+        SCM ret = xscm_c_primitive_load(main_script);
+    }
     else
     {
         console_write_ecma48_string ("Burro Engine\r\n\r\n");

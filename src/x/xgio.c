@@ -119,6 +119,7 @@ xg_resources_get_string (const char *path)
 
     xg_input_stream_read_all (stream, path, str, siz, &bytes_read);
     str[siz] = '\0';
+    g_object_unref (stream);
     return str;
 }
 
