@@ -11,13 +11,16 @@ Things to remember:
 (use-modules (burro)
              (burro engine))
 ````
-- The game file is loaded into restricted, anonymous modules called
-  "sandboxes".  These modules are anonymous, so you can't switch to
-  them using the `,m` command at the REPL.  You can switch to them in
+- While the `(burro)` module is a standard module, the `(burro
+  engine)` module is created in C by `burro-engine` and only exists
+  when using it as an interpreter.
+- The game script is loaded into a restricted, anonymous module called
+  the "sandbox".  This modules is anonymous, so you cannot switch to
+  it using the `,m` command at the REPL.  You _can_ switch to them in
   the repl by typing
 ````
 (set-current-module (get-sandbox))
 ````
-- Every time you load a new game file, it is loaded into a new
-  sandbox.
+- Every time you load a new game file, it is loaded into a newly
+  created sandbox.
 
