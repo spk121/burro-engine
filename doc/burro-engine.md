@@ -9,8 +9,8 @@ Things to remember:
 - Load the Burro Engine primitives with
 
     (use-modules (burro)
-	             (burro engine))
-				 
+                 (burro engine))
+
 - The game file is loaded into restricted, anonymous modules called
   "sandboxes".  These modules are anonymous, so you can't switch to
   them using the `,m` command at the REPL.  You can switch to them in
