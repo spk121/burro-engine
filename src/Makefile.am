@@ -4,7 +4,9 @@ pkglib_LTLIBRARIES = libburrowidget.la
 ################################################################
 # TOP-LEVEL SOURCES
 
-libburrowidget_la_SOURCES = burro_canvas.c burro_canvas.h
+libburrowidget_la_SOURCES = \
+ burro_canvas.c burro_canvas.h \
+ burro_canvas_vram.c burro_canvas_vram.h \
 
 SRCS_X_H = \
  x/xcairo.h \
@@ -98,7 +100,10 @@ DOT_X_FILES = \
  y/repl.x \
  y/textbox.x \
  y/vram.x \
- y/wave.x
+ y/wave.x \
+ burro_app_win.x \
+ burro_canvas.x \
+ burro_canvas_vram.x \
 
 BUILT_SOURCES = $(DOT_X_FILES) \
  r/burro.resource.c \
