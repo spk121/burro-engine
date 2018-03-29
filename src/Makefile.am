@@ -7,6 +7,7 @@ pkglib_LTLIBRARIES = libburrowidget.la
 libburrowidget_la_SOURCES = \
  burro_canvas.c burro_canvas.h \
  burro_canvas_vram.c burro_canvas_vram.h \
+ burro_canvas_bg.c burro_canvas_bg.h
 
 SRCS_X_H = \
  x/xcairo.h \
@@ -104,6 +105,7 @@ DOT_X_FILES = \
  burro_app_win.x \
  burro_canvas.x \
  burro_canvas_vram.x \
+ burro_canvas_bg.x
 
 BUILT_SOURCES = $(DOT_X_FILES) \
  r/burro.resource.c \
@@ -111,12 +113,12 @@ BUILT_SOURCES = $(DOT_X_FILES) \
 
 EXTRA_DIST = r/burro.resource.xml
 
+
 r/burro.resource.c: r/burro.resource.xml r/app-menu.ui r/window.ui r/burro_preferences_dialog.ui r/gears-menu.ui
 	$(GLIB_COMPILE_RESOURCES) --sourcedir=r --generate-source $<
 
 r/burro.resource.h: r/burro.resource.xml
 	$(GLIB_COMPILE_RESOURCES) --sourcedir=r --generate-header $<
-
 
 CLEANFILES = $(DOT_X_FILES)
 
@@ -129,12 +131,13 @@ burro_SOURCES = $(SRCS_X_H) \
  burro_app_win.c burro_app_win.h \
  burro_preferences_dialog.c burro_preferences_dialog.h \
  burro_lisp.c burro_lisp.h \
+ burro_repl.c burro_repl.h \
  main.c
 
-burro_LDADD = $(DEPS_LIBS) -lburrowidget -lm
+burro_LDADD = $(DEPS_LIBS) $(GUILE_LIBS) -lburrowidget -lm
+AM_CFLAGS = $(DEPS_CFLAGS) $(GUILE_CFLAGS)
 
-AM_CFLAGS = $(DEPS_CFLAGS)
-AM_LDFLAGS = -rdynamic
+#AM_LDFLAGS = -rdynamic
 
 snarfcppopts = $(DEFS) $(AM_CPPFLAGS) $(CPPFLAGS) $(CFLAGS) $(AM_CFLAGS)
 
@@ -147,7 +150,13 @@ gsettings_SCHEMAS = com.lonelycactus.burroengine.gschema.xml
 EXTRA_DIST += $(gsettings_SCHEMAS)
 @GSETTINGS_RULES@
 
-##
+
+################################################################
+# Guile scheme libraries
+
+dist_guilesite_DATA = burro.scm
+
+################################################################
 # Flymake support
 
 get_cs_flags = $(foreach target,$(subst .,_,$(subst -,_,$($(2)))),$($(target)_$(1)FLAGS))

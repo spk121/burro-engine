@@ -44,6 +44,10 @@ burro_app_startup (GApplication *application)
     gtk_application_set_app_menu (GTK_APPLICATION (app), app_menu);
     g_object_unref (builder);
 
+    /* Set GNOME properties that PulseAudio likes to have */
+    g_set_application_name("Burro Engine");
+    g_setenv("PULSE_PROP_media.role", "game", TRUE);
+    gtk_window_set_default_icon_name("applications-games");
 }
 
 static void
@@ -51,7 +55,10 @@ burro_app_activate (GApplication *app)
 {
     BurroAppWindow *win;
 
+    // FIXME: when we open via ACTIVATE, show the GEARS menu?
+    
     win = burro_app_window_new (BURRO_APP (app));
+    burro_app_window_open (win, NULL);
     gtk_window_present (GTK_WINDOW (win));
 }
 
@@ -63,6 +70,8 @@ burro_app_open (GApplication *app,
 {
     BurroAppWindow *win;
 
+    // FIXME: when we open via OPEN, hide the GEARS menu?
+    
     if (n_files != 1)
         g_warning ("Asked to open %d files, but, can only open 1", n_files);
     

@@ -4,6 +4,8 @@
   <requires lib="gtk+" version="3.10"/>
   <requires lib="burro" version="0.0"/>
   <template class="BurroAppWindow" parent="GtkApplicationWindow">
+    <property name="width_request">512</property>
+    <property name="height_request">384</property>
     <property name="can_focus">False</property>
     <property name="border_width">8</property>
     <property name="title">Burro Engine</property>
@@ -14,23 +16,25 @@
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <child>
-          <object class="BurroCanvas" id="canvas">
-            <property name="width_request">512</property>
-            <property name="height_request">384</property>
+          <object class="GtkFrame">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="has_focus">True</property>
-            <property name="halign">center</property>
-            <property name="valign">center</property>
-            <property name="margin_left">8</property>
-            <property name="margin_right">8</property>
-            <property name="margin_top">8</property>
-            <property name="margin_bottom">8</property>
-            <signal name="button-press-event" handler="canvas_button_press_event_cb" swapped="no"/>
-            <signal name="draw" handler="canvas_draw_cb" swapped="no"/>
-            <signal name="key-press-event" handler="canvas_key_press_event_cb" swapped="no"/>
-            <signal name="key-release-event" handler="canvas_key_release_event_cb" swapped="no"/>
-            <signal name="motion-notify-event" handler="canvas_motion_notify_event_cb" swapped="no"/>
+            <property name="can_focus">False</property>
+            <property name="label_xalign">0</property>
+            <child>
+              <object class="BurroCanvas" id="canvas">
+                <property name="width_request">512</property>
+                <property name="height_request">384</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="has_focus">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin_left">8</property>
+                <property name="margin_right">8</property>
+                <property name="margin_top">8</property>
+                <property name="margin_bottom">8</property>
+              </object>
+            </child>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -40,27 +44,82 @@
         </child>
         <child>
           <object class="GtkRevealer" id="tools_revealer">
-            <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
               <object class="GtkNotebook">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkTextView" id="message_view">
-                    <property name="width_request">512</property>
-                    <property name="height_request">100</property>
+                  <object class="GtkBox">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="editable">False</property>
-                    <property name="cursor_visible">False</property>
-                    <property name="accepts_tab">False</property>
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">4</property>
+                    <child>
+                      <object class="GtkScrolledWindow" id="message_scrolled_window">
+                        <property name="width_request">512</property>
+                        <property name="height_request">150</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="shadow_type">in</property>
+                        <child>
+                          <object class="GtkTextView" id="message_view">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="editable">False</property>
+                            <property name="accepts_tab">False</property>
+			    <property name="monospace">True</property>
+                          </object>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkBox">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <child>
+                          <object class="GtkLabel">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="label" translatable="yes">&gt;&gt;</property>
+                          </object>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="console_entry">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+			    <!-- property name="monospace">True</property -->
+			    <property name="placeholder-text">Enter scheme expression</property>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
                   </object>
                 </child>
                 <child type="tab">
                   <object class="GtkLabel" id="notebook-tab">
                     <property name="can_focus">False</property>
-                    <property name="label">Messages</property>
+                    <property name="label">Console</property>
                   </object>
                   <packing>
                     <property name="tab_fill">False</property>
@@ -72,58 +131,31 @@
                     <property name="can_focus">False</property>
                     <property name="halign">start</property>
                     <property name="valign">start</property>
+                    <property name="row_spacing">8</property>
+                    <property name="column_spacing">8</property>
                     <child>
                       <object class="GtkLabel">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="margin_left">8</property>
-                        <property name="margin_right">8</property>
-                        <property name="margin_top">8</property>
-                        <property name="margin_bottom">8</property>
-                        <property name="label" translatable="yes">Server Port</property>
+                        <property name="tooltip_text">Enable a Guile REPL so you can connect via Geiser</property>
+                        <property name="label" translatable="yes">REPL Server (Port 37147) </property>
                       </object>
                       <packing>
                         <property name="left_attach">0</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkEntry">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="margin_left">8</property>
-                        <property name="margin_right">8</property>
-                        <property name="margin_top">8</property>
-                        <property name="margin_bottom">8</property>
-                        <property name="text">37146</property>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="top_attach">1</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkComboBoxText">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-			<items>
-			  <item>Enabled</item>
-			  <item>Disabled</item>
-			</items>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
                         <property name="top_attach">0</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel">
+                      <object class="GtkComboBoxText" id="repl_combobox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="label" translatable="yes">REPL Server</property>
+                        <items>
+                          <item id="disabled">Disabled</item>
+                          <item id="enabled">Enabled</item>
+                        </items>
                       </object>
                       <packing>
-                        <property name="left_attach">0</property>
+                        <property name="left_attach">1</property>
                         <property name="top_attach">0</property>
                       </packing>
                     </child>
@@ -143,11 +175,39 @@
                     <property name="tab_fill">False</property>
                   </packing>
                 </child>
+		<child>
+                  <object class="GtkScrolledWindow">
+                    <property name="width_request">512</property>
+                    <property name="height_request">150</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="shadow_type">in</property>
+                    <child>
+		      <object class="GtkTreeView" id="vram_tree_view">
+			<property name="visible">False</property>
+		      </object>
+		      <packing>
+			<property name="position">2</property>
+		      </packing>
+		    </child>
+		  </object>
+		</child>
+                <child type="tab">
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label">VRAM</property>
+                  </object>
+                  <packing>
+                    <property name="position">2</property>
+                    <property name="tab_fill">False</property>
+                  </packing>
+                </child>
               </object>
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>

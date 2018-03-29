@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glade-catalog name="burro" library="burrowidget" depends="gtk+">
+  <glade-widget-classes>
+    <glade-widget-class name="BurroCanvas" generic-name="canvas" title="Canvas"/>
+  </glade-widget-classes>
+</glade-catalog>

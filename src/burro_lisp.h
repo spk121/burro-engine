@@ -27,17 +27,10 @@
 #include <gtk/gtk.h>
 #include <libguile.h>
 
-/** Initialize a scheme module with Burro Engine's procedure.
- *  Return the module, or SCM_BOOL_F if there was an error.
- *  If err_string is not NULL, it will be set to a caller-freed
- *  error string.
- *
- * @param file 
- */
-SCM burro_lisp_new (char **err_string);
+SCM burro_lisp_new ();
 
 /** Parse the contents of the file into the current module.
  */
-gboolean burro_lisp_load (SCM module, GFile *file, char **err_string);
+SCM burro_make_sandbox (GFile *file, char **err_string);
 
 #endif

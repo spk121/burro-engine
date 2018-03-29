@@ -24,11 +24,11 @@ xscm_c_eval_string (const gchar *string)
                         (void *) NULL);
 }
 
-
 struct _BurroRepl
 {
   GObject    parent;
   gboolean   initialized;
+  gboolean   enabled;
   gboolean   continuing;
   SCM        server_socket;
   SCM        server;
@@ -43,29 +43,28 @@ gboolean idle_cb (gpointer data)
 {
   BurroRepl *repl = BURRO_REPL (data);
 
-#if 0
-  if (g_settings_get_boolean (repl->settings, BURRO_CONF_REPL))
+  if (!repl->enabled)
+    return repl->continuing;
+  
+  if (!repl->initialized)
     {
-      if (!repl->initialized)
+      SCM spawn_func;
+      repl->server_socket = xscm_c_eval_string("(make-tcp-server-socket #:port 37147)");
+      spawn_func = xscm_c_eval_string("spawn-coop-repl-server");
+      repl->poll_func = xscm_c_eval_string ("poll-coop-repl-server");
+      if (scm_is_false (repl->server_socket)
+	  || scm_is_false (spawn_func)
+	  || scm_is_false (repl->poll_func))
 	{
-	  SCM spawn_func;
-	  repl->server_socket = xscm_c_eval_string("(make-tcp-server-socket #:port 37147)");
-	  spawn_func = xscm_c_eval_string("spawn-coop-repl-server");
-	  repl->poll_func = xscm_c_eval_string ("poll-coop-repl-server");
-	  if (scm_is_false (repl->server_socket)
-	      || scm_is_false (spawn_func)
-	      || scm_is_false (repl->poll_func))
-	    {
-	      g_critical ("REPL is broken.  Disabling REPL setting.");
-	      g_settings_set_boolean (repl->settings, BURRO_CONF_REPL, FALSE);
-	      return repl->continuing;
-	    }
-	  repl->server = scm_call_1 (spawn_func, repl->server_socket);
-	  repl->initialized = TRUE;
-        }
-      scm_call_1 (repl->poll_func, repl->server);
+	  g_critical ("REPL is broken.  Disabling REPL setting.");
+	  repl->continuing = G_SOURCE_REMOVE;
+	  return repl->continuing;
+	}
+      repl->server = scm_call_1 (spawn_func, repl->server_socket);
+      repl->initialized = TRUE;
     }
-#endif
+  scm_call_1 (repl->poll_func, repl->server);
+
   return repl->continuing;
 }
 
@@ -76,12 +75,11 @@ burro_repl_class_init (BurroReplClass *class)
   
 }
 
-
 static void
 burro_repl_init (BurroRepl *self)
 {
   self->initialized        = FALSE;
-  // self->settings           = g_settings_new (BURRO_CONF_DOMAIN);
+  self->enabled            = FALSE;
   self->server_socket      = SCM_UNSPECIFIED;
   self->server             = SCM_UNSPECIFIED;
   self->poll_func          = SCM_UNSPECIFIED;
@@ -100,13 +98,6 @@ burro_repl_dispose (GObject *object)
 {
   BurroRepl *repl = BURRO_REPL (object);
   repl->continuing = G_SOURCE_REMOVE;
-  #if 0
-  if (repl->settings)
-    {
-      g_object_unref (repl->settings);
-      repl->settings = NULL;
-    }
-  #endif
   G_OBJECT_CLASS (burro_repl_parent_class)->dispose (object);
 }
 
@@ -121,4 +112,10 @@ burro_repl_finalize (GObject *object)
   self->poll_func     = SCM_UNSPECIFIED;
   
   G_OBJECT_CLASS (burro_repl_parent_class)->finalize (object);
+}
+
+void
+burro_repl_enable (BurroRepl *repl)
+{
+  repl->enabled = TRUE;
 }

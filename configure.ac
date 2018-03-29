@@ -16,17 +16,32 @@ AM_SILENT_RULES([yes])
 
 GLIB_GSETTINGS
 
-## Let's try avoiding the config.h until absolutely necessary
-#AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 # Checks for libraries
 PKG_PROG_PKG_CONFIG
 PKG_CHECK_MODULES([DEPS],[gtk+-3.0
                           gio-2.0
                           glib-2.0
-                          guile-2.2
+                          dnl guile-2.2
                           libpulse
                           libpulse-mainloop-glib])
+
+AC_ARG_WITH([zegu],
+	    [AS_HELP_STRING([--with-zegu], 
+   	                    [experimental support the Zegu scripting engine])],
+	    [with_libzegu=yes],
+	    [with_libzegu=no])
+	     
+LIBZEGU=
+AS_IF([test "x$with_libzegu" = xyes],
+      [AC_CHECK_LIB([zegu],
+                    [zegu_init],
+                    [AC_SUBST([LIBZEGU], ["-lzegu"])
+		     AC_DEFINE([HAVE_LIBZEGU], [1],
+		               [Define if you have libzegu])],
+		    [AC_MSG_FAILURE([--with-libzegu was given, but, test for libzegu failed])],
+		    [-lzegu])])
 
 ################################################################
 # Guile support details
@@ -71,8 +86,14 @@ if test "x$guileextensiondir" = "x"; then
 fi
 AC_SUBST([guileextensiondir])
 
+################################################################
+# GLIB resource compiler
+
 GLIB_COMPILE_RESOURCES=`$PKG_CONFIG --variable glib_compile_resources gio-2.0`
 AC_SUBST(GLIB_COMPILE_RESOURCES)
+
+################################################################
+# Finish up
 
 AC_CONFIG_FILES([
  Makefile

@@ -1,11 +1,39 @@
+#include "x.h"
 #include "burro_lisp.h"
+#include "burro_app_win.h"
+#include "burro_canvas.h"
+#include "burro_canvas_vram.h"
+
+/* In this module a couple of things happen.
+
+   1. We create a "burro engine" module, which has all of the
+   C-defined engine-specific functions, including idle callbacks,
+   mouse click callbacks, backdrop, background, spritesheet,
+   textbox, and audio functions.
+
+   2. We load the "burro" module into the (guile-user) environment,
+   along with other necessary modules to allow a REPL to be 
+   kicked off.  The "burro" module is scheme, but, it
+   uses "burro engine".
+
+   3. When we try to open a game file, we make a anonymous sandbox
+   environment, which descends from the limited "ice-9 sandbox".
+   This anonymous module has the all-pure-and-impure-bindings set,
+   plus some of the procedures from the "burro" module.  The
+   game file is eval'd in that sandbox.
+
+   Remember to detach all "burro" hook functions before loading a
+   new sandbox.
+*/
 
 static void
-_burroscript_init (void *unused)
+init_burro_engine (void *unused)
 {
-  // Start with a limited scheme vocabularity, for safety.
-  scm_c_use_module ("ice-9 safe");
 
+    // Load up the C-defined procedures
+    burro_app_win_init_guile_procedures();
+    burro_canvas_init_guile_procedures();
+    burro_canvas_vram_init_guile_procedures();
 #if 0
     am_init_guile_procedures ();
     backdrop_init_guile_procedures ();
@@ -21,16 +49,20 @@ _burroscript_init (void *unused)
     obj_init_guile_procedures();
     textbox_init_guile_procedures();
 
-    char *libstr = xg_resources_get_string("/com/lonelycactus/burroengine/library.scm");
-    xscm_c_eval_string_or_warn (libstr);
+#endif
+
+#if 0
+    // Load up scheme coded included as a module
+    char *libstr = xg_resources_get_string("/com/lonelycactus/burroengine/burro.scm");
+    scm_c_eval_string (libstr);
     g_free(libstr);
 #endif
 }
 
 static SCM
-_define_module (void *data)
+scm_init_burro_engine_module (void *data)
 {
-  return scm_c_define_module ("burro", _burroscript_init, NULL);
+    return scm_c_define_module ("burro engine", init_burro_engine, NULL);
 }
 
 static int _last_line_loaded;
@@ -39,195 +71,163 @@ static SCM _last_expr_loaded;
 static SCM
 _load (void *data)
 {
-  SCM port = SCM_PACK (data);
-  _last_line_loaded = -1;
-  _last_expr_loaded = SCM_BOOL_F;
+    SCM port = SCM_PACK (data);
+    _last_line_loaded = -1;
+    _last_expr_loaded = SCM_BOOL_F;
+
+    SCM sandbox = scm_c_eval_string ("(define %sandbox (burro-make-new-sandbox))");
   
-  while (1) {
-    SCM expr = scm_read (port);
+    while (1) {
+        SCM expr = scm_read (port);
 
-    if (scm_is_true (scm_eof_object_p (expr)))
-      break;
+        if (scm_is_true (scm_eof_object_p (expr)))
+            break;
 
-    if (scm_is_integer (scm_port_line (port)))
-      _last_line_loaded = scm_to_int (scm_port_line (port));
+        if (scm_is_integer (scm_port_line (port)))
+            _last_line_loaded = scm_to_int (scm_port_line (port));
 
-    if (scm_is_true (expr))
-      _last_expr_loaded = expr;
+        if (scm_is_true (expr))
+            _last_expr_loaded = expr;
 
-    scm_eval (expr, scm_current_module());
-  }
+        scm_eval (expr, scm_current_module());
+    }
 
-  return SCM_BOOL_T;
+    return SCM_BOOL_T;
 }
 
 static SCM
 _open_file (void *data)
 {
-  SCM s_path = scm_from_locale_string ((char *) data);
-  SCM s_mode = scm_from_locale_string ("r0");
-  return scm_open_file (s_path, s_mode);
+    SCM s_path = scm_from_locale_string ((char *) data);
+    SCM s_mode = scm_from_locale_string ("r0");
+    return scm_open_file (s_path, s_mode);
 }
 
 static SCM
 _default_error_handler (void *data, SCM key, SCM vals)
 {
-  if (data == NULL)
-    return SCM_BOOL_F;
+    if (data == NULL)
+        return SCM_BOOL_F;
   
-  char **err_string = (char **) data;
-  char *c_key;
-  SCM subr, message, args, rest;
-  SCM message_args, formatted_message;
-  char *c_message;
+    char **err_string = (char **) data;
+    char *c_key;
+    SCM subr, message, args, rest;
+    SCM message_args, formatted_message;
+    char *c_message;
 
-  /* Key is the exception type, a symbol. */
-  /* exception is a list of 4 elements:
-     - subr: a subroutine name (symbol?) or #f
-     - message: a format string
-     - args: a list of arguments that are tokens for the message
-     - rest: the errno, if any */
-  if (scm_is_true (key))
-    c_key = scm_to_locale_string (scm_symbol_to_string (key));
-  else
-    c_key = NULL;
-
-  if (c_key && (strcmp (c_key, "unbound-variable") == 0)) {
-    
-    subr = scm_list_ref (vals, scm_from_int (0));
-    message = scm_list_ref (vals, scm_from_int (1));
-    args = scm_list_ref (vals, scm_from_int (2));
-    rest = scm_list_ref (vals, scm_from_int (3));
-
-    message_args = scm_simple_format (SCM_BOOL_F, message, args);
-
-    if (scm_is_true (subr))
-      formatted_message = scm_simple_format (SCM_BOOL_F,
-					     scm_from_locale_string ("Error ~S: ~A~%"),
-					     scm_list_2 (subr, message_args));
+    /* Key is the exception type, a symbol. */
+    /* exception is a list of 4 elements:
+       - subr: a subroutine name (symbol?) or #f
+       - message: a format string
+       - args: a list of arguments that are tokens for the message
+       - rest: the errno, if any */
+    if (scm_is_true (key))
+        c_key = scm_to_locale_string (scm_symbol_to_string (key));
     else
-      formatted_message = scm_simple_format (SCM_BOOL_F,
-					     scm_from_locale_string ("Error: ~A~%"),
-					     scm_list_1 (message_args));
-  }
-  else
-    // This is some key for which I don't know the format for the arguments,
-    // so I'll just print it out raw.
-	formatted_message = scm_simple_format (SCM_BOOL_F,
-					       scm_from_locale_string ("Error ~S: ~S~%"),
-					       scm_list_2 (key, vals));
+        c_key = NULL;
+
+    if (c_key && (strcmp (c_key, "unbound-variable") == 0)) {
+    
+        subr = scm_list_ref (vals, scm_from_int (0));
+        message = scm_list_ref (vals, scm_from_int (1));
+        args = scm_list_ref (vals, scm_from_int (2));
+        rest = scm_list_ref (vals, scm_from_int (3));
+
+        message_args = scm_simple_format (SCM_BOOL_F, message, args);
+
+        if (scm_is_true (subr))
+            formatted_message = scm_simple_format (SCM_BOOL_F,
+                                                   scm_from_locale_string ("Error ~S: ~A~%"),
+                                                   scm_list_2 (subr, message_args));
+        else
+            formatted_message = scm_simple_format (SCM_BOOL_F,
+                                                   scm_from_locale_string ("Error: ~A~%"),
+                                                   scm_list_1 (message_args));
+    }
+    else
+        // This is some key for which I don't know the format for the arguments,
+        // so I'll just print it out raw.
+        formatted_message = scm_simple_format (SCM_BOOL_F,
+                                               scm_from_locale_string ("Error ~S: ~S~%"),
+                                               scm_list_2 (key, vals));
   
 
 
-  *err_string = scm_to_locale_string (formatted_message);
+    *err_string = scm_to_locale_string (formatted_message);
 
-  return SCM_BOOL_F;
+    return SCM_BOOL_F;
 }
 
-gboolean
-burro_lisp_load (SCM module, GFile *file, char **err_string)
+
+SCM burro_lisp_new ()
 {
-  scm_set_current_module (module);
+    SCM burro_user_module = scm_c_define_module ("guile-user", NULL, NULL);
+    scm_set_current_module (burro_user_module);
 
-  if (!file)
+    scm_c_use_module ("ice-9 readline");
+    scm_c_use_module ("ice-9 eval-string");
+    scm_c_use_module ("ice-9 sandbox");
+    scm_c_use_module ("srfi srfi-1");
+    scm_c_use_module ("rnrs bytevectors");
+    scm_c_use_module ("system repl repl");
+    scm_c_use_module ("system repl server");
+    scm_c_use_module ("system repl coop-server");
+    scm_c_use_module ("system vm trap-state");
+
+    // Loading the internal Burro functions.
+    SCM burro_module;
+    char *err_string = NULL;
+    burro_module = scm_c_catch (SCM_BOOL_T,
+                                scm_init_burro_engine_module, NULL,
+                                _default_error_handler,
+                                (void *) &err_string,
+                                NULL, NULL);
+    if (scm_is_false (burro_module))
     {
-      *err_string = g_strdup("No file specified");
-      return FALSE;
+        g_critical(err_string);
+        free (err_string);
     }
+    else
+        scm_c_use_module ("burro");
 
-  // Next, try to parse the file
-  SCM ret;
-#if 0
-  char *contents;
-  gsize length;
-  GError *error = NULL;
-  gboolean ok = g_file_load_contents (file,
-				      NULL,
-				      &contents, &length,
-				      NULL,
-				      &error);
-  
-  if (!ok)
-    {
-      if (err_string)
-	*err_string = g_strdup_printf ("Unable to read file: %s",
-				       error->message);
-      g_error_free (error);
-      g_free (contents);
-      return FALSE;
-    }
-
-  ret = 
-    scm_c_catch (SCM_BOOL_T,
-		 (scm_t_catch_body) scm_c_eval_string,
-		 (void *) contents,
-		 (scm_t_catch_handler) _default_error_handler,
-		 (void *) err_string,
-		 (scm_t_catch_handler) NULL,
-		 (void *) NULL);
-
-  g_free (contents);
-#else
-  // I'm writing a crippled scheme parser using the C API?  What is
-  // wrong with me?
-  char *c_path = g_file_get_path (file);
-  SCM port =
-    scm_c_catch (SCM_BOOL_T,
-		 _open_file,
-		 (void *) c_path,
-		 _default_error_handler,
-		 (void *) err_string,
-		 NULL,
-		 NULL);
-  g_free (c_path);
-  if (scm_is_false (port))
-    return FALSE;
-  
-  ret = 
-    scm_c_catch (SCM_BOOL_T,
-		 (scm_t_catch_body) _load,
-		 (void *) SCM_UNPACK (port),
-		 (scm_t_catch_handler) _default_error_handler,
-		 (void *) err_string,
-		 (scm_t_catch_handler) NULL,
-		 (void *) NULL);
-#endif
-  if (scm_is_false (ret))
-    {
-      if (_last_line_loaded >= 0)
-	{
-	  SCM format_str = scm_from_locale_string ("~A");
-	  SCM expr_string = scm_simple_format (SCM_BOOL_F,
-					       format_str,
-					       scm_list_1 (_last_expr_loaded));
-	  char *c_expr_string = scm_to_locale_string (expr_string);
-	  
-	  char *new_err_string = g_strdup_printf("%s\nIn expression:\n%s\n\nAround line #%d",
-						 *err_string,
-						 c_expr_string,
-						 _last_line_loaded);
-	  g_free (*err_string);
-	  free (c_expr_string);
-	  *err_string = new_err_string;
-	}
-      return FALSE;
-    }
-
-  return TRUE;
+    return burro_user_module;
 }
 
-SCM burro_lisp_new (char **err_string)
+SCM
+burro_make_sandbox (GFile *file, char **err_string)
 {
-  // First, try loading the internal Burro functions.
-  SCM module;
-  module = scm_c_catch (SCM_BOOL_T,
-			_define_module, NULL,
-			_default_error_handler,
-			(void *) err_string,
-			NULL, NULL);
-  if (scm_is_false (module))
-      return SCM_BOOL_F;
+    // Try to parse the file
+    SCM sandbox;
+    if (file)
+    {
+        SCM sandbox_func = scm_c_public_ref("burro", "load-file-into-sandbox");
+        char *c_path = g_file_get_path (file);
+        SCM s_path = scm_from_locale_string (c_path);
+        g_free (c_path);
+        sandbox = scm_call_1 (sandbox_func, s_path);
+    }
+    else
+    {
+        SCM sandbox_func = scm_c_public_ref("burro", "make-sandbox");
+        sandbox = scm_call_0(sandbox_func);
+    }
 
-  return module;
+    if (scm_is_string (sandbox))
+    {
+        // The loading failed.  The returned string says why.
+        *err_string = scm_to_locale_string (sandbox);
+        return SCM_BOOL_F;
+    }
+
+    return sandbox;
 }
 
+/*
+  Local Variables:
+  mode:C
+  c-file-style:"linux"
+  tab-width:4
+  c-basic-offset: 4
+  indent-tabs-mode:nil
+  End:
+*/

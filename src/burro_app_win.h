@@ -11,8 +11,6 @@ G_DECLARE_FINAL_TYPE (BurroAppWindow, burro_app_window, BURRO, APP_WINDOW, GtkAp
 BurroAppWindow *burro_app_window_new (BurroApp *app);
 void burro_app_window_open (BurroAppWindow *win,
 			    GFile *file);
-gboolean canvas_draw_cb (GtkWidget *widget,
-			 cairo_t *cr,
-			 gpointer data);
 
+void burro_app_win_init_guile_procedures (void);
 #endif
