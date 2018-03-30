@@ -26,7 +26,7 @@ handler.  When called, it tries to convert x,y locations into
 character locations.  If those character locations have associated
 actions, they are activated."
   (lambda (time x y)
-    (format #t "BUTTON PRESS HANDLER ~s ~s ~s~%" time x y)
+    ;; (format #t "BUTTON PRESS HANDLER ~s ~s ~s~%" time x y)
     (let ((index (mouse-position-to-string-index x y)))
       (when index
 	(let ((action-thunk (find-action actions index)))
@@ -38,15 +38,15 @@ actions, they are activated."
   ;; We let the caller drop the uninteresting *TOP* node
   (let ((burro-sxml-tree
 	 `(*TOP* ,burro-sxml-tree-inner)))
-    (format #t "BURRO SXML TREE ~s~%" burro-sxml-tree)
+    ;; (format #t "BURRO SXML TREE ~s~%" burro-sxml-tree)
   (let ((actions (sxml-locate-actions burro-sxml-tree))
 	(pango-sxml-tree (sxml-style-actions burro-sxml-tree)))
-    (format #t "ACTIONS ~S~%" actions)
-    (format #t "PANGO_SXML TREE ~S~%" pango-sxml-tree)
+    ;; (format #t "ACTIONS ~S~%" actions)
+    ;; (format #t "PANGO_SXML TREE ~S~%" pango-sxml-tree)
     (let ((pango-xml-string
 	   (with-output-to-string
 	     (lambda () (sxml->xml pango-sxml-tree)))))
-      (format #t "PANGO XML STRING ~S~%" pango-xml-string)
+      ;; (format #t "PANGO XML STRING ~S~%" pango-xml-string)
       ;; Write the string to the screen
       (set-markup pango-xml-string)
       

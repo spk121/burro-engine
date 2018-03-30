@@ -19,6 +19,8 @@ struct _BurroCanvas
     PangoLayout *layout;
     gboolean layout_flag;
     int layout_priority;
+
+    guint tick_cb_id;
 };
 
 static void draw ();
@@ -28,19 +30,21 @@ G_DEFINE_TYPE(BurroCanvas, burro_canvas, GTK_TYPE_DRAWING_AREA);
 BurroCanvas *canvas_cur = NULL;
 
 static gboolean
-signal_draw (GtkWidget *widget,
-                cairo_t *cr,
-                gpointer data)
+burro_canvas_draw (GtkWidget *widget,
+                   cairo_t *cr)
 {
     BurroCanvas *canvas = BURRO_CANVAS(widget);
-    
-    cairo_set_source_surface (cr, canvas->surface, 0, 0);
-    cairo_paint (cr);
+
+    if (canvas->surface)
+    {
+        cairo_set_source_surface (cr, canvas->surface, 0, 0);
+        cairo_paint (cr);
+    }
     return FALSE;
 }
 
 static int
-tick (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
+tick_cb (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
 {
     if (gtk_widget_is_visible (widget))
     {
@@ -168,12 +172,23 @@ burro_canvas_init (BurroCanvas *win)
     pango_layout_set_height (win->layout, BURRO_CANVAS_HEIGHT * PANGO_SCALE);
     pango_layout_set_wrap (win->layout, PANGO_WRAP_WORD_CHAR);
     
-    g_signal_connect (G_OBJECT (win), "draw", G_CALLBACK (signal_draw), NULL);
-
-    gtk_widget_add_tick_callback (GTK_WIDGET(win), tick, NULL, NULL);
+    win->tick_cb_id = gtk_widget_add_tick_callback (GTK_WIDGET(win),
+                                                    tick_cb,
+                                                    NULL,
+                                                    NULL);
 
     win->dirty = TRUE;
     canvas_cur = win;
+}
+
+// Do I need delete here? The docs say "Signal emitted if a user
+// requests that a toplevel window is closed".
+static gboolean
+burro_canvas_delete (GtkWidget *widget,
+                     GdkEventAny *eveny)
+{
+    gtk_widget_destroy (widget);
+    return TRUE;
 }
 
 static void
@@ -182,11 +197,21 @@ burro_canvas_dispose (GObject *object)
     BurroCanvas *win;
 
     win = BURRO_CANVAS (object);
+
+    if (win->tick_cb_id > 0)
+    {
+        gtk_widget_remove_tick_callback (GTK_WIDGET(win), win->tick_cb_id);
+        win->tick_cb_id = 0;
+    }
+    g_clear_object(&(win->layout));
+    win->layout_flag = FALSE;
+
     if (win->context)
     {
         cairo_destroy (win->context);
         win->context = NULL;
     }
+    
     if (win->surface)
     {
         cairo_surface_destroy (win->surface);
@@ -198,6 +223,16 @@ burro_canvas_dispose (GObject *object)
 static void
 burro_canvas_class_init (BurroCanvasClass *class)
 {
+    GtkWidgetClass *gtkclass = GTK_WIDGET_CLASS (class);
+    GObjectClass *gclass = G_OBJECT_CLASS(class);
+
+    gclass->dispose = burro_canvas_dispose;
+
+    /* basics */
+    gtkclass->draw = burro_canvas_draw;
+    
+    /* events */
+    gtkclass->delete_event = burro_canvas_delete;
     
 }
 

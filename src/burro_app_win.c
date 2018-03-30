@@ -28,6 +28,7 @@ struct _BurroAppWindow
     // 60fps timer
     guint tick_timer;
     SCM tick_func;
+    gboolean tick_quitting;
     
     // Guile support
     BurroRepl *repl;
@@ -243,6 +244,9 @@ signal_action_button_press_event (GtkWidget *widget, GdkEventButton *event,
 static gboolean
 timeout_action_tick (gpointer user_data)
 {
+    if (app_window_cur->tick_quitting)
+        return FALSE;
+    
     if (scm_is_true (scm_procedure_p (app_window_cur->tick_func)))
     {
         SCM func = scm_c_public_ref("burro", "call-with-limits");
@@ -401,6 +405,7 @@ burro_app_window_init (BurroAppWindow *win)
     
     // Animation timer: about 60fps
     win->tick_func = SCM_BOOL_F;
+    win->tick_quitting = FALSE;
     win->tick_timer = g_timeout_add_full (G_PRIORITY_DEFAULT,
                                           12, /* milliseconds */
                                           timeout_action_tick,
@@ -421,13 +426,35 @@ burro_app_window_init (BurroAppWindow *win)
                                                   
 }
 
+static  gboolean
+burro_app_window_delete (GtkWidget	     *widget,
+                         GdkEventAny	     *event)
+{
+    gtk_widget_destroy(widget);
+    return TRUE;
+}
+
 static void
 burro_app_window_dispose (GObject *object)
 {
     BurroAppWindow *win;
-
     win = BURRO_APP_WINDOW (object);
 
+    g_log_remove_handler (NULL, win->log_handler_id);
+    g_log_set_default_handler (g_log_default_handler, NULL);
+    
+    win->tick_quitting = TRUE;
+
+    g_clear_object(&(win->vram_tree_view));
+    if (win->canvas)
+    {
+        g_object_unref(win->canvas);
+        win->canvas = NULL;
+    }
+
+    win->sandbox = SCM_BOOL_F;
+    win->burro_module = SCM_BOOL_F;
+    
     g_clear_object (&win->repl);
     G_OBJECT_CLASS (burro_app_window_parent_class)->dispose (object);
 }
@@ -435,20 +462,24 @@ burro_app_window_dispose (GObject *object)
 static void
 burro_app_window_class_init (BurroAppWindowClass *class)
 {
-    G_OBJECT_CLASS (class)->dispose = burro_app_window_dispose;
+    GObjectClass *gclass = G_OBJECT_CLASS(class);
+    GtkWidgetClass *gtkclass = GTK_WIDGET_CLASS (class);
+    const char window_ui[] = "/com/lonelycactus/burroengine/window.ui";
+    
+    gclass->dispose = burro_app_window_dispose;
 
-    gtk_widget_class_set_template_from_resource (GTK_WIDGET_CLASS (class),
-                                                 "/com/lonelycactus/burroengine/window.ui");
+    gtkclass->delete_event = burro_app_window_delete;
 
-    // gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, fixed);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, canvas);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, gears);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, tools_revealer);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, message_view);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, message_scrolled_window);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, repl_combobox);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, console_entry);
-    gtk_widget_class_bind_template_child (GTK_WIDGET_CLASS (class), BurroAppWindow, vram_tree_view);
+    gtk_widget_class_set_template_from_resource (gtkclass, window_ui);
+
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, canvas);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, gears);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, tools_revealer);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, message_view);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, message_scrolled_window);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, repl_combobox);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, console_entry);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, vram_tree_view);
 }
 
 BurroAppWindow *
@@ -484,7 +515,8 @@ burro_app_window_open (BurroAppWindow *win,
         gtk_widget_destroy (dialog);
         g_free (filename);
     }
-    g_object_unref (file);
+    if (file)
+        g_object_unref (file);
 }
 
 SCM_DEFINE (G_burro_app_win_get_sandbox, "get-sandbox", 0, 0, 0,

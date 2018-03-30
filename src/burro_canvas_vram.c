@@ -201,6 +201,7 @@ GtkListStore *vram_info_list_store_new()
                                      G_TYPE_STRING);
     path = gtk_tree_path_new_from_string ("0");
     gtk_tree_model_get_iter(GTK_TREE_MODEL (list_store), &iter, path);
+    gtk_tree_path_free (path);
     for (i = VRAM_A; i < VRAM_COUNT; i ++)
     {
         char *siz = vram_size_string(i);
