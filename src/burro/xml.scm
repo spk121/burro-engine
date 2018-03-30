@@ -13,11 +13,11 @@
 ;; And I am adding
 ;; <a>
 
-(define-module (burro-xml)
+(define-module (burro xml)
   #:use-module (sxml match)
   #:use-module (sxml transform)
   #:use-module (srfi srfi-1)
-  #:export (sxml-location-actions
+  #:export (sxml-locate-actions
 	    sxml-style-actions))
 
 ;; (sxml transform) and (sxml fold) disagree on what 'foldts' is
@@ -33,6 +33,10 @@
   (not (pair? x)))
 
 (define (sxml-fold proc seed list)
+  "As far as I can tell, this take a procedure PROC which takes two
+arguments, one element of a node, and SEED, which is use to hold a
+state.  It folds the procedure and state along the list, much like an
+SRFI-1 fold does."
   (if (null? list)
       seed
       (sxml-fold proc (proc (car list) seed)

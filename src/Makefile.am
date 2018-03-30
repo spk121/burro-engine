@@ -1,4 +1,4 @@
-bin_PROGRAMS = burro
+bin_PROGRAMS = burro-engine
 pkglib_LTLIBRARIES = libburrowidget.la
 
 ################################################################
@@ -7,7 +7,8 @@ pkglib_LTLIBRARIES = libburrowidget.la
 libburrowidget_la_SOURCES = \
  burro_canvas.c burro_canvas.h \
  burro_canvas_vram.c burro_canvas_vram.h \
- burro_canvas_bg.c burro_canvas_bg.h
+ burro_canvas_bg.c burro_canvas_bg.h \
+ burro_canvas_colors.c burro_canvas_colors.h
 
 SRCS_X_H = \
  x/xcairo.h \
@@ -122,7 +123,7 @@ r/burro.resource.h: r/burro.resource.xml
 
 CLEANFILES = $(DOT_X_FILES)
 
-burro_SOURCES = $(SRCS_X_H) \
+burro_engine_SOURCES = $(SRCS_X_H) \
  $(SRCS_X_C) \
  $(SRCS_Y_H) \
  $(SRCS_Y_C) \
@@ -134,7 +135,7 @@ burro_SOURCES = $(SRCS_X_H) \
  burro_repl.c burro_repl.h \
  main.c
 
-burro_LDADD = $(DEPS_LIBS) $(GUILE_LIBS) -lburrowidget -lm
+burro_engine_LDADD = $(DEPS_LIBS) $(GUILE_LIBS) -lburrowidget -lm
 AM_CFLAGS = $(DEPS_CFLAGS) $(GUILE_CFLAGS)
 
 #AM_LDFLAGS = -rdynamic

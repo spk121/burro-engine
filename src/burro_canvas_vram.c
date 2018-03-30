@@ -30,7 +30,7 @@ vram_info_t vram_info[VRAM_COUNT];
 static GtkListStore *vram_list_store = NULL;
 
 static const char vram_type_name[VRAM_N_TYPES][15] = {
-    [VRAM_TYPE_NONE] = "Unused",
+    [VRAM_TYPE_RAW] = "Raw",
     [VRAM_TYPE_IMAGE] = "Image",
     [VRAM_TYPE_OPUS] = "Audio"
 };
@@ -178,8 +178,8 @@ vram_zero_bank (vram_bank_t bank)
 
 static char *vram_size_string(int i)
 {
-    if (vram_info[i].type == VRAM_TYPE_NONE)
-        return g_strdup ("empty");
+    if (vram_info[i].type == VRAM_TYPE_RAW)
+        return g_strdup_printf("%d kB", vram_size[i] * 4 / 1024);
     else if (vram_info[i].type == VRAM_TYPE_IMAGE)
         return g_strdup_printf("%d by %d", vram_info[i].width, vram_info[i].height);
     else
@@ -294,8 +294,8 @@ of the VRAM bank.")
     vram_bank_t i = _scm_to_vram_bank_t (index);
     int type = vram_info[i].type;
     SCM ret;
-    if (type == VRAM_TYPE_NONE)
-        ret = scm_from_utf8_symbol ("none");
+    if (type == VRAM_TYPE_RAW)
+        ret = scm_from_utf8_symbol ("raw");
     else if (type == VRAM_TYPE_IMAGE)
         ret = scm_from_utf8_symbol ("image");
     else

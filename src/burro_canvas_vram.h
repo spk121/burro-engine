@@ -34,7 +34,7 @@
  */
 
 enum {
-    VRAM_TYPE_NONE,
+    VRAM_TYPE_RAW,
     VRAM_TYPE_IMAGE,		/* 32-bit image data */
     VRAM_TYPE_TILEMAP,		/* 32-bit maps for map-and-tile backgrounds */
     VRAM_TYPE_OPUS,		/* Complete Opus audio file */

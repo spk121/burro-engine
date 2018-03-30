@@ -2,6 +2,8 @@
 #include <libguile.h>
 
 #include "burro_canvas.h"
+#include "burro_canvas_colors.h"
+
 struct _BurroCanvas
 {
     GtkDrawingArea parent;
@@ -13,6 +15,10 @@ struct _BurroCanvas
     cairo_t *context;
     cairo_surface_t *surface;
     gboolean dirty;
+
+    PangoLayout *layout;
+    gboolean layout_flag;
+    int layout_priority;
 };
 
 static void draw ();
@@ -79,6 +85,16 @@ static void draw_backdrop_color ()
     cairo_paint (canvas_cur->context);
 }
 
+static void draw_textbox()
+{
+    cairo_save (canvas_cur->context);
+    cairo_set_source_rgb (canvas_cur->context, 0.7, 0.7, 0.7);
+    cairo_move_to(canvas_cur->context, 0, 0);
+    pango_cairo_show_layout (canvas_cur->context, canvas_cur->layout);
+    cairo_restore(canvas_cur->context);
+}
+
+
 static void draw ()
 {
     draw_backdrop_color ();
@@ -100,10 +116,15 @@ static void draw ()
                 draw_obj (obj);
         }
         SCM textbox = scm_variable_ref (G_textbox_var);
-        if (scm_is_true(textbox) && textbox_get_priority (textbox) == priority)
-            draw_textbox (textbox);
     }
 #endif
+
+    for (int priority = BURRO_CANVAS_ZLEVEL_COUNT - 1; priority >= 0; priority --)
+    {
+        if (canvas_cur->layout_flag && (canvas_cur->layout_priority == priority))
+            draw_textbox ();
+    }
+
 end_draw:
 
     //if (console_is_visible ())
@@ -132,6 +153,21 @@ burro_canvas_init (BurroCanvas *win)
     win->context = cairo_create (win->surface);
     cairo_set_antialias (win->context, CAIRO_ANTIALIAS_NONE);
 
+    // Set up the text drawing
+    win->layout = pango_cairo_create_layout (win->context);
+    win->layout_flag = FALSE;
+    win->layout_priority = 0;
+
+    /* Set the font. */
+    PangoFontDescription *desc = pango_font_description_from_string("Serif 16");
+    pango_layout_set_font_description (win->layout, desc);
+    pango_font_description_free (desc);
+
+    /* Set up word wrapping. */
+    pango_layout_set_width (win->layout, BURRO_CANVAS_WIDTH * PANGO_SCALE);
+    pango_layout_set_height (win->layout, BURRO_CANVAS_HEIGHT * PANGO_SCALE);
+    pango_layout_set_wrap (win->layout, PANGO_WRAP_WORD_CHAR);
+    
     g_signal_connect (G_OBJECT (win), "draw", G_CALLBACK (signal_draw), NULL);
 
     gtk_widget_add_tick_callback (GTK_WIDGET(win), tick, NULL, NULL);
@@ -170,6 +206,13 @@ burro_canvas_new ()
 {
     return g_object_new (BURRO_TYPE_CANVAS, "canvas", NULL);
 }
+
+cairo_t *
+get_canvas_context_cur()
+{
+    return canvas_cur->context;
+}
+
 
 SCM_DEFINE(G_burro_canvas_set_blank, "set-blank", 1, 0, 0, (SCM flag), "\
 Given a FLAG, this sets the canvas's blank parameter.  When blank is\n\
@@ -245,13 +288,30 @@ Returns the canvas's brightness parameter.")
     return scm_from_double (canvas_cur->brightness);
 }
 
-SCM_DEFINE(G_burro_canvas_set_backdrop, "set-backdrop", 1, 0, 0, (SCM color), "\
+SCM_DEFINE(G_burro_canvas_set_backdrop, "set-backdrop", 1, 0, 0, (SCM s_color), "\
 Given a 32-bit RGB colorval, this sets the canvas backdrop to that color.")
 {
     g_return_val_if_fail (canvas_cur != NULL, SCM_UNSPECIFIED);
 
-    canvas_cur->backdrop = scm_to_uint32 (color);
-    canvas_cur->dirty = TRUE;
+    if (scm_is_string (s_color))
+    {
+        char *color = scm_to_utf8_string (s_color);
+        guint32 colorval;
+        gboolean found = burro_canvas_lookup_colorval (color, &colorval);
+        if (found)
+        {
+            canvas_cur->backdrop = colorval;
+            canvas_cur->dirty = TRUE;
+        }
+    }
+    else if (scm_is_unsigned_integer (s_color, 0, 0xFFFFFF))
+    {
+        canvas_cur->backdrop = scm_to_uint32 (s_color);
+        canvas_cur->dirty = TRUE;
+    }
+    else
+        scm_wrong_type_arg_msg("set-backdrop", SCM_ARG1, s_color, "color name or value");
+    
     return SCM_UNSPECIFIED;
 }
 
@@ -262,6 +322,47 @@ Returns a 32-bit RGB color, which is the canvas backdrop color.")
     
     return scm_from_uint32 (canvas_cur->backdrop);
 }
+
+SCM_DEFINE(G_burro_canvas_set_markup, "set-markup", 1, 0, 0, (SCM s_str), "\
+Given a string, possibly with Pango-style XML markup, sets the\n\
+textbox text.")
+{
+    SCM_ASSERT (scm_is_string (s_str), s_str, SCM_ARG1, "set-markup");
+    char *str = scm_to_utf8_string (s_str);
+    pango_layout_set_markup (canvas_cur->layout, str, -1);
+    canvas_cur->layout_flag = TRUE;
+    
+    canvas_cur->dirty = TRUE;
+    return SCM_UNSPECIFIED;
+}
+
+SCM_DEFINE(G_burro_canvas_position_to_string_index,
+           "mouse-position-to-string-index", 2, 0, 0, (SCM s_x, SCM s_y), "\
+Converts a location in pixel coordinates to a codepoint index of a\n\
+textbox's text. Returns #f if the position is not near a character,\n\
+or an codepoint index otherwise.")
+{
+    int x = scm_to_double (s_x) * PANGO_SCALE;
+    int y = scm_to_double (s_y) * PANGO_SCALE;
+    int index, trailing;
+    gboolean ret = pango_layout_xy_to_index (canvas_cur->layout, x, y, &index, &trailing);
+    if (!ret)
+        return SCM_BOOL_F;
+
+    /* The UTF-8 index needs to be converted into UTF32 index. */
+    const char *str = pango_layout_get_text (canvas_cur->layout);
+    char *p = str;
+    int offset = 0;
+    while (p - str < index)
+    {
+        p = g_utf8_next_char(p);
+        offset++;
+    }
+    
+    //return scm_list_2 (scm_from_int (offset), scm_from_int (trailing));
+    return scm_from_int(offset);
+}
+
 
 void
 burro_canvas_init_guile_procedures ()
@@ -277,6 +378,8 @@ burro_canvas_init_guile_procedures ()
                   "get-brightness",
                   "set-backdrop",
                   "get-backdrop",
+                  "set-markup",
+                  "mouse-position-to-string-index",
                   NULL);
 }
 

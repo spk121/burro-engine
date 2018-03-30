@@ -17,9 +17,12 @@
 ;; along with Burro Engine.  If not, see <http://www.gnu.org/licenses/>.
 
 (define-module (burro)
+  #:use-module (burro drivers)
   #:use-module (burro engine)
+  #:use-module (burro colors)
   #:use-module (rnrs io ports)
   #:use-module (ice-9 sandbox)
+  #:re-export (clickable-text)
   #:export (make-sandbox
 	    load-file-into-sandbox
 	    eval-string-in-sandbox
@@ -105,8 +108,14 @@ with
   (newline *console-port*)
   (car (last-pair stuff)))
 
-(define burro-bindings
-  '(((burro engine)
+(define sandbox-bindings
+  '(((burro colors)
+     color)
+
+    ((burro drivers)
+     clickable-text)
+    
+    ((burro engine)
      ;; From burro_app_win.c
      set-title
      receive-button-presses
@@ -120,6 +129,7 @@ with
      get-blank
      set-backdrop
      get-backdrop
+     set-markup
      ;; from burro_canvas_vram.c
      VRAM_A
      VRAM_B
@@ -139,7 +149,6 @@ with
 
     ((burro)
      ;; From burro.scm
-     
      Display
      console-info
      warn
@@ -173,7 +182,7 @@ with
 (define (make-sandbox)
   (make-sandbox-module
    (append all-pure-and-impure-bindings
-	   burro-bindings)))
+	   sandbox-bindings)))
 
 (define *last-line-loaded* 0)
 (define *last-expr-loaded* '())
@@ -263,3 +272,4 @@ the error."
    (call-with-time-and-allocation-limits 0.1 #e10e6
 					(lambda ()
 					  (apply proc args)))))
+
