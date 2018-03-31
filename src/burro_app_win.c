@@ -8,6 +8,10 @@
 #include "burro_config_keys.h"
 #include "burro_lisp.h"
 
+#define GAME_LOOP_MINIMUM_PERIOD_MICROSECONDS (1000000 / 60)
+#define GAME_LOOP_IDEAL_PERIOD_MICROSECONDS (1000000 / 30)
+#define GAME_LOOP_MAXIMUM_PERIOD_MICROSECONDS (1000000 / 10)
+
 static void console_write_icon (const gchar *c_icon_name);
 
 struct _BurroAppWindow
@@ -25,18 +29,34 @@ struct _BurroAppWindow
     GtkTreeView *vram_tree_view;
     GtkListStore *vram_list_store;
     
-    // 60fps timer
-    guint tick_timer;
-    SCM tick_func;
-    gboolean tick_quitting;
+    // The main game loop is in the idle handler.
+    gboolean minimized_flag;
+    gboolean maximized_flag;
+    guint game_loop_callback_id;
+    gint game_loop_frame_count;
+    gboolean game_loop_active_flag;
+    gboolean game_loop_quitting;
+    gint64 game_loop_start_time;
+    gint64 game_loop_end_time;
+    gint64 game_loop_start_time_prev;
+    gboolean game_loop_full_speed;
+    gint64 game_loop_avg_period;
+    gint64 game_loop_avg_duration;
+    
+    gboolean have_text_click_event;
+    int text_click_location;
+    gboolean have_mouse_click_event;
+    double mouse_click_x;
+    double mouse_click_y;
+    gboolean have_mouse_move_event;
+    double mouse_move_x;
+    double mouse_move_y;
     
     // Guile support
     BurroRepl *repl;
     SCM burro_module;           /* The (burro) module */
     SCM sandbox;                /* Opened files are parsed into this
                                  * anonymous module */
-    SCM button_press_func;      /* Scheme callback for button press
-                                 * events */
     // Log handler
     guint log_handler_id;
 };
@@ -224,38 +244,123 @@ signal_action_console_activate (GtkEntry *entry, gpointer user_data)
 }
 
 static gboolean
-signal_action_button_press_event (GtkWidget *widget, GdkEventButton *event,
+signal_action_canvas_button_press_event (GtkWidget *widget, GdkEventButton *event,
                                   gpointer user_data)
 {
-    if (scm_is_true (scm_procedure_p (app_window_cur->button_press_func)))
+    GdkEventButton *button = event;
+    if (button->type = GDK_BUTTON_PRESS)
     {
-        SCM func = scm_c_public_ref("burro", "call-with-limits");
-        SCM ret = scm_call_4(func,
-                             app_window_cur->button_press_func,
-                             scm_from_double (1.0e-6 * event->time),
-                             scm_from_double (event->x),
-                             scm_from_double (event->y));
-        if (scm_is_string (ret))
-            scm_call_1(scm_c_public_ref("burro", "console-error"), ret);
+        app_window_cur->have_mouse_click_event = TRUE;
+        app_window_cur->mouse_click_x = button->x;
+        app_window_cur->mouse_click_y = button->y;
+        int index, trailing;
+        if (burro_canvas_xy_to_index (app_window_cur->canvas, button->x, button->y, &index, &trailing))
+        {
+            app_window_cur->have_text_click_event = TRUE;
+            app_window_cur->text_click_location = index;
+        }
     }
+    
     return TRUE;
 }
 
 static gboolean
-timeout_action_tick (gpointer user_data)
+signal_action_canvas_motion_notify_event (GtkWidget *widget, GdkEventMotion *event,
+                                          gpointer user_data)
 {
-    if (app_window_cur->tick_quitting)
-        return FALSE;
+    app_window_cur->have_mouse_move_event = TRUE;
+    app_window_cur->mouse_move_x = event->x;
+    app_window_cur->mouse_move_y = event->y;
+    return TRUE;
+}
+
+static gboolean
+game_loop (gpointer user_data)
+{
+    BurroAppWindow *win = BURRO_APP_WINDOW (user_data);
     
-    if (scm_is_true (scm_procedure_p (app_window_cur->tick_func)))
+    if (win->game_loop_quitting)
+        return FALSE;
+
+    if (!win->minimized_flag)
     {
-        SCM func = scm_c_public_ref("burro", "call-with-limits");
-        SCM ret = scm_call_2(func,
-                             app_window_cur->tick_func,
-                             scm_from_double (1.0e-6 * g_get_monotonic_time()));
-        if (scm_is_string (ret))
-            scm_call_1(scm_c_public_ref("burro", "console-error"), ret);
+        if (win->game_loop_active_flag)
+        {
+            gint64 start_time = g_get_monotonic_time();
+            if (win->game_loop_full_speed || ((start_time - win->game_loop_start_time) > GAME_LOOP_MINIMUM_PERIOD_MICROSECONDS))
+            {
+                win->game_loop_start_time_prev = win->game_loop_start_time;
+                win->game_loop_start_time = start_time;
+                gint64 dt = start_time - win->game_loop_start_time_prev;
+                
+                // If dt is too large, maybe we're resuming from a break point.
+                // Frame-lock to the target rate for this frame.
+                if (dt > GAME_LOOP_MAXIMUM_PERIOD_MICROSECONDS)
+                    dt = GAME_LOOP_IDEAL_PERIOD_MICROSECONDS;
+                
+                // Update the TCP repl, if it is running
+                //repl_tick();
+                
+                // Pass any new mouse clicks and other events to the process manager
+                if (win->have_text_click_event)
+                {
+                    scm_call_1 (scm_c_public_ref ("burro process", "pm-set-text-click"),
+                                scm_from_int (win->text_click_location));
+                    win->have_text_click_event = FALSE;
+                }
+                if (win->have_mouse_click_event)
+                {
+                    scm_call_2 (scm_c_public_ref ("burro process", "pm-set-mouse-click"),
+                                scm_from_double (win->mouse_click_x),
+                                scm_from_double (win->mouse_click_y));
+                    win->have_mouse_click_event == FALSE;
+                }
+                if (win->have_mouse_move_event)
+                {
+                    scm_call_2 (scm_c_public_ref ("burro process", "pm-set-mouse-move"),
+                                scm_from_double (win->mouse_move_x),
+                                scm_from_double (win->mouse_move_y));
+                    win->have_mouse_move_event == FALSE;
+                }
+
+                // Let the guile processes run
+                SCM ret = scm_call_1 (scm_c_public_ref ("burro process", "pm-update-or-error-string"),
+                                      scm_from_int64(dt));
+                if (scm_is_string (ret))
+                    scm_call_1(scm_c_public_ref("burro", "console-error"), ret);
+                
+                // Update subsystems
+
+                // Render things
+
+                // Keep some statistics on frame rate, and computation time
+                win->game_loop_frame_count ++;
+                win->game_loop_avg_period = ((19 * win->game_loop_avg_period) / 20
+                                                 + dt / 20);
+
+                win->game_loop_end_time = g_get_monotonic_time();
+                win->game_loop_avg_duration = ((19 * win->game_loop_avg_duration) / 20
+                                               + (win->game_loop_end_time - win->game_loop_start_time) / 20);
+                
+                if (!(win->game_loop_frame_count % 5000))
+                    g_info ("Game Loop frame rate %.1f, duty cycle %.1f%%",
+                            1000000.0 / win->game_loop_avg_period,
+                            (100.0 * win->game_loop_avg_duration) / win->game_loop_avg_period);
+                
+            }
+            else /* We are running too fast. */
+                usleep(1000);
+        }
+        else /* ! active */
+        {
+            usleep (1000);
+            // audio pause
+            // sleep until next event
+        }
     }
+    else /* minimized */
+        usleep (1000);
+         
     return TRUE;
 }
 
@@ -361,11 +466,20 @@ burro_app_window_init (BurroAppWindow *win)
                       G_CALLBACK(signal_action_repl_enabled),
                       win->repl);
 
-    // Hook up with canvas
-    win->button_press_func = SCM_BOOL_F;
+    // The game loop needs to know about mouse moves and mouse clicks
+    // that specifically happen in the canvas.
+    // This is for mouse clicks.
+    win->have_mouse_click_event = FALSE;
+    win->have_text_click_event = FALSE;
     g_signal_connect (G_OBJECT (win->canvas),
                       "button-press-event",
-                      G_CALLBACK (signal_action_button_press_event),
+                      G_CALLBACK (signal_action_canvas_button_press_event),
+                      NULL);
+    // This is for mouse moves
+    win->have_mouse_move_event = FALSE;
+    g_signal_connect (G_OBJECT (win->canvas),
+                      "motion-notify-event",
+                      G_CALLBACK (signal_action_canvas_motion_notify_event),
                       NULL);
 
     // Hook up the VRAM viewer
@@ -403,14 +517,21 @@ burro_app_window_init (BurroAppWindow *win)
     gtk_widget_show (GTK_WIDGET(win->vram_tree_view));
     
     
-    // Animation timer: about 60fps
-    win->tick_func = SCM_BOOL_F;
-    win->tick_quitting = FALSE;
-    win->tick_timer = g_timeout_add_full (G_PRIORITY_DEFAULT,
-                                          12, /* milliseconds */
-                                          timeout_action_tick,
-                                          (gpointer) win,
-                                          timeout_action_destroy);
+    // Main Game Loop
+    win->game_loop_active_flag = TRUE;
+    win->game_loop_quitting = FALSE;
+    win->game_loop_start_time = g_get_monotonic_time ();
+    win->game_loop_end_time = g_get_monotonic_time ();
+    win->game_loop_start_time_prev = win->game_loop_start_time - GAME_LOOP_IDEAL_PERIOD_MICROSECONDS;
+    win->game_loop_full_speed = FALSE;
+    win->game_loop_frame_count = 0;
+    win->game_loop_avg_period = GAME_LOOP_IDEAL_PERIOD_MICROSECONDS;
+    win->game_loop_avg_duration = GAME_LOOP_IDEAL_PERIOD_MICROSECONDS / 4;
+
+    win->game_loop_callback_id = g_idle_add_full (G_PRIORITY_DEFAULT_IDLE,
+                                       game_loop,
+                                       (gpointer) win,
+                                       timeout_action_destroy);
 
     // Alternative logging
     win->log_handler_id = g_log_set_handler_full (NULL,
@@ -426,6 +547,36 @@ burro_app_window_init (BurroAppWindow *win)
                                                   
 }
 
+// This callback is called when the window is maximizing and
+// minimizing.
+gboolean
+burro_app_window_state (GtkWidget *widget,
+                        GdkEventWindowState *win_event,
+                        gpointer user_data)
+{
+    BurroAppWindow *win = BURRO_APP_WINDOW(widget);
+    
+    if (win_event->new_window_state & GDK_WINDOW_STATE_ICONIFIED)
+    {
+        win->minimized_flag = TRUE;
+        win->maximized_flag = FALSE;
+    }
+    else if (win_event->new_window_state & (GDK_WINDOW_STATE_MAXIMIZED
+                                            | GDK_WINDOW_STATE_FULLSCREEN))
+    {
+        win->minimized_flag = FALSE;
+        win->maximized_flag = TRUE;
+    }
+    else
+    {
+        win->minimized_flag = FALSE;
+        win->maximized_flag = FALSE;
+    }
+    return TRUE;
+}
+
+// This callback is called when the application has asked this window
+// to delete itself.
 static  gboolean
 burro_app_window_delete (GtkWidget	     *widget,
                          GdkEventAny	     *event)
@@ -443,7 +594,7 @@ burro_app_window_dispose (GObject *object)
     g_log_remove_handler (NULL, win->log_handler_id);
     g_log_set_default_handler (g_log_default_handler, NULL);
     
-    win->tick_quitting = TRUE;
+    win->game_loop_quitting = TRUE;
 
     g_clear_object(&(win->vram_tree_view));
     if (win->canvas)
@@ -469,6 +620,7 @@ burro_app_window_class_init (BurroAppWindowClass *class)
     gclass->dispose = burro_app_window_dispose;
 
     gtkclass->delete_event = burro_app_window_delete;
+    gtkclass->window_state_event = burro_app_window_state;
 
     gtk_widget_class_set_template_from_resource (gtkclass, window_ui);
 
@@ -539,31 +691,6 @@ Set the title in titlebar of the main window.")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE (G_burro_app_win_receive_button_presses,
-            "receive-button-presses", 1, 0, 0,
-            (SCM proc), "\
-Registers PROC -- a procedure that takes 3 values (time, x, y) -- as\n\
-the procedure to receive button press events.  To ignore button\n\
-presses, PROC can be #f.  Returns the previously registered procedure,\n\
-if any.")
-{
-    SCM prev = app_window_cur->button_press_func;
-    app_window_cur->button_press_func = proc;
-    return prev;
-}
-
-SCM_DEFINE (G_burro_app_win_receive_clock_tick,
-            "receive-clock-tick", 1, 0, 0,
-            (SCM proc), "\
-Registers PROC -- a procedure that takes 1 value: time in seconds --\n\
-as the procedure to receive timer events about 60 times per second.\n\
-To ignore tick events, PROC can be #f.  Returns the previously\n\
-registered procedure, if any.")
-{
-    SCM prev = app_window_cur->tick_func;
-    app_window_cur->tick_func = proc;
-    return prev;
-}
 
 SCM_DEFINE (G_burro_app_win_console_write, "console-write-bytevector", 3, 0, 0,
             (SCM bv, SCM _index, SCM _count), "\
@@ -657,9 +784,6 @@ burro_app_win_init_guile_procedures ()
     scm_c_export ("get-sandbox",
                   "console-write-bytevector",
                   "console-write-icon",
-                  "receive-button-presses",
-                  "receive-tick",
-                  "receive-clock-tick",
                   "set-title",
                   NULL);
 }

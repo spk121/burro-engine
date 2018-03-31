@@ -118,8 +118,8 @@ with
     ((burro engine)
      ;; From burro_app_win.c
      set-title
-     receive-button-presses
-     receive-clock-tick
+     ;; receive-clock-tick
+     ;; register-game-loop-handler
      ;; From burro_canvas.c
      set-brightness
      get-brightness

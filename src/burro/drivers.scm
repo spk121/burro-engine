@@ -33,6 +33,15 @@ actions, they are activated."
 	  (when action-thunk
 	    (action-thunk)))))))
 
+
+
+;; FIXME: This should set process so that
+;; - blanks the screen
+;; - sets the text
+;; - fades in
+;; - listens for mouse
+;; - fades out
+;; - calls next handler
 (define (clickable-text burro-sxml-tree-inner)
 
   ;; We let the caller drop the uninteresting *TOP* node
@@ -52,5 +61,6 @@ actions, they are activated."
       
       ;; We'll need to hook a function up to receive button presses,
       ;; and then convert them into string indices.
-      (receive-button-presses
-       (make-button-press-handler actions))))))
+      ;;(receive-button-presses
+       ;;(make-button-press-handler actions))
+      ))))

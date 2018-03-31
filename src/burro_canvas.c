@@ -144,8 +144,8 @@ burro_canvas_init (BurroCanvas *win)
                            GDK_EXPOSURE_MASK
                            | GDK_LEAVE_NOTIFY_MASK
                            | GDK_BUTTON_PRESS_MASK
-                           | GDK_POINTER_MOTION_MASK
-                           | GDK_POINTER_MOTION_HINT_MASK);
+                           | GDK_POINTER_MOTION_MASK);
+
     gtk_widget_set_size_request(GTK_WIDGET(win), BURRO_CANVAS_WIDTH, BURRO_CANVAS_HEIGHT);
 
     win->blank_flag = FALSE;
@@ -369,6 +369,29 @@ textbox text.")
     
     canvas_cur->dirty = TRUE;
     return SCM_UNSPECIFIED;
+}
+
+gboolean burro_canvas_xy_to_index (BurroCanvas *canvas, double x, double y, int *index, int *trailing)
+{
+    gboolean ret;
+    
+    x *=  PANGO_SCALE;
+    y *=  PANGO_SCALE;
+    ret = pango_layout_xy_to_index (canvas_cur->layout, x, y, index, trailing);
+    if (!ret)
+        return FALSE;
+
+    /* The UTF-8 index needs to be converted into UTF32 index. */
+    const char *str = pango_layout_get_text (canvas_cur->layout);
+    char *p = str;
+    int offset = 0;
+    while (p < str + *index)
+    {
+        p = g_utf8_next_char(p);
+        offset++;
+    }
+    *index = offset;
+    return TRUE;
 }
 
 SCM_DEFINE(G_burro_canvas_position_to_string_index,

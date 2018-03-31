@@ -4,9 +4,12 @@
   #:use-module (srfi srfi-1)
   #:use-module (srfi srfi-9)
   #:export (make-wait-process
-	    process-manager-attach
-	    process-manager-update-processes)
-  )
+	    pm-attach
+	    pm-update
+	    pm-update-or-error-string
+	    pm-set-text-click
+	    pm-set-mouse-click
+	    pm-set-mouse-move))
 
 (define PROC_BASE 0)
 (define PROC_WAIT 1)
@@ -18,6 +21,8 @@
 (define PROC_SCRIPTING 7)
 
 (define PROCESS_FLAG_ATTACHED #x0001)
+(define PROCESS_RECEIVE_MOUSE_MOVE #x0002)
+(define PROCESS_RECEIVE_MOUSE_CLICK #x0004)
 
 (define-record-type process
   (make-process type)
@@ -199,7 +204,7 @@
   (when (get-active-flag p)
     (var-add! p 'start delta-milliseconds)
     (when (>= (var-ref p 'start) (var-ref p 'stop))
-      (process-kill! p)))))
+      (process-kill! p))))
 
 
 (define (make-wait-process milliseconds)
@@ -213,9 +218,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The fadeout process
 
-;; This fades the screen to black.
+;; This fades the screen to black, or the inverse.
 
-(define (fadeout-process-on-update p delta-milliseconds)
+(define (fade-process-on-update p delta-milliseconds)
   (base-process-on-update p delta-milliseconds)
   (when (get-active-flag p)
     (var-add! p 'start delta-milliseconds)
@@ -223,28 +228,56 @@
 	  (stop  (var-ref p 'stop)))
       (cond
        ((< start stop)
-	(let (intensity-ratio (/ (- stop start)
-				 stop)))
-	(set-intensity intensity-ratio))
+	(let ((intensity-ratio (/ (- stop start)
+				  stop)))
+	
+	  (if (var-ref self 'fadeout)
+	      ;; Fade out to black
+	      (set-intensity intensity-ratio)
+	      ;; else, fade from black into normal intensity.
+	      (set-intensity (1- intensity-ratio)))))
        (else
 	(process-kill! p))))))
-    
+
+(define (make-fade-process milliseconds fadeout?)
+  "Fades the screen over MILLISCONDS of time.  If FADEOUT? is true, we
+fade to black, if it is false, we do an inverse fade from black to
+normal intensity."
+  (let ((self (make-base-process)))
+    (set-type! self PROC_SCREEN)
+    (var-set! self 'start 0)
+    (var-set! self 'stop milliseconds)
+    (var-set! self 'fadeout fadeout?)
+    (set-on-update-func! self fadeout-process-on-update)
+    self))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Link highlighter processes
+
+;; When the mouse is hovering on a clickable link, this gradually
+;; brightens the clickable link from Color #1 to Color #2.  When the
+;; mouse is not on a clickable link, it will gradually fade back to
+;; Color #1
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The process list is just a simple list of processes
 
 (define *process-list* '())
+(define *pm-text-click* #f)
+(define *pm-mouse-click* #f)
+(define *pm-mouse-move* #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The process manager procedures operat on the list of process
 ;; objects.
 
-(define (process-manager-attach process)
+(define (pm-attach process)
   (set! *process-list*
     (append! *process-list*
 	     (list process)))
   (process-set-attached! process #t))
 
-(define (process-manager-detach process)
+(define (pm-detach process)
   "Detach a process from the process list, but, don't delete it."
   (set! *process-list*
     (remove! (lambda (x)
@@ -252,7 +285,7 @@
 	     *process-list*))
   (process-set-attached! process #f))
 
-(define (process-manager-is-process-type-active? type)
+(define (pm-is-process-type-active? type)
   "Are there any processes of this type?"
   (if (find (lambda (p)
 	      (and (eqv? type (process-get-type p))
@@ -265,15 +298,15 @@
       #t
       #f))
 
-(define (process-manager-has-processes?)
+(define (pm-has-processes?)
   "true if there is anything going on."
   (not (null? *process-list*)))
 
-(define (process-manager-delete-process-list)
-  (for-each process-manager-detach *process-list*))
+(define (pm-delete-process-list)
+  (for-each pm-detach *process-list*))
 
-(define (process-manager-update-processes delta-milliseconds)
-  (when (process-manager-has-processes?)
+(define (pm-update delta-milliseconds)
+  (when (pm-has-processes?)
     (for-each
      (lambda (p)
        (if (process-is-dead? p)
@@ -283,15 +316,72 @@
 	     (when (pk 'process-get-next (process-get-next p))
 	       (let ((child (process-get-next p)))
 		 (process-set-next! p #f)
-		 (process-manager-attach child)))
-	     (process-manager-detach p))
+		 (pm-attach child)))
+	     (pm-detach p))
 	   ;; Otherwise
 	   (when (and (process-is-active? p)
 		      (not (process-is-paused? p)))
 	     (process-on-update p delta-milliseconds))))
-     *process-list*)))
+     *process-list*))
+  ;; Clear out any old mouse events
+  (pm-clear-text-click)
+  (pm-clear-mouse-click)
+  (pm-clear-mouse-move)
+  ;; Return if there are any processes remaining.
+  (pm-has-processes?))
 
-	     
+;; On exception, returns a string with information about the error
+(define-syntax error-string-if-exception
+  (syntax-rules ()
+    ((error-string-if-exception expr)
+     (catch #t
+       (lambda () expr)
+       (lambda (key . args)
+	 (call-with-output-string
+	   (lambda (port)
+	     (cond
+	      ;; I guess I need to write special cases here for all
+	      ;; the keys that aren't handled well by print-exception.
+	      ((eqv? key 'limit-exceeded)
+	       (let ((subr (car args))
+		     (msg (cadr args))
+		     (msgargs (caddr args)))
+		 (if subr
+		     (format port "In procedure ~a: "subr))
+		 (apply format port msg (or args '()))))
+	      (else
+	       ;; print-exception is undocumented, but, useful.
+	       (print-exception port #f key args))))))))))
+
+(define (pm-update-or-error-string delta-milliseconds)
+  (error-string-if-exception (pm-update delta-milliseconds)))
+
+(define (pm-set-text-click i)
+  (set! *pm-text-click* i))
+(define (pm-has-text-click?)
+  (if *pm-text-click* #t #f))
+(define (pm-get-text-click)
+  *pm-text-click*)
+(define (pm-clear-text-click)
+  (set! *pm-text-click* #f))
+
+(define (pm-set-mouse-click x y)
+  (set! *pm-mouse-click* (list x y)))
+(define (pm-has-mouse-click?)
+  (if *pm-mouse-click* #t #f))
+(define (pm-get-mouse-click)
+  *pm-mouse-click*)
+(define (pm-clear-mouse-click)
+  (set! *pm-mouse-click* #f))
+
+(define (pm-set-mouse-move x y)
+  (set! *pm-mouse-move* (list x y)))
+(define (pm-has-mouse-move?)
+  (if *pm-mouse-move* #t #f))
+(define (pm-get-mouse-move)
+  *pm-mouse-move*)
+(define (pm-clear-mouse-move)
+  (set! *pm-mouse-move* #f))
 
 
   

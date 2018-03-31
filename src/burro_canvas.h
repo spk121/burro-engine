@@ -13,6 +13,8 @@ G_DECLARE_FINAL_TYPE (BurroCanvas, burro_canvas, BURRO, CANVAS, GtkDrawingArea)
 #define BURRO_CANVAS_ZLEVEL_COUNT 4
 BurroCanvas *burro_canvas_new ();
 
+gboolean burro_canvas_xy_to_index (BurroCanvas *canvas, double x, double y, int *index, int *trailing);
+
 void burro_canvas_init_guile_procedures ();
 
 cairo_t *
