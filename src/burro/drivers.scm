@@ -1,8 +1,12 @@
 (define-module (burro drivers)
-  #:use-module (burro xml)
   #:use-module (burro engine)
-  #:use-module (sxml simple)
+  #:use-module (burro pm)
+  #:use-module (burro process base)
+  #:use-module (burro process fade)
+  #:use-module (burro process text-click)
+  #:use-module (burro xml)
   #:use-module (srfi srfi-1)
+  #:use-module (sxml simple)
   #:export (clickable-text))
 
 (define (find-action actions index)
@@ -47,20 +51,29 @@ actions, they are activated."
   ;; We let the caller drop the uninteresting *TOP* node
   (let ((burro-sxml-tree
 	 `(*TOP* ,burro-sxml-tree-inner)))
-    ;; (format #t "BURRO SXML TREE ~s~%" burro-sxml-tree)
-  (let ((actions (sxml-locate-actions burro-sxml-tree))
-	(pango-sxml-tree (sxml-style-actions burro-sxml-tree)))
-    ;; (format #t "ACTIONS ~S~%" actions)
-    ;; (format #t "PANGO_SXML TREE ~S~%" pango-sxml-tree)
-    (let ((pango-xml-string
-	   (with-output-to-string
-	     (lambda () (sxml->xml pango-sxml-tree)))))
-      ;; (format #t "PANGO XML STRING ~S~%" pango-xml-string)
-      ;; Write the string to the screen
-      (set-markup pango-xml-string)
-      
-      ;; We'll need to hook a function up to receive button presses,
-      ;; and then convert them into string indices.
-      ;;(receive-button-presses
-       ;;(make-button-press-handler actions))
-      ))))
+    (format #t "BURRO SXML TREE ~s~%" burro-sxml-tree)
+    (let ((actions (sxml-locate-actions burro-sxml-tree))
+	  (pango-sxml-tree (sxml-style-actions burro-sxml-tree)))
+      (format #t "ACTIONS ~S~%" actions)
+      (format #t "PANGO_SXML TREE ~S~%" pango-sxml-tree)
+      (let ((pango-xml-string
+	     (with-output-to-string
+	       (lambda () (sxml->xml pango-sxml-tree)))))
+	(format #t "PANGO XML STRING ~S~%" pango-xml-string)
+	;; Write the string to the screen
+	(set-markup pango-xml-string)
+	
+	;; And now set up a script for the process manager.
+	(let ((one (fade-in-process 500000))
+	      (two (text-click-process actions
+				       "blue"
+				       "green"
+				       1000000))
+	      (three (fade-out-process 500000)))
+	  (process-set-next! one two)
+	  (process-set-next! two three)
+	  (pm-attach one))))))
+	  
+					   
+	  
+	

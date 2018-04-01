@@ -20,7 +20,8 @@
   #:use-module (burro drivers)
   #:use-module (burro engine)
   #:use-module (burro colors)
-  #:use-module (rnrs io ports)
+  #:use-module (burro error)
+  #:use-module (burro debug)
   #:use-module (ice-9 sandbox)
   #:re-export (clickable-text)
   #:export (make-sandbox
@@ -28,88 +29,13 @@
 	    eval-string-in-sandbox
 	    call-with-limits))
 
-(define-public *console-port*
-  (make-custom-binary-output-port "console"
-				  console-write-bytevector
-				  #f #f #f))
-
-(setvbuf *console-port* 'none)
-
-#|
-(define (console-log-inner . x)
-  (display "\t" *console-port*)
-  (when (> (length x) 0)
-    (let loop ((cur (car x))
-	       (rest (cdr x)))
-      (display cur *console-port*)
-      (if (not (null? rest))
-	  (begin
-	    (display " " *console-port*)
-	    (loop (car rest)
-		  (cdr rest)))))))
-|#
-
-(define (console-log-inner . x)
-  (apply simple-format
-	 (append (list *console-port*)
-		 x)))
-
-(define-public (Display x)
-  "Writes a human-friendly representation of x to the developer
-console"
-  (display "\t" *console-port*)
-  (display x *console-port*)
-  (newline *console-port*))
-
-(define-public (console-info message . args)
-  "Writes an information icon and the MESSAGE to a new line on
-developer console.  MESSAGE can contains '~A' and '~S' escapes.  When
-printed, the escapes are replaced with the corresponding number of
-ARGS.  '~A' is a human-friendly representation of the argument.  '~S'
-is a more machine-friendly representation."
-  (console-write-icon "dialog-information")
-  (display "\t" *console-port*)
-  (apply console-log-inner (append (list message) args))
-  (newline *console-port*))
-
-(define-public (warn . x)
-  "Writes a warning icon and the MESSAGE to a new line on developer
-console.  MESSAGE can contains '~A' and '~S' escapes.  When printed,
-the escapes are replaced with the corresponding number of ARGS.  '~A'
-is a human-friendly representation of the argument.  '~S' is a more
-machine-friendly representation."
-  (console-write-icon "dialog-warning")
-  (display "\t" *console-port*)
-  (apply console-log-inner x)
-  (newline *console-port*))
-
-(define-public (console-error . x)
-  "Writes an error icon and the MESSAGE to a new line on developer
-console.  MESSAGE can contains '~A' and '~S' escapes.  When printed,
-the escapes are replaced with the corresponding number of ARGS.  '~A'
-is a human-friendly representation of the argument.  '~S' is a more
-machine-friendly representation."
-  (console-write-icon "dialog-error")
-  (display "\t" *console-port*)
-  (apply console-log-inner x)
-  (newline *console-port*))
-
-(define-public (pk . stuff)
-  "Writes the arguments passed to it to the developer console,
-returning the last argument.  This is useful for tracing function
-calls.  For example, you could replace a function call like
-
-(function arg)
-with
-(pk \"function returns\" (function arg))" 
-  (console-write-icon "dialog-information")
-  (display "\tpk: " *console-port*)
-  (write stuff *console-port*)
-  (newline *console-port*)
-  (car (last-pair stuff)))
-
 (define sandbox-bindings
-  '(((burro colors)
+  '(((burro debug)
+     console-info
+     console-error
+     watch)
+  
+    ((burro colors)
      color)
 
     ((burro drivers)
@@ -118,6 +44,7 @@ with
     ((burro engine)
      ;; From burro_app_win.c
      set-title
+     debug-peek-append
      ;; receive-clock-tick
      ;; register-game-loop-handler
      ;; From burro_canvas.c
@@ -145,15 +72,8 @@ with
      get-vram-filename
      get-vram-image-size
      vram-get-u32-size
-     load-image-file-into-vram)
+     load-image-file-into-vram)))
 
-    ((burro)
-     ;; From burro.scm
-     Display
-     console-info
-     warn
-     console-error
-     pk)))
 
 ;; On exception, returns a string with information about the error
 (define-syntax error-string-if-exception
@@ -197,7 +117,7 @@ with
 	(set! *last-line-loaded* (port-line port)))
       (when expr
 	(set! *last-expr-loaded* expr))
-      (eval-in-sandbox expr #:module sandbox #:sever-module? #f)
+      (eval-in-sandbox expr #:module sandbox #:time-limit 5.0 #:sever-module? #f)
       (loop (read port)))
      (else
       sandbox))))

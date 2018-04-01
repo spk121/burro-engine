@@ -12,6 +12,15 @@
 #define GAME_LOOP_IDEAL_PERIOD_MICROSECONDS (1000000 / 30)
 #define GAME_LOOP_MAXIMUM_PERIOD_MICROSECONDS (1000000 / 10)
 
+enum {
+    DEBUG_COLUMN_TIME,                /* The name of the bank, like "VRAM A" */
+    DEBUG_COLUMN_NAME,
+    DEBUG_COLUMN_VALUE,
+    DEBUG_COLUMN_STACK,
+    DEBUG_N_COLUMNS
+};
+
+
 static void console_write_icon (const gchar *c_icon_name);
 
 struct _BurroAppWindow
@@ -28,6 +37,13 @@ struct _BurroAppWindow
     GtkComboBoxText *repl_combobox;
     GtkTreeView *vram_tree_view;
     GtkListStore *vram_list_store;
+    GtkLabel *update_rate_label;
+    GtkLabel *duty_cycle_label;
+    GtkToggleButton *debug_pause_button;
+    GtkButton *debug_next_button;
+    GtkButton *debug_refresh_button;
+    GtkListStore *debug_peek_list_store;
+    GtkTreeView *debug_peek_tree_view;
     
     // The main game loop is in the idle handler.
     gboolean minimized_flag;
@@ -35,6 +51,7 @@ struct _BurroAppWindow
     guint game_loop_callback_id;
     gint game_loop_frame_count;
     gboolean game_loop_active_flag;
+    gboolean game_loop_step_flag;
     gboolean game_loop_quitting;
     gint64 game_loop_start_time;
     gint64 game_loop_end_time;
@@ -51,6 +68,8 @@ struct _BurroAppWindow
     gboolean have_mouse_move_event;
     double mouse_move_x;
     double mouse_move_y;
+    gboolean have_text_move_event;
+    double text_move_location;
     
     // Guile support
     BurroRepl *repl;
@@ -60,6 +79,48 @@ struct _BurroAppWindow
     // Log handler
     guint log_handler_id;
 };
+
+
+GtkListStore *debug_peek_list_store_new()
+{
+    GtkListStore *list_store;
+
+    list_store = gtk_list_store_new (DEBUG_N_COLUMNS,
+                                     G_TYPE_STRING,
+                                     G_TYPE_STRING,
+                                     G_TYPE_STRING,
+                                     G_TYPE_STRING);
+    return list_store;
+}
+
+#if 0
+void
+debug_peek_list_store_update(GtkListStore *list_store)
+{
+    GtkTreePath *path;
+    GtkTreeIter iter;
+    gint i;
+    const char *nullstr = "";
+
+    for (i = VRAM_A; i < VRAM_COUNT; i ++)
+    {
+        path = gtk_tree_path_new_from_indices (i - VRAM_A, -1);
+        gtk_tree_model_get_iter(GTK_TREE_MODEL (list_store), &iter, path);
+        
+        char *siz = vram_size_string(i);
+        // gtk_list_store_append (list_store, &iter);
+        gtk_list_store_set (list_store, &iter,
+                            VRAM_COLUMN_NAME, vram_bank_name[i],
+                            VRAM_COLUMN_TYPE, vram_type_name[vram_info[i].type],
+                            VRAM_COLUMN_FILENAME, (vram_info[i].filename
+                                              ? vram_info[i].filename
+                                              : nullstr),
+                            VRAM_COLUMN_SIZE, siz,
+                            -1);
+        g_free (siz);
+    }
+}
+#endif
 
 static void
 action_open (GSimpleAction *simple,
@@ -248,7 +309,7 @@ signal_action_canvas_button_press_event (GtkWidget *widget, GdkEventButton *even
                                   gpointer user_data)
 {
     GdkEventButton *button = event;
-    if (button->type = GDK_BUTTON_PRESS)
+    if (button->type == GDK_BUTTON_PRESS)
     {
         app_window_cur->have_mouse_click_event = TRUE;
         app_window_cur->mouse_click_x = button->x;
@@ -271,7 +332,44 @@ signal_action_canvas_motion_notify_event (GtkWidget *widget, GdkEventMotion *eve
     app_window_cur->have_mouse_move_event = TRUE;
     app_window_cur->mouse_move_x = event->x;
     app_window_cur->mouse_move_y = event->y;
+    int index, trailing;
+    if (burro_canvas_xy_to_index (app_window_cur->canvas, event->x, event->y, &index, &trailing))
+    {
+        app_window_cur->have_text_move_event = TRUE;
+        app_window_cur->text_move_location = index;
+    }
+    else
+    {
+        app_window_cur->have_text_move_event = TRUE;
+        app_window_cur->text_move_location = -1;
+    }
+        
     return TRUE;
+}
+
+static void
+signal_debug_pause (GtkButton *button, gpointer user_data)
+{
+    app_window_cur->game_loop_active_flag = !app_window_cur->game_loop_active_flag;
+    if (app_window_cur->game_loop_active_flag)
+        gtk_widget_set_sensitive (GTK_WIDGET(app_window_cur->debug_next_button), FALSE);
+    else
+    {
+        gtk_widget_set_sensitive (GTK_WIDGET(app_window_cur->debug_next_button), TRUE);
+        gtk_label_set_text (app_window_cur->update_rate_label, "paused");
+    }
+}
+
+static void
+signal_debug_next (GtkButton *button, gpointer user_data)
+{
+    app_window_cur->game_loop_step_flag = TRUE;
+}
+
+static void
+signal_debug_refresh (GtkButton *button, gpointer user_data)
+{
+    
 }
 
 static gboolean
@@ -284,8 +382,10 @@ game_loop (gpointer user_data)
 
     if (!win->minimized_flag)
     {
-        if (win->game_loop_active_flag)
+        if (win->game_loop_active_flag || win->game_loop_step_flag)
         {
+            win->game_loop_step_flag = FALSE;
+            
             gint64 start_time = g_get_monotonic_time();
             if (win->game_loop_full_speed || ((start_time - win->game_loop_start_time) > GAME_LOOP_MINIMUM_PERIOD_MICROSECONDS))
             {
@@ -304,30 +404,32 @@ game_loop (gpointer user_data)
                 // Pass any new mouse clicks and other events to the process manager
                 if (win->have_text_click_event)
                 {
-                    scm_call_1 (scm_c_public_ref ("burro process", "pm-set-text-click"),
+                    g_message("sending text click to pm, %d", win->text_click_location);
+                    scm_call_1 (scm_c_public_ref ("burro pm", "pm-set-text-click"),
                                 scm_from_int (win->text_click_location));
                     win->have_text_click_event = FALSE;
                 }
                 if (win->have_mouse_click_event)
                 {
-                    scm_call_2 (scm_c_public_ref ("burro process", "pm-set-mouse-click"),
+                    g_message("sending mouse click to pm, %f %f", win->mouse_click_x, win->mouse_click_y);
+                    scm_call_2 (scm_c_public_ref ("burro pm", "pm-set-mouse-click"),
                                 scm_from_double (win->mouse_click_x),
                                 scm_from_double (win->mouse_click_y));
-                    win->have_mouse_click_event == FALSE;
+                    win->have_mouse_click_event = FALSE;
                 }
                 if (win->have_mouse_move_event)
                 {
-                    scm_call_2 (scm_c_public_ref ("burro process", "pm-set-mouse-move"),
+                    scm_call_2 (scm_c_public_ref ("burro pm", "pm-set-mouse-move"),
                                 scm_from_double (win->mouse_move_x),
                                 scm_from_double (win->mouse_move_y));
-                    win->have_mouse_move_event == FALSE;
+                    win->have_mouse_move_event = FALSE;
                 }
 
                 // Let the guile processes run
-                SCM ret = scm_call_1 (scm_c_public_ref ("burro process", "pm-update-or-error-string"),
+                SCM ret = scm_call_1 (scm_c_public_ref ("burro pm", "pm-update-or-error-string"),
                                       scm_from_int64(dt));
                 if (scm_is_string (ret))
-                    scm_call_1(scm_c_public_ref("burro", "console-error"), ret);
+                    scm_call_1(scm_c_public_ref("burro debug", "console-error"), ret);
                 
                 // Update subsystems
 
@@ -342,11 +444,15 @@ game_loop (gpointer user_data)
                 win->game_loop_avg_duration = ((19 * win->game_loop_avg_duration) / 20
                                                + (win->game_loop_end_time - win->game_loop_start_time) / 20);
                 
-                if (!(win->game_loop_frame_count % 5000))
-                    g_info ("Game Loop frame rate %.1f, duty cycle %.1f%%",
-                            1000000.0 / win->game_loop_avg_period,
-                            (100.0 * win->game_loop_avg_duration) / win->game_loop_avg_period);
-                
+                if (!(win->game_loop_frame_count % 60))
+                {
+                    char *update_rate_str = g_strdup_printf("%.1f", 1000000.0 / win->game_loop_avg_period);
+                    char *duty_cycle_str = g_strdup_printf("%.1f%%", (100.0 * win->game_loop_avg_duration) / win->game_loop_avg_period);
+                    gtk_label_set_text (win->update_rate_label, update_rate_str);
+                    gtk_label_set_text (win->duty_cycle_label, duty_cycle_str);
+                    g_free (duty_cycle_str);
+                    g_free (update_rate_str);
+                }
             }
             else /* We are running too fast. */
                 usleep(1000);
@@ -533,6 +639,58 @@ burro_app_window_init (BurroAppWindow *win)
                                        (gpointer) win,
                                        timeout_action_destroy);
 
+    // Debugger
+    g_signal_connect (G_OBJECT (win->debug_pause_button),
+                      "toggled",
+                      G_CALLBACK (signal_debug_pause),
+                      NULL);
+    gtk_widget_set_sensitive (GTK_WIDGET (win->debug_pause_button), TRUE);
+    g_signal_connect (G_OBJECT (win->debug_next_button),
+                      "clicked",
+                      G_CALLBACK (signal_debug_next),
+                      NULL);
+    g_signal_connect (G_OBJECT (win->debug_refresh_button),
+                      "clicked",
+                      G_CALLBACK (signal_debug_refresh),
+                      NULL);
+    // Hook up the peek viewer
+    win->debug_peek_list_store = debug_peek_list_store_new ();
+    gtk_tree_view_set_model (win->debug_peek_tree_view, GTK_TREE_MODEL (win->debug_peek_list_store));
+    {
+        GtkCellRenderer *renderer;
+        GtkTreeViewColumn *column;
+
+        renderer = gtk_cell_renderer_text_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Time",
+                                                           renderer,
+                                                           "text", DEBUG_COLUMN_TIME,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (win->debug_peek_tree_view), column);
+        
+        renderer = gtk_cell_renderer_text_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Label",
+                                                           renderer,
+                                                           "text", DEBUG_COLUMN_NAME,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (win->debug_peek_tree_view), column);
+        
+        renderer = gtk_cell_renderer_text_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Value",
+                                                           renderer,
+                                                           "text", DEBUG_COLUMN_VALUE,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (win->debug_peek_tree_view), column);
+        
+        renderer = gtk_cell_renderer_text_new ();
+        column = gtk_tree_view_column_new_with_attributes ("Stack",
+                                                           renderer,
+                                                           "text", DEBUG_COLUMN_STACK,
+                                                           NULL);
+        gtk_tree_view_append_column (GTK_TREE_VIEW (win->debug_peek_tree_view), column);
+    }
+    gtk_widget_show (GTK_WIDGET(win->debug_peek_tree_view));
+
+    
     // Alternative logging
     win->log_handler_id = g_log_set_handler_full (NULL,
                                                   G_LOG_LEVEL_ERROR
@@ -632,6 +790,11 @@ burro_app_window_class_init (BurroAppWindowClass *class)
     gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, repl_combobox);
     gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, console_entry);
     gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, vram_tree_view);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, update_rate_label);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, duty_cycle_label);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, debug_pause_button);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, debug_next_button);
+    gtk_widget_class_bind_template_child (gtkclass, BurroAppWindow, debug_peek_tree_view);
 }
 
 BurroAppWindow *
@@ -777,6 +940,33 @@ Writes the icon, given by its icon theme name, to the console.")
     return SCM_BOOL_T;
 }
 
+SCM_DEFINE (G_debug_peek_append, "debug-peek-append", 3, 0, 0,
+            (SCM label, SCM value, SCM stack), "")
+{
+    gint64 now = g_get_monotonic_time();
+    char *timestr = g_strdup_printf("%.3f", 1.0e-6 * now);
+    char *slabel = scm_to_utf8_string(label);
+    char *svalue = scm_to_utf8_string(value);
+    char *sstack = scm_to_utf8_string(stack);
+    GtkTreeIter iter;
+    gtk_list_store_insert (app_window_cur->debug_peek_list_store,
+                           &iter,
+                           0);
+    
+    gtk_list_store_set (app_window_cur->debug_peek_list_store,
+                        &iter,
+                        DEBUG_COLUMN_TIME, timestr,
+                        DEBUG_COLUMN_NAME, slabel,
+                        DEBUG_COLUMN_VALUE, svalue,
+                        DEBUG_COLUMN_STACK, sstack,
+                        -1);
+    g_free (timestr);
+    g_free (slabel);
+    g_free (svalue);
+    g_free (sstack);
+    return SCM_UNSPECIFIED;
+}
+
 void
 burro_app_win_init_guile_procedures ()
 {
@@ -785,6 +975,7 @@ burro_app_win_init_guile_procedures ()
                   "console-write-bytevector",
                   "console-write-icon",
                   "set-title",
+                  "debug-peek-append",
                   NULL);
 }
 

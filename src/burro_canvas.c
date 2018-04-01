@@ -371,6 +371,27 @@ textbox text.")
     return SCM_UNSPECIFIED;
 }
 
+SCM_DEFINE(G_update_layout_fgcolor_on_region, "update-text-fgcolor-on-region",
+           3, 0, 0, (SCM s_colorval, SCM begin, SCM end), "")
+{
+    guint32 colorval = scm_to_uint32 (s_colorval);
+    int a = scm_to_int (begin);
+    int b = scm_to_int (end);
+    guint16 red, green, blue;
+
+    red = (((colorval & 0xFF0000) >> 16) << 8);
+    green = (((colorval & 0xFF00) >> 8) << 8);
+    blue = (colorval & 0xFF) << 8;
+
+    PangoAttrList *attrs = pango_layout_get_attributes (canvas_cur->layout);
+    PangoAttribute *fgcolor = pango_attr_foreground_new(red, green, blue);
+    // FIXME: am I likely confusing UTF-8 bytes and codepoints here?
+    fgcolor->start_index = a;
+    fgcolor->end_index = b;
+    pango_attr_list_change (attrs, fgcolor);
+    pango_layout_set_attributes (canvas_cur->layout, attrs);
+}
+
 gboolean burro_canvas_xy_to_index (BurroCanvas *canvas, double x, double y, int *index, int *trailing)
 {
     gboolean ret;
@@ -438,6 +459,7 @@ burro_canvas_init_guile_procedures ()
                   "get-backdrop",
                   "set-markup",
                   "mouse-position-to-string-index",
+                  "update-text-fgcolor-on-region",
                   NULL);
 }
 

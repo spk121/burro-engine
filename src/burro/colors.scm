@@ -1,5 +1,6 @@
 (define-module (burro colors)
   #:export (color
+	    dissolve-color
 	    uint32->hexstring))
 
 (define *color-names* '(
@@ -802,3 +803,17 @@
 
 (define (uint32->hexstring x)
   (format #f "~8,'0x" x))
+
+(define (dissolve-color colorval1 colorval2 ratio)
+  (let ((r1 (ash (logand colorval1 #xFF0000) -16))
+	(g1 (ash (logand colorval1 #x00FF00) -8))
+	(b1 (logand colorval1 #xFF))
+	(r2 (ash (logand colorval2 #xFF0000) -16))
+	(g2 (ash (logand colorval2 #x00FF00) -8))
+	(b2 (logand colorval2 #xFF)))
+    (let ((r3 (+ r1 (inexact->exact (round (* ratio (- r2 r1))))))
+	  (g3 (+ g1 (inexact->exact (round (* ratio (- g2 g1))))))
+	  (b3 (+ b1 (inexact->exact (round (* ratio (- b2 b1)))))))
+      (logior (ash r3 16)
+	      (ash g3 8)
+	      b3))))
