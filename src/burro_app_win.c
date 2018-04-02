@@ -60,16 +60,16 @@ struct _BurroAppWindow
     gint64 game_loop_avg_period;
     gint64 game_loop_avg_duration;
     
-    gboolean have_text_click_event;
-    int text_click_location;
-    gboolean have_mouse_click_event;
-    double mouse_click_x;
-    double mouse_click_y;
     gboolean have_mouse_move_event;
     double mouse_move_x;
     double mouse_move_y;
+    gboolean have_mouse_click_event;
+    double mouse_click_x;
+    double mouse_click_y;
     gboolean have_text_move_event;
-    double text_move_location;
+    int text_move_location;
+    gboolean have_text_click_event;
+    int text_click_location;
     
     // Guile support
     BurroRepl *repl;
@@ -238,6 +238,7 @@ accel_action_view_tools (GtkAccelGroup *accel_group,
         gtk_widget_set_visible (GTK_WIDGET(window->tools_revealer), TRUE);
         gtk_revealer_set_reveal_child (window->tools_revealer, TRUE);
     }
+    return TRUE;
 }
 
 static void
@@ -402,35 +403,45 @@ game_loop (gpointer user_data)
                 //repl_tick();
                 
                 // Pass any new mouse clicks and other events to the process manager
-                if (win->have_text_click_event)
+                if (win->have_mouse_move_event)
                 {
-                    g_message("sending text click to pm, %d", win->text_click_location);
-                    scm_call_1 (scm_c_public_ref ("burro pm", "pm-set-text-click"),
-                                scm_from_int (win->text_click_location));
-                    win->have_text_click_event = FALSE;
+                    // g_message("sending mouse move to pm, %f %f", win->mouse_move_x, win->mouse_move_y);
+                    scm_call_2 (scm_c_public_ref ("burro pm", "pm-set-mouse-move"),
+                                scm_from_double (win->mouse_move_x),
+                                scm_from_double (win->mouse_move_y));
+                    win->have_mouse_move_event = FALSE;
                 }
                 if (win->have_mouse_click_event)
                 {
-                    g_message("sending mouse click to pm, %f %f", win->mouse_click_x, win->mouse_click_y);
+                    // g_message("sending mouse click to pm, %f %f", win->mouse_click_x, win->mouse_click_y);
                     scm_call_2 (scm_c_public_ref ("burro pm", "pm-set-mouse-click"),
                                 scm_from_double (win->mouse_click_x),
                                 scm_from_double (win->mouse_click_y));
                     win->have_mouse_click_event = FALSE;
                 }
-                if (win->have_mouse_move_event)
+                if (win->have_text_move_event)
                 {
-                    scm_call_2 (scm_c_public_ref ("burro pm", "pm-set-mouse-move"),
-                                scm_from_double (win->mouse_move_x),
-                                scm_from_double (win->mouse_move_y));
-                    win->have_mouse_move_event = FALSE;
+                    // g_message("sending text move to pm, %d", win->text_move_location);
+                    scm_call_1 (scm_c_public_ref ("burro pm", "pm-set-text-move"),
+                                scm_from_int (win->text_move_location));
+                    win->have_text_move_event = FALSE;
+                }
+                if (win->have_text_click_event)
+                {
+                    // g_message("sending text click to pm, %d", win->text_click_location);
+                    scm_call_1 (scm_c_public_ref ("burro pm", "pm-set-text-click"),
+                                scm_from_int (win->text_click_location));
+                    win->have_text_click_event = FALSE;
                 }
 
                 // Let the guile processes run
                 SCM ret = scm_call_1 (scm_c_public_ref ("burro pm", "pm-update-or-error-string"),
                                       scm_from_int64(dt));
                 if (scm_is_string (ret))
-                    scm_call_1(scm_c_public_ref("burro debug", "console-error"), ret);
-                
+                {
+                    scm_call_1(scm_c_public_ref("burro debug", "console-error"),
+                               ret);
+                }
                 // Update subsystems
 
                 // Render things
@@ -583,6 +594,7 @@ burro_app_window_init (BurroAppWindow *win)
                       NULL);
     // This is for mouse moves
     win->have_mouse_move_event = FALSE;
+    win->have_text_move_event = FALSE;
     g_signal_connect (G_OBJECT (win->canvas),
                       "motion-notify-event",
                       G_CALLBACK (signal_action_canvas_motion_notify_event),
@@ -929,7 +941,7 @@ console_write_icon (const gchar *c_icon_name)
     g_object_unref (pixbuf);
 }
 
-SCM_DEFINE (G_burro_app_win_console_write_icon,
+SCM_DEFINE (G_console_write_icon,
             "console-write-icon", 1, 0, 0,
             (SCM name), "\
 Writes the icon, given by its icon theme name, to the console.")

@@ -16,12 +16,13 @@
 ;; It handles dynamic link mouse-over decoration.
 
 (define-record-type hotspot
-  (make-hotspot begin end transition-time warming?)
+  (make-hotspot begin end action transition-time warming? ratio)
   hotspot?
 
   ;; Properties
   (begin          get-begin)
   (end            get-end)
+  (action         get-action)
   (transition-time get-transition-time)
   (warming?  get-warming-state set-warming-state!)
   (ratio          get-ratio set-ratio!))
@@ -43,23 +44,25 @@ if it changed or #f otherwise."
 	(set-ratio! hotspot
 		    (max 0.0
 			 (- (get-ratio hotspot) delta))))
-    (= old-ratio (get-ratio hotspot))))
+    ;; (format #t "hotspot ratio ~a~%" (get-ratio hotspot))
+    (not (= old-ratio (get-ratio hotspot)))))
 
 (define (location-over-hotspot? hotspot location)
   (and (>= location (get-begin hotspot))
        (< location (get-end hotspot))))
 
-(define (make-hotspot-list location-list transition-time)
-  (map (lambda (pos)
-	 (make-hotspot (first pos)
-		       (second pos)
+(define (make-hotspot-list action-list transition-time)
+  (map (lambda (action)
+	 (make-hotspot (first action)	; codepoint index
+		       (second action)	; codepoint end index
+		       (third action)	; thunk
 		       transition-time
-		       #f))
-       location-list))
+		       #f
+		       0.0))
+       action-list))
 
 (define (on-update self delta-milliseconds)
   (base-process-on-update self delta-milliseconds)
-  ;; (pk "text-click-on-update" delta-milliseconds)
   (when (get-active-flag self)
     ;; Handle the movement of the mouse over text.
     (let ((location (var-ref self 'text-move)))
@@ -81,6 +84,7 @@ if it changed or #f otherwise."
 	   (let ((color (dissolve-color (var-ref self 'cold-color)
 					(var-ref self 'hot-color)
 					(get-ratio hotspot))))
+	     ;; (format #t "disolve color ~x\n" color)
 	     (update-text-fgcolor-on-region color
 					    (get-begin hotspot)
 					    (get-end hotspot))))))
@@ -96,11 +100,15 @@ if it changed or #f otherwise."
 	       ;; associated action, but, only after we've finished
 	       ;; all the processes in this process chain.  So we add
 	       ;; an action process to the end of this process chain.
-	       (let loop ((process self))
-		 (if (get-next self)
-		     (loop (get-next self))
+	       (format #t "hotspot clicked\n")
+	       ;; (pk "self" self)
+	       ;; (pk "self->next" (process-get-next self))
+	       (let loop ((p self))
+		 (if (process-get-next p)
+		     (loop (process-get-next p))
 		     ;; else, we've reached the last process
-		     (set-next! process (call-procedure-process (third hotspot)))))
+		     (process-set-next! p
+					(call-procedure-process (get-action hotspot)))))
 	       (process-kill! self)))
 	   (var-ref self 'hotspots))))))
 

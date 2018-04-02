@@ -287,6 +287,24 @@ SCM_VARIABLE_INIT (G_VRAM_INDEX_LIST, "VRAM_INDEX_LIST",
                               G_VRAM_J,
                               SCM_UNDEFINED));
 
+int
+vram_get_type (int z)
+{
+    return vram_info[z].type;
+}
+
+int
+vram_get_width (int z)
+{
+    return vram_info[z].width;
+}
+
+int
+vram_get_height (int z)
+{
+    return vram_info[z].height;
+}
+
 SCM_DEFINE (G_vram_get_type, "get-vram-type", 1, 0, 0, (SCM index), "\
 Returns a symbol (none, or pixbuf) describing the current contents\n\
 of the VRAM bank.")
@@ -419,7 +437,7 @@ set_vram_to_pixbuf_from_image_file (int vram_index, const char *filename)
                 unsigned r = (((val >> 16) & 0xFF) * a) / 256;
                 unsigned g = (((val >> 8) & 0xFF) * a) / 256;
                 unsigned b = (((val >> 0) & 0xFF) * a) / 256;
-                data[j * img_stride + i] = a << 24 | r << 16 | g << 8 | b;
+                data[j * vram_get_u32_width(vram_index) + i] = a << 24 | r << 16 | g << 8 | b;
             }
         }
 

@@ -209,7 +209,9 @@ void bg_get_transform (bg_index_t id, double *scroll_x, double *scroll_y,
 		       
 cairo_surface_t *bg_get_cairo_surface (bg_index_t id);
 
-void bg_init_guile_procedures (void);
+gboolean bg_is_dirty(int z);
+
+void burro_canvas_bg_init_guile_procedures (void);
 void bg_fini(void);
 #endif
 

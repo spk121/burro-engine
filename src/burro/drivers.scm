@@ -66,9 +66,9 @@ actions, they are activated."
 	;; And now set up a script for the process manager.
 	(let ((one (fade-in-process 500000))
 	      (two (text-click-process actions
-				       "blue"
-				       "green"
-				       1000000))
+				       "alice blue"
+				       "cornflower blue"
+				       500000))
 	      (three (fade-out-process 500000)))
 	  (process-set-next! one two)
 	  (process-set-next! two three)

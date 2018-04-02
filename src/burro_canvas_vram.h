@@ -226,6 +226,10 @@ enum {
 GtkListStore *vram_info_list_store_new();
 void vram_info_list_store_update(GtkListStore *list_store);
 
+int vram_get_type (int z);
+int vram_get_width (int z);
+int vram_get_height (int z);
+
 #endif
 
 /*

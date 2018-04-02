@@ -32,8 +32,8 @@
 	    set-paused-flag!
 	    get-initial-update-flag
 	    set-initial-update-flag!
-	    get-next
-	    set-next!
+	    ;; get-next
+	    ;; set-next!
 	    get-process-flags
 	    set-process-flags!
 	    get-variable-alist

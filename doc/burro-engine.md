@@ -46,6 +46,36 @@ Things to remember:
 - Every time you load a new game file, it is loaded into a newly
   created sandbox.
 
+## Graphics functionality
+
+### Loading into the VRAM cache
+
+To keep programs in the sandbox from using too much memory,
+the game is limited to having four pieces of media loaded in
+the graphics cache.  These memory locations are call VRAM.
+
+The four main graphics cache locations are `VRAM_A`, `VRAM_B`, `VRAM_C`
+and `VRAM_D`.
+
+To load an image into VRAM, use `(load-image-file-into-vram filename vram)`
+
+### Backgrounds
+
+A `background` is the term for an image drawn on the canvas.  The
+canvas has four layers of background stack one on top of the other, so
+you can draw one image on top of another image. `BG_0` is on top.
+`BG_3` is on the bottom.
+
+To set up a background, load an image from VRAM onto the background
+
+    (set-background-image BG_1 VRAM_A)
+
+or, if you want to use only a portion of that image, call the procedure
+with the location of a top-left corner, and a width and size.
+
+    (set-background-image BG_1 VRAM_A col row width height)
+
+
 ## Notes on GTK
 
 ### Coding standard for GtkWidget

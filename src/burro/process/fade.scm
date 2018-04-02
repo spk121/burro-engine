@@ -12,21 +12,21 @@
 (define (fade-process-on-update p delta-milliseconds)
   (base-process-on-update p delta-milliseconds)
   (when (get-active-flag p)
-    (var-add! p 'start delta-milliseconds)
+    (var-add! p 'start (exact->inexact delta-milliseconds))
     (let ((start (var-ref p 'start))
 	  (stop  (var-ref p 'stop)))
       ;; (pk "fade-process-on-update start/stop" (list start stop))
       (cond
        ((< start stop)
-	(let ((intensity-ratio (/ (- stop start)
-				  stop)))
-	
-	  (if (var-ref p 'fadeout)
-	      ;; Fade out to black
-	      (set-brightness intensity-ratio)
-	      ;; else, fade from black into normal intensity.
-	      (set-brightness (1- intensity-ratio)))))
+	(let ((ratio (/ (- stop start) stop)))
+	  (if (not (var-ref p 'fadeout))
+	      (set! ratio (+ (- ratio) 1.0)))
+	  ;; (pk "ratio" ratio)
+	  (set-brightness ratio)))
        (else
+	(if (var-ref p 'fadeout)
+	    (set-brightness 0.0)
+	    (set-brightness 1.0))
 	(process-kill! p))))))
 
 (define (fade-process milliseconds fadeout?)

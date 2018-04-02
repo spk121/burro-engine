@@ -9,14 +9,17 @@
   #:use-module (burro process base)
   #:use-module (burro error)
   #:use-module (burro debug)
+  #:use-module (ice-9 format)
   #:export(pm-has-processes?
 	   pm-update-or-error-string
 	   pm-attach
 	   pm-detach
 	   pm-detach-all
-	   pm-set-text-click
+	   pm-set-mouse-move
 	   pm-set-mouse-click
-	   pm-set-mouse-move))
+	   pm-set-text-move
+	   pm-set-text-click
+	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -106,7 +109,6 @@
   (for-each pm-detach *process-list*))
 
 (define (pm-deliver-events-to-process process)
-  (format #t "process flags ~x\n" (get-process-flags process))
 
   (when (logtest (get-process-flags process)
 		 PROCESS_FLAG_MOUSE_MOVE)
@@ -117,20 +119,19 @@
 		 PROCESS_FLAG_MOUSE_CLICK)
     (if (pm-has-mouse-click?)
 	(begin
-	  (format #t "pm delivers mouse clock ~a\n" (pm-get-mouse-click))
 	  (var-set! process 'mouse-click (pm-get-mouse-click)))
 	(var-set! process 'mouse-click #f)))
   (when (logtest (get-process-flags process)
 		 PROCESS_FLAG_TEXT_CLICK)
     (if (pm-has-text-click?)
-	(var-set! process 'text-click (pm-get-text-click))
+	(begin
+	  (var-set! process 'text-click (pm-get-text-click)))
 	(var-set! process 'text-click #f)))
   (when (logtest (get-process-flags process)
 		 PROCESS_FLAG_TEXT_MOVE)
     (if (pm-has-text-move?)
 	(var-set! process 'text-move (pm-get-text-move))
 	(var-set! process 'text-move #f))))
-
 
 (define (pm-update delta-milliseconds)
   (when (pm-has-processes?)
@@ -153,12 +154,18 @@
 	     (process-on-update p delta-milliseconds))))
      *process-list*))
   ;; Clear out any old mouse events
-  (pm-clear-text-click)
-  (pm-clear-mouse-click)
-  (pm-clear-mouse-move)
+  (when (pm-has-mouse-move?)
+    (pm-clear-mouse-move))
+  (when (pm-has-mouse-click?)
+    (pm-clear-mouse-click))
+  (when (pm-has-text-move?)
+    (pm-clear-text-move))
+  (when (pm-has-text-click?)
+    (pm-clear-text-click))
   ;; Return whether there are any processes remaining.
   (pm-has-processes?))
 
 (define (pm-update-or-error-string delta-milliseconds)
-  (false-if-exception (pm-update delta-milliseconds)))
-  ;;(error-string-if-exception (pm-update delta-milliseconds)))
+  ;;(false-if-exception (pm-update delta-milliseconds)))
+  (string-if-exception
+   (pm-update delta-milliseconds)))

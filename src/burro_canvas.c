@@ -1,8 +1,10 @@
+#include <math.h>
 #include <gtk/gtk.h>
 #include <libguile.h>
 
 #include "burro_canvas.h"
 #include "burro_canvas_colors.h"
+#include "burro_canvas_bg.h"
 
 struct _BurroCanvas
 {
@@ -48,7 +50,8 @@ tick_cb (GtkWidget *widget, GdkFrameClock *frame_clock, void *user_data)
 {
     if (gtk_widget_is_visible (widget))
     {
-        if (canvas_cur->dirty)
+        if (canvas_cur->dirty
+            || bg_is_dirty(0) || bg_is_dirty(1) || bg_is_dirty(2) || bg_is_dirty(3))
         {
             // Draw it up on a backbuffer
             draw();
@@ -89,10 +92,79 @@ static void draw_backdrop_color ()
     cairo_paint (canvas_cur->context);
 }
 
+static void compute_transform (cairo_matrix_t *matrix,
+                               double rotation_center_screen_x,
+                               double rotation_center_screen_y,
+                               double rotation_center_bitmap_row,
+                               double rotation_center_bitmap_column,
+                               double rotation_angle, double expansion_factor)
+{
+    double xx, xy, yx, yy, x0, y0;
+    double sn, cs;
+    if (expansion_factor == 0.0)
+        expansion_factor = 1.0;
+    sn = sin (rotation_angle);
+    cs = cos (rotation_angle);
+    xx = expansion_factor * cs;
+    xy = expansion_factor * sn;
+    yx = -xy;
+    yy = xx;
+    x0 = (rotation_center_screen_x
+          - (xx * (double)rotation_center_bitmap_column
+             + xy * (double) rotation_center_bitmap_row));
+    y0 = (rotation_center_screen_y
+          - (yx * (double)rotation_center_bitmap_column
+             + yy * (double) rotation_center_bitmap_row));
+    matrix->xx = xx;
+    matrix->xy = xy;
+    matrix->yx = yx;
+    matrix->yy = yy;
+    matrix->x0 = x0;
+    matrix->y0 = y0;
+}
+
+static void paint_transformed_image (cairo_t *context,
+                                     cairo_matrix_t *matrix,
+                                     cairo_surface_t *surface)
+{
+    /* Set the coordinate transform */
+    cairo_set_matrix (context, matrix);
+
+    /* Now copy it to the screen */
+    cairo_set_source_surface (context, surface, 0, 0);
+    cairo_paint (context);
+
+    /* Restore the coordinate system to normal */
+    cairo_identity_matrix (context);
+}
+
+
+static void draw_background_layer (bg_index_t layer)
+{
+    cairo_surface_t *surf;
+    cairo_matrix_t matrix;
+    double scroll_x, scroll_y, rotation_center_x, rotation_center_y;
+    double rotation, expansion;
+
+    surf = bg_get_cairo_surface (layer);
+    cairo_surface_mark_dirty (surf);
+    bg_get_transform (layer, &scroll_x, &scroll_y,
+                      &rotation_center_x, &rotation_center_y,
+                      &rotation, &expansion);
+    compute_transform (&matrix, scroll_x, scroll_y,
+                       rotation_center_x, rotation_center_y,
+                       rotation, expansion);
+    paint_transformed_image (canvas_cur->context, &matrix, surf);
+    // xcairo_surface_destroy (surf);
+}
+
 static void draw_textbox()
 {
     cairo_save (canvas_cur->context);
-    cairo_set_source_rgb (canvas_cur->context, 0.7, 0.7, 0.7);
+    cairo_set_source_rgb (canvas_cur->context,
+                          0.7 * canvas_cur->brightness,
+                          0.7 * canvas_cur->brightness,
+                          0.7 * canvas_cur->brightness);
     cairo_move_to(canvas_cur->context, 0, 0);
     pango_cairo_show_layout (canvas_cur->context, canvas_cur->layout);
     cairo_restore(canvas_cur->context);
@@ -104,14 +176,15 @@ static void draw ()
     draw_backdrop_color ();
     if (canvas_cur->blank_flag)
         goto end_draw;
+
+    for (int z = BURRO_CANVAS_ZLEVEL_COUNT - 1; z >= 0; z --)
+    {
+        if (bg_is_shown (z))
+            draw_background_layer (z);
+    }
 #if 0
     for (int priority = PRIORITY_COUNT - 1; priority >= 0; priority --)
     {
-        for (int layer = BG_MAIN_3; layer >= BG_MAIN_0; layer --)
-        {
-            if (bg_is_shown (layer) && bg_get_priority (layer) == priority)
-                draw_background_layer (layer);
-        }
         SCM obj_display_list = scm_variable_ref(G_obj_display_list);
         for (int id = scm_to_int (scm_length (obj_display_list)) - 1; id >= 0; id --)
         {
@@ -371,7 +444,7 @@ textbox text.")
     return SCM_UNSPECIFIED;
 }
 
-SCM_DEFINE(G_update_layout_fgcolor_on_region, "update-text-fgcolor-on-region",
+SCM_DEFINE(G_update_text_fgcolor_on_region, "update-text-fgcolor-on-region",
            3, 0, 0, (SCM s_colorval, SCM begin, SCM end), "")
 {
     guint32 colorval = scm_to_uint32 (s_colorval);
@@ -390,6 +463,9 @@ SCM_DEFINE(G_update_layout_fgcolor_on_region, "update-text-fgcolor-on-region",
     fgcolor->end_index = b;
     pango_attr_list_change (attrs, fgcolor);
     pango_layout_set_attributes (canvas_cur->layout, attrs);
+    // g_object_unref (attrs);
+    canvas_cur->dirty = TRUE;
+    return SCM_UNSPECIFIED;
 }
 
 gboolean burro_canvas_xy_to_index (BurroCanvas *canvas, double x, double y, int *index, int *trailing)
@@ -447,7 +523,7 @@ void
 burro_canvas_init_guile_procedures ()
 {
     burro_canvas_vram_init_guile_procedures ();
-    
+    burro_canvas_bg_init_guile_procedures ();
 #include "burro_canvas.x"
     scm_c_export ("set-blank",
                   "get-blank",

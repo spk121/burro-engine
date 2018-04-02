@@ -72,32 +72,9 @@
      get-vram-filename
      get-vram-image-size
      vram-get-u32-size
-     load-image-file-into-vram)))
-
-
-;; On exception, returns a string with information about the error
-(define-syntax error-string-if-exception
-  (syntax-rules ()
-    ((error-string-if-exception expr)
-     (catch #t
-       (lambda () expr)
-       (lambda (key . args)
-	 (call-with-output-string
-	   (lambda (port)
-	     (cond
-	      ;; I guess I need to write special cases here for all
-	      ;; the keys that aren't handled well by print-exception.
-	      ((eqv? key 'limit-exceeded)
-	       (let ((subr (car args))
-		     (msg (cadr args))
-		     (msgargs (caddr args)))
-		 (if subr
-		     (format port "In procedure ~a: "subr))
-		 (apply format port msg (or args '()))))
-	      (else
-	       ;; print-exception is undocumented, but, useful.
-	       (print-exception port #f key args))))))))))
-
+     load-image-file-into-vram
+     BG_0 BG_1 BG_2 BG_3
+     set-background-image)))
 
 (define (make-sandbox)
   (make-sandbox-module
@@ -156,7 +133,7 @@ general errors."
 (define (load-file-into-sandbox filename)
   "Read expressions from a file and evaluate them in SANDBOX.  If an
 error occurs, a string is returned with a description of the problem."
-  (let ((port (error-string-if-exception (open-input-file filename))))
+  (let ((port (string-if-exception (open-input-file filename))))
     (if (string? port)
 	port
 	;; else
@@ -170,7 +147,7 @@ error occurs, a string is returned with a description of the problem."
 (define (eval-string-in-sandbox str sandbox)
   "Evaluates a string in a sandbox. If an error occurs, a string is
 returned with a description of the problem."
-  (error-string-if-exception
+  (string-if-exception
    (call-with-input-string str
      (lambda (port)
        (set-port-filename! port "console")
@@ -188,7 +165,7 @@ returned with a description of the problem."
   "Evaluates a procedure using the time and allocation limits
 from the sandbox.  On exception, returns a string describing
 the error."
-  (error-string-if-exception
+  (string-if-exception
    (call-with-time-and-allocation-limits 0.1 #e10e6
 					(lambda ()
 					  (apply proc args)))))
